@@ -33,7 +33,7 @@
 .netlogo-widget {
     box-sizing: border-box;
     background-color: #CCC;
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .netlogo-command:hover,.netlogo-input:hover {
-  box-shadow: 0 0 6px 3px rgba(15, 15, 15, .40);
+  box-shadow: 0 0 5px 2px #ccc;
   cursor:     pointer;
   z-index:    3;
 }
@@ -55,9 +55,14 @@
 
 .netlogo-tab-area {
   margin: 25px 10px;
-  border: 2px solid;
-  border-radius: 10px;
   overflow: hidden;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 10px;
+}
+
+.netlogo-display-horizontal .netlogo-tab-area {
+  margin: 0 0 0 20px;
 }
 
 .netlogo-tab {
@@ -77,7 +82,6 @@
 
 .netlogo-tab:not(:last-child) {
   border-bottom: 1px solid;
-  border-bottom-color: inherit;
 }
 
 .netlogo-tab input[type=checkbox] {
@@ -220,7 +224,7 @@
 }
 
 .netlogo-codeusage-popup {
-  position:absolute;
+  position: absolute;
   z-index: 10;
   border:1px solid #B2B2B2;
   background: white;
@@ -231,10 +235,10 @@
 }
 
 .netlogo-codeusage-list {
-  list-style:none;
-  margin-top:1px;
+  list-style: none;
+  margin-top: 1px;
   padding: 1px;
-  font-size:90%;
+  font-size: 90%;
   font-family: monospace;
 }
 
@@ -245,7 +249,7 @@
 .netlogo-codeusage-item:hover {
   color: white;
   background:#284570;
-  border-radius:2px;
+  border-radius: 2px;
 }
 
 .netlogo-info-editor {
@@ -256,8 +260,16 @@
 .netlogo-info {
   flex: 1;
   margin-top: 0;
-  padding-top: 10px;
-  padding: 15px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-y: scroll;
+  padding: 10px 15px;
+}
+
+.netlogo-info h2,
+.netlogo-info h3,
+.netlogo-info h4 {
+  margin-top: 0;
 }
 
 .netlogo-command-center {
@@ -270,6 +282,24 @@
   border-bottom-color: inherit;
 }
 
+.netlogo-command-center-input select,
+.netlogo-command-center-input button,
+.netlogo-command-center-input .CodeMirror {
+  border: 1px solid #666;
+  height: 18px;
+  line-height: 18px;
+}
+
+.CodeMirror {
+  font-family: Consolas, "Courier New", Courier, monospace;
+}
+
+.netlogo-command-center-input .CodeMirror {
+  height: 16px;
+  line-height: 16px;
+  border-width: 1px 0;
+}
+
 /* I don't actually understand why setting `width` here does what it does.  Without it, if you fill up the Command
  * Center with text, instead of becoming horizontally scrollable, the input grows in width, even if it means becoming
  * larger than the input's container.  So the input (rather than the text) just flows off the side of the screen.
@@ -279,14 +309,10 @@
  * --Jason B. (10/12/17)
  */
 .netlogo-command-center-editor {
-  height: 1.25em;
+  height: 17px;
+  line-height: 17px;
   flex-grow: 1;
   width: 42px; /* Arbitrary as hell; see comment above. --Jason B. (10/12/17) */
-}
-
-.netlogo-command-center-editor .CodeMirror {
-  border: 1px solid #111;
-  height: auto;
 }
 
 .netlogo-output-widget {
@@ -428,8 +454,8 @@
 }
 
 .netlogo-slider {
-    padding-left: 3px;
-    padding-right: 3px;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 .netlogo-slider:hover {
@@ -492,6 +518,7 @@
 
 .netlogo-code {
   border: 1px solid black;
+  border-width: 1px 0 0 0;
 }
 
 .netlogo-code-tab {
@@ -522,7 +549,8 @@
 
 .netlogo-plot {
     box-sizing: content-box; /* otherwise border gets cut off -- BCH 11/9/2014 */
-    border: 1px solid black;
+    border: 1px solid #333;
+    border-radius: 5px;
     overflow: visible; /* must come after the .netlogo-widget declaration - JMB November 2017 */
 }
 
