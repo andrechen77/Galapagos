@@ -138,8 +138,8 @@ kbd {
 }
 
 .not_full_height {
-  height: 95%;
-  min-height: 95%;
+  /*height: 95%;
+  min-height: 95%;*/
 }
 
 body.not_full_height {
@@ -154,7 +154,7 @@ body.not_full_height {
 }
 
 .content {
-  padding: 35px;
+  padding: 25px;
   /* margin: 0 -35px; /* negative indent the amount of the padding to maintain the grid system */
   min-height: 100%;
 }
