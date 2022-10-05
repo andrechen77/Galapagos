@@ -33,7 +33,8 @@ RactiveCodeContainerBase = Ractive.extend({
 
     baseConfig = { mode: 'netlogo', theme: 'netlogo-default', value: @get('code').toString(), viewportMargin: Infinity }
     config     = Object.assign({}, baseConfig, @get('extraConfig') ? {}, @get('injectedConfig') ? {})
-    @_editor   = new CodeMirror(@find("##{@get('id')}"), config)
+    @_editor   = new CodeMirror(@find("##{@get('id')}-obsolete"), config)
+    @_editorNew = new GalapagosEditor(@find("##{@get('id')}"), config)
 
     @_editor.on('change', =>
       code = @_editor.getValue()

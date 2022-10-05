@@ -538,8 +538,16 @@
   border-width: 1px 0 0 0;
 }
 
+.netlogo-code .cm-editor {
+  height: 100%;
+}
+
+.netlogo-code .cm-editor .cm-scroller {
+  font-family: Consolas, "Courier New", Courier, monospace;
+}
+
 .netlogo-code-tab {
-  height: 500px;
+  height: calc(100vh - 120px);
 }
 
 .netlogo-input-box {
