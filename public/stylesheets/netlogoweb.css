@@ -64,3 +64,11 @@ input[type="range"] {
   background-color: #F4F4F4;
   border: 1px solid #CCCCCC;
 }
+
+.netlogo-powered-by a {
+  color: #5B75B9;
+}
+
+.netlogo-powered-by a:hover {
+  color: #5A648D;
+}

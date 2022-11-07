@@ -11,9 +11,8 @@
   outline: none;
 }
 
-.netlogo-model.netlogo-display-vertical {
-  max-height: calc(100vh - 20px);
-  overflow-y: auto;
+.netlogo-model.netlogo-display-horizontal {
+  width: calc(100vw - 60px);
 }
 
 .netlogo-display-vertical {
@@ -65,17 +64,20 @@
   border-style: solid;
   border-width: 1px;
   border-radius: 10px;
+  -webkit-mask-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAA5JREFUeNpiYGBgAAgwAAAEAAGbA+oJAAAAAElFTkSuQmCC);
 }
 
 .netlogo-display-horizontal .netlogo-tab-area {
   margin: 0 0 0 20px;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 45px);
+  flex-grow: 1;
+  display: flex;
 }
 
 .netlogo-display-horizontal .netlogo-display-vertical {
-  max-height: calc(100vh - 40px);
+  max-height: calc(100vh - 45px);
 }
 
 .netlogo-tab {
@@ -547,7 +549,7 @@
 }
 
 .netlogo-code-tab {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 160px);
 }
 
 .netlogo-input-box {
@@ -714,4 +716,8 @@
   display: flex;
   flex-direction: row;
   justify-content: center;
+}
+
+.netlogo-powered-by a {
+  text-decoration: none;
 }
