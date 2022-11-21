@@ -1,6 +1,6 @@
 RactiveCodeContainerBase = Ractive.extend({
 
-  _editorNew: undefined # CodeMirror
+  _editor: undefined # CodeMirror
 
   data: -> {
     code:           undefined # String
@@ -31,53 +31,42 @@ RactiveCodeContainerBase = Ractive.extend({
 
   _setupCodeMirror: ->
 
-    onUpdateFunction= (Changed, Update) ->
-      code = @_editorNew.GetCode()
-      @set('code', code)
-      @parent.fire('code-changed', code)
-      @get('onchange')(code)
-      console.log(code)
-      # if Changed
-      #   console.log(Update)
+    onUpdateFunction = (Changed, Update) ->
+      if @_editor
+        code = @_editor.GetCode()
+        @set('code', code)
+        @parent.fire('code-changed', code)
+        @get('onchange')(code)
+      return
 
-    baseConfig = { mode: 'netlogo', theme: 'netlogo-default', value: @get('code').toString(), viewportMargin: Infinity, OnUpdate: onUpdateFunction}
+    baseConfig = { mode: 'netlogo', theme: 'netlogo-default', value: @get('code').toString(), viewportMargin: Infinity, OnUpdate: onUpdateFunction }
     config     = Object.assign({}, baseConfig, @get('extraConfig') ? {}, @get('injectedConfig') ? {})
     # @_editor   = new CodeMirror(@find("##{@get('id')}-obsolete"), config)
-    @_editorNew = new GalapagosEditor(@find("##{@get('id')}"), config)
-
-    # @_editorNew.on('change', =>
-      # code = @_editorNew.GetCode()
-      # @set('code', code)
-      # @parent.fire('code-changed', code)
-      # @get('onchange')(code)
-    # )
+    @_editor = new GalapagosEditor(@find("##{@get('id')}"), config)
 
     @observe('isDisabled', (isDisabled) ->
-      if isDisabled
-        @_editorNew.SetReadOnly(true)
       # @_editor.setOption('readOnly', if isDisabled then 'nocursor' else false)
-      classes = this.find('.netlogo-code').querySelector('.CodeMirror-scroll').classList
-      if isDisabled
-        classes.add('cm-disabled')
-      else
-        classes.remove('cm-disabled')
+      # classes = this.find('.netlogo-code').querySelector('.CodeMirror-scroll').classList
+      # if isDisabled
+      #   classes.add('cm-disabled')
+      # else
+      #   classes.remove('cm-disabled')
+      @_editor.SetReadOnly(if isDisabled then true else false)
       return
     )
 
     return
 
   # () => Unit
-  refresh: ->
-    @_editor.refresh()
-    return
+  # refresh: ->
+  #   @_editor.refresh()
+  #   return
 
   # (String) => Unit
   setCode: (code) ->
-    # str = code.toString()
-    # if @_editor? and @_editor.getValue() isnt str
-    #   @_editor.setValue(str)
-    if @_editorNew
-      @_editorNew.SetCode(code.toString())
+    str = code.toString()
+    if @_editor
+      @_editor.SetCode(str)
     return
 
   template:
@@ -121,51 +110,55 @@ RactiveCodeContainerMultiline = RactiveCodeContainerBase.extend({
 
   # (String, Int) => Unit
   highlightProcedure: (procedureName, index) ->
-    end   = @_editor.posFromIndex(index)
-    start = CodeMirror.Pos(end.line, end.ch - procedureName.length)
-    @_editor.setSelection(start, end)
+    # end   = @_editor.posFromIndex(index)
+    # start = CodeMirror.Pos(end.line, end.ch - procedureName.length)
+    @_editor.Select(index - procedureName.length, index)
     return
 
   # ({ start: Int, end: Int }) => Unit
   highlightLocation: (location) ->
-    start = @_editor.posFromIndex(location.start)
-    end   = @_editor.posFromIndex(location.end)
-    @_editor.setSelection(start, end)
+    # start = @_editor.posFromIndex(location.start)
+    # end   = @_editor.posFromIndex(location.end)
+    @_editor.Select(location.start, location.end)
     return
 
   # () => Unit
   jumpToProcedure: () ->
     procInfo = @get('jumpToProcedure')
-    if procInfo? and @_editorNew?
+    if procInfo? and @_editor?
       @highlightProcedure(procInfo.procName, procInfo.index)
     return
 
   # () => Unit
   jumpToCode: () ->
     location = @get('jumpToCode')
-    if location? and @_editorNew?
-      @_editorNew.JumpTo(location)
+    if location? and @_editor?
+      @_editor.JumpTo(location.start)
     return
 
   # () => CodeMirror
   getEditor: ->
-    @_editorNew
+    @_editor
 
 })
 
 RactiveCodeContainerOneLine = RactiveCodeContainerBase.extend({
 
-  
+  data: -> {
+    extraConfig: {
+      OneLine: true
+    }
+  }
 
-  # oncomplete: ->
-  #   @._super()
-  #   forceOneLine =
-  #     (_, change) ->
-  #       oneLineText = change.text.join('').replace(/\n/g, '')
-  #       change.update(change.from, change.to, [oneLineText])
-  #       true
-  #   @_editor.on('beforeChange', forceOneLine)
-  #   return
+  oncomplete: ->
+    @._super()
+    # forceOneLine =
+    #   (_, change) ->
+    #     oneLineText = change.text.join('').replace(/\n/g, '')
+    #     change.update(change.from, change.to, [oneLineText])
+    #     true
+    # @_editor.on('beforeChange', forceOneLine)
+    return
 
 })
 
@@ -207,8 +200,8 @@ editFormCodeContainerFactory =
           #
           # Thus: This nonsense. --Jason B. (6/16/22)
           @observe('isExpanded', (newValue, oldValue) ->
-            if newValue is true and oldValue is false
-              setTimeout((=> @findComponent('codeContainer').refresh()), 0)
+            # if newValue is true and oldValue is false
+            #   setTimeout((=> @findComponent('codeContainer').refresh()), 0)
           )
 
           return
