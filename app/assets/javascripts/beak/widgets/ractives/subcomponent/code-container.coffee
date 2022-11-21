@@ -31,18 +31,10 @@ RactiveCodeContainerBase = Ractive.extend({
 
   _setupCodeMirror: ->
 
-    onUpdateFunction = (Changed, Update) ->
-      if @_editor
-        code = @_editor.GetCode()
-        @set('code', code)
-        @parent.fire('code-changed', code)
-        @get('onchange')(code)
-      return
-
-    baseConfig = { mode: 'netlogo', theme: 'netlogo-default', value: @get('code').toString(), viewportMargin: Infinity, OnUpdate: onUpdateFunction }
+    baseConfig = { OnUpdate: (changed, update) => @_onUpdateFunction(changed, update) }
     config     = Object.assign({}, baseConfig, @get('extraConfig') ? {}, @get('injectedConfig') ? {})
-    # @_editor   = new CodeMirror(@find("##{@get('id')}-obsolete"), config)
-    @_editor = new GalapagosEditor(@find("##{@get('id')}"), config)
+    @_editor   = new GalapagosEditor(@find("##{@get('id')}"), config)
+    this.setCode(@get('code').toString());
 
     @observe('isDisabled', (isDisabled) ->
       # @_editor.setOption('readOnly', if isDisabled then 'nocursor' else false)
@@ -55,6 +47,14 @@ RactiveCodeContainerBase = Ractive.extend({
       return
     )
 
+    return
+  
+  _onUpdateFunction: (changed, update) ->
+    if @_editor and changed
+      code = @_editor.GetCode()
+      @set('code', code)
+      @parent.fire('code-changed', code)
+      @get('onchange')(code)
     return
 
   # () => Unit
