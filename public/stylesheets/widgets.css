@@ -11,9 +11,9 @@
   outline: none;
 }
 
-.netlogo-model.netlogo-display-horizontal {
+/* .netlogo-model.netlogo-display-horizontal {
   width: calc(100vw - 60px);
-}
+} */
 
 .netlogo-display-vertical {
   display: flex;
@@ -73,7 +73,7 @@
   overflow-x: hidden;
   max-height: calc(100vh - 45px);
   flex-grow: 1;
-  display: flex;
+  /* display: flex; */
 }
 
 .netlogo-display-horizontal .netlogo-display-vertical {
@@ -496,6 +496,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+body {
+  margin: 25 0 0 10;
 }
 
 .netlogo-slider-label {
