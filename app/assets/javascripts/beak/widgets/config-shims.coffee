@@ -128,7 +128,9 @@ genImportExportConfig = (ractive, viewController, compiler) ->
 
 # () => InspectionConfig
 genInspectionConfig = ->
-  inspect        = ((agent) -> window.alert("Agent inspection is not yet implemented"))
+  inspect        = ((agent) ->
+    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent("setinspect", { detail: { agent } }))
+  )
   stopInspecting = ((agent) ->)
   clearDead      = (->)
   { inspect, stopInspecting, clearDead }

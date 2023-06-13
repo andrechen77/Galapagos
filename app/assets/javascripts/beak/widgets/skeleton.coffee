@@ -9,6 +9,7 @@ import RactiveModelCodeComponent from "./ractives/code-editor.js"
 import RactiveSwitch from "./ractives/switch.js"
 import RactiveHelpDialog from "./ractives/help-dialog.js"
 import RactiveConsoleWidget from "./ractives/console.js"
+import RactiveInspectionPane from "./ractives/inspection-pane.js"
 import RactiveOutputArea from "./ractives/output.js"
 import RactiveInfoTabWidget from "./ractives/info.js"
 import RactiveModelTitle from "./ractives/title.js"
@@ -55,6 +56,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
   , ticks:                "" # Remember, ticks initialize to nothing, not 0
   , ticksStarted:         false
   , widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
+  , watchedAgents:        [] # Array[Agent]
   , width:                0
   }
 
@@ -87,6 +89,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
       asyncDialog:   RactiveAsyncUserDialog
     , console:       RactiveConsoleWidget
+    , inspection:    RactiveInspectionPane
     , contextMenu:   RactiveContextMenu
     , editableTitle: RactiveModelTitle
     , codePane:      RactiveModelCodeComponent
@@ -136,6 +139,13 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     },
 
+    onrender: ->
+      @on('setinspect', (context) ->
+        console.log("hello from the skeleton!")
+        console.log(context.event.detail)
+        @set('watchedAgents', [context.event.detail.agent])
+      )
+
     data: -> model
   })
 
@@ -147,6 +157,8 @@ template =
     isSessionLoopRunning={{isSessionLoopRunning}}
     sourceType={{source.type}}
     />
+
+  <div id="skeleton-handle" on-setinspect="setinspect"></div>
 
   <div class="netlogo-model netlogo-display-{{# isVertical }}vertical{{ else }}horizontal{{/}}" style="min-width: {{width}}px;"
        tabindex="1" on-keydown="@this.fire('check-action-keys', @event)"
@@ -241,6 +253,10 @@ template =
     </div>
 
     <div class="netlogo-tab-area" style="min-width: {{Math.min(width, 500)}}px; max-width: {{Math.max(width, 500)}}px">
+      <label class="netlogo-tab">
+        <span class="netlogo-tab-text">Agent Inspection</span>
+      </label>
+      <inspection watchedAgents={{watchedAgents}}/>
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>
