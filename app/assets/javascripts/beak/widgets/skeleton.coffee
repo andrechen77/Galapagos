@@ -57,6 +57,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
   , ticksStarted:         false
   , widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
   , watchedAgents:        [] # Array[Agent]
+  , viewController:       undefined
   , width:                0
   }
 
@@ -141,8 +142,6 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     onrender: ->
       @on('setinspect', (context) ->
-        console.log("hello from the skeleton!")
-        console.log(context.event.detail)
         @set('watchedAgents', [context.event.detail.agent])
       )
 
@@ -256,7 +255,7 @@ template =
       <label class="netlogo-tab">
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
-      <inspection watchedAgents={{watchedAgents}}/>
+      <inspection viewController={{viewController}} watchedAgents={{watchedAgents}}/>
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>

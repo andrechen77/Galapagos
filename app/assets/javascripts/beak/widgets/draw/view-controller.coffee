@@ -218,6 +218,8 @@ class ViewWindow
     else
       @view.follow(model)
 
+  # TODO for some reason this function does not work with multiple ViewWindows. Whether it
+  # ever worked at all is unknown atm.
   # (Number) => Unit
   setZoom: (zoomLevel) ->
     @_zoomLevel =
