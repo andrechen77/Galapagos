@@ -5,78 +5,28 @@ import { LinkDrawer } from "./link-drawer.js"
 
 AgentModel = tortoise_require('agentmodel')
 
+###
+TODOs:
+- add mouse tracking to the ViewWindows
+###
+
 class ViewController
-  constructor: (@container, fontSize) ->
+  constructor: (fontSize) ->
     @view = new View(fontSize)
     @turtleDrawer = new TurtleDrawer(@view)
     @drawingLayer = new DrawingLayer(@view, @turtleDrawer, () => @repaint())
     @patchDrawer = new PatchDrawer(@view)
     @spotlightDrawer = new SpotlightDrawer(@view)
-    @container.appendChild(@view.visibleCanvas)
+    @viewWindows = []
 
     @mouseDown   = false
     @mouseInside = false
-    @mouseX      = 0
-    @mouseY      = 0
-    @initMouseTracking()
-    @initTouchTracking()
     @resetModel()
     @repaint()
 
-  mouseXcor: => @view.xPixToPcor(@mouseX)
-  mouseYcor: => @view.yPixToPcor(@mouseY)
-
-  initMouseTracking: ->
-    @view.visibleCanvas.addEventListener('mousedown', (e) => @mouseDown = true)
-    document           .addEventListener('mouseup',   (e) => @mouseDown = false)
-
-    @view.visibleCanvas.addEventListener('mouseenter', (e) => @mouseInside = true)
-    @view.visibleCanvas.addEventListener('mouseleave', (e) => @mouseInside = false)
-
-    @view.visibleCanvas.addEventListener('mousemove', (e) =>
-      rect = @view.visibleCanvas.getBoundingClientRect()
-      @mouseX = e.clientX - rect.left
-      @mouseY = e.clientY - rect.top
-    )
-
-  # Unit -> Unit
-  initTouchTracking: ->
-
-    endTouch =
-      (e) =>
-        @mouseDown   = false
-        @mouseInside = false
-        return
-
-    trackTouch =
-      ({ clientX, clientY }) =>
-        { bottom, left, top, right } = @view.visibleCanvas.getBoundingClientRect()
-        if (left <= clientX <= right) and (top <= clientY <= bottom)
-          @mouseInside = true
-          @mouseX      = clientX - left
-          @mouseY      = clientY - top
-        else
-          @mouseInside = false
-        return
-
-    document.addEventListener('touchend',    endTouch)
-    document.addEventListener('touchcancel', endTouch)
-
-    @view.visibleCanvas.addEventListener('touchmove'
-    , (e) =>
-        e.preventDefault()
-        trackTouch(e.changedTouches[0])
-        return
-    )
-
-    @view.visibleCanvas.addEventListener('touchstart'
-    , (e) =>
-        @mouseDown = true
-        trackTouch(e.touches[0])
-        return
-    )
-
-    return
+  # loop over each individual view window and see if any of them have information on where the mouse is
+  ### mouseXcor: => @view.xPixToPcor(@mouseX)
+  mouseYcor: => @view.yPixToPcor(@mouseY) ###
 
   resetModel: ->
     @model = new AgentModel()
@@ -88,7 +38,7 @@ class ViewController
     @drawingLayer.repaint(@model)
     @turtleDrawer.repaint(@model)
     @spotlightDrawer.repaint(@model)
-    @view.repaint(@model)
+    viewWindow.repaint(@model) for viewWindow in @viewWindows
 
   # (Update|Array[Update]) => Unit
   applyUpdate: (modelUpdate) ->
@@ -102,6 +52,19 @@ class ViewController
     @repaint()
     return
 
+  # returns a new ViewWindow that controls the specified container
+  # The returned ViewWindow must be destructed before it is dropped.
+  getNewViewWindow: (container, watchedAgent) ->
+    do =>
+      # find the first unused index
+      firstUnused = @viewWindows.find((element) -> element?) ? @viewWindows.length
+      @viewWindows.push(new ViewWindow(container, @view, watchedAgent, () => @viewWindows[firstUnused] = null))
+    @viewWindows.at(-1)
+
+# IDs used in watch, follow, and getCenteredAgent
+turtleType = 1
+patchType = 2
+linkType = 3
 
 # Perspective constants:
 OBSERVE = 0
@@ -113,13 +76,6 @@ class View
   constructor: (@fontSize) ->
     @canvas = document.createElement('canvas')
     @ctx = @canvas.getContext('2d')
-    @visibleCanvas = document.createElement('canvas')
-    @visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
-    @visibleCanvas.width = 500
-    @visibleCanvas.height = 500
-    @visibleCanvas.style.width = "100%"
-    @visibleCtx = @visibleCanvas.getContext('2d')
-    @_zoomLevel = null
 
   transformToWorld: (world) ->
     @transformCanvasToWorld(world, @canvas, @ctx)
@@ -139,8 +95,6 @@ class View
     @worldHeight = @maxpycor - @minpycor + 1
     @worldCenterX = (@maxpxcor + @minpxcor) / 2
     @worldCenterY = (@maxpycor + @minpycor) / 2
-    @centerX = @worldWidth / 2
-    @centerY = @worldHeight / 2
     canvas.width =  @worldWidth * @patchsize * @quality
     canvas.height = @worldHeight * @patchsize * @quality
     canvas.style.width = "#{@worldWidth * @patchsize}px"
@@ -170,21 +124,6 @@ class View
     ctx.globalCompositeOperation = gco
     drawFn()
     ctx.globalCompositeOperation = oldGCO
-
-  offsetX: -> @worldCenterX - @centerX
-  offsetY: -> @worldCenterY - @centerY
-
-  # These convert between model coordinates and position in the canvas DOM element
-  # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
-  xPixToPcor: (x) ->
-    (@worldWidth * x / @visibleCanvas.clientWidth + @worldWidth - @offsetX()) % @worldWidth + @minpxcor - .5
-  yPixToPcor: (y) ->
-    (- @worldHeight * y / @visibleCanvas.clientHeight + 2 * @worldHeight - @offsetY()) % @worldHeight + @minpycor - .5
-
-  # Unlike the above functions, this accounts for @quality. This intentionally does not account
-  # for situations like follow (as it's used to make that calculation). BCH 5/6/2015
-  xPcorToCanvas: (x) -> (x - @minpxcor + .5) / @worldWidth * @visibleCanvas.width
-  yPcorToCanvas: (y) -> (@maxpycor + .5 - y) / @worldHeight * @visibleCanvas.height
 
   # Wraps text
   drawLabel: (xcor, ycor, label, color, ctx) ->
@@ -225,20 +164,15 @@ class View
             drawFn(x, y)
     return
 
-  # IDs used in watch and follow
-  turtleType: 1
-  patchType: 2
-  linkType: 3
-
   # Returns the agent being watched, or null.
   watch: (model) ->
     {observer, turtles, links, patches} = model
     if model.observer.perspective isnt OBSERVE and observer.targetagent and observer.targetagent[1] >= 0
       [type, id] = observer.targetagent
       switch type
-        when @turtleType then model.turtles[id]
-        when @patchType then model.patches[id]
-        when @linkType then model.links[id]
+        when turtleType then model.turtles[id]
+        when patchType then model.patches[id]
+        when linkType then model.links[id]
     else
       null
 
@@ -246,6 +180,43 @@ class View
   follow: (model) ->
     persp = model.observer.perspective
     if persp is FOLLOW or persp is RIDE then @watch(model) else null
+
+class ViewWindow
+  # centeredAgent is either the observer, in which case the ViewWindow will reflect the observer's
+  # perspective, or it is another agent, in which case the ViewWindow will follow that agent
+  constructor: (@container, @view, @targetedAgent, @destructor) ->
+    @visibleCanvas = document.createElement('canvas')
+    @visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
+    @visibleCanvas.width = 500
+    @visibleCanvas.height = 500
+    @visibleCanvas.style.width = "100%"
+    @visibleCtx = @visibleCanvas.getContext('2d')
+    @centerX = @view.worldWidth / 2 # not sure what the purpose of this is
+    @centerY = @view.worldHeight / 2
+    @_zoomLevel = null
+    @container.appendChild(@visibleCanvas)
+
+  # These convert between model coordinates and position in the canvas DOM element
+  # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
+  xPixToPcor: (x) ->
+    (@view.worldWidth * x / @visibleCanvas.clientWidth + @view.worldWidth - @view.offsetX()) % @view.worldWidth + @view.minpxcor - .5
+  yPixToPcor: (y) ->
+    (- @view.worldHeight * y / @visibleCanvas.clientHeight + 2 * @view.worldHeight - @view.offsetY()) % @view.worldHeight + @view.minpycor - .5
+
+  # Unlike the above functions, this accounts for @quality. This intentionally does not account
+  # for situations like follow (as it's used to make that calculation). BCH 5/6/2015
+  xPcorToCanvas: (x) -> (x - @view.minpxcor + .5) / @view.worldWidth * @visibleCanvas.width
+  yPcorToCanvas: (y) -> (@view.maxpycor + .5 - y) / @view.worldHeight * @visibleCanvas.height
+
+  offsetX: -> @view.worldCenterX - @centerX
+  offsetY: -> @view.worldCenterY - @centerY
+
+  getTargetedAgent: (model) ->
+    {observer, turtles, links, patches} = model
+    if @targetedAgent != observer
+      @targetedAgent
+    else
+      @view.follow(model)
 
   # (Number) => Unit
   setZoom: (zoomLevel) ->
@@ -257,11 +228,11 @@ class View
     return
 
   repaint: (model) ->
-    target = @follow(model)
-    @visibleCanvas.width = @canvas.width
-    @visibleCanvas.height = @canvas.height
-    @visibleCanvas.style.width = @canvas.style.width
-    @visibleCanvas.style.height = @canvas.style.height
+    target = @getTargetedAgent(model)
+    @visibleCanvas.width = @view.canvas.width
+    @visibleCanvas.height = @view.canvas.height
+    @visibleCanvas.style.width = @view.canvas.style.width
+    @visibleCanvas.style.height = @view.canvas.style.height
     if target?
       width = @visibleCanvas.width
       height = @visibleCanvas.height
@@ -269,15 +240,15 @@ class View
       @centerY = target.ycor
       x = -@xPcorToCanvas(@centerX) + width / 2
       y = -@yPcorToCanvas(@centerY) + height / 2
-      xs = if @wrapX then [x - width,  x, x + width ] else [x]
-      ys = if @wrapY then [y - height, y, y + height] else [y]
+      xs = if @view.wrapX then [x - width,  x, x + width ] else [x]
+      ys = if @view.wrapY then [y - height, y, y + height] else [y]
       for dx in xs
         for dy in ys
-          @visibleCtx.drawImage(@canvas, dx, dy)
+          @visibleCtx.drawImage(@view.canvas, dx, dy)
     else
-      @centerX = @worldCenterX
-      @centerY = @worldCenterY
-      @visibleCtx.drawImage(@canvas, 0, 0)
+      @centerX = @view.worldCenterX
+      @centerY = @view.worldCenterY
+      @visibleCtx.drawImage(@view.canvas, 0, 0)
     @_handleZoom()
     return
 

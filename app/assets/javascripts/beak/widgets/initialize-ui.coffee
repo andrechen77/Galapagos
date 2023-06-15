@@ -48,7 +48,8 @@ initializeUI = (containerArg, widgets, code, info,
   viewModel = widgets.find(({ type }) -> type is 'view')
 
   ractive.set('primaryView', viewModel)
-  viewController = new ViewController(container.querySelector('.netlogo-view-container'), viewModel.fontSize)
+  viewController = new ViewController(viewModel.fontSize)
+  viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), viewController.model.observer)
 
   entwineDimensions(viewModel, viewController.model.world)
   entwine([[viewModel, "fontSize"], [viewController.view, "fontSize"]], viewModel.fontSize)
