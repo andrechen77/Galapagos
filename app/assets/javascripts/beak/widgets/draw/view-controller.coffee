@@ -58,7 +58,14 @@ class ViewController
     do =>
       # find the first unused index
       firstUnused = @viewWindows.find((element) -> element?) ? @viewWindows.length
-      @viewWindows.push(new ViewWindow(container, @view, watchedAgent, () => @viewWindows[firstUnused] = null))
+      @viewWindows.push(new ViewWindow(
+        container,
+        @view,
+        watchedAgent,
+        () =>
+          @viewWindows[firstUnused] = null
+          container.replaceChildren()
+      ))
     @viewWindows.at(-1)
 
 # IDs used in watch, follow, and getCenteredAgent
