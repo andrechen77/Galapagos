@@ -225,13 +225,11 @@ class ViewWindow
     else
       @view.follow(model)
 
-  # TODO for some reason this function does not work with multiple ViewWindows. Whether it
-  # ever worked at all is unknown atm.
   # (Number) => Unit
   setZoom: (zoomLevel) ->
     @_zoomLevel =
       if Number.isInteger(zoomLevel)
-        Math.min(Math.max(0, zoomLevel), Math.floor(@worldWidth / 2), Math.floor(@worldHeight / 2))
+        Math.min(Math.max(0, zoomLevel), Math.floor(@view.worldWidth / 2), Math.floor(@view.worldHeight / 2))
       else
         null
     return
@@ -269,7 +267,7 @@ class ViewWindow
   _handleZoom: ->
     if @_zoomLevel isnt null
 
-      length = ((2 * @_zoomLevel) + 1) * (2 * @patchsize)
+      length = ((2 * @_zoomLevel) + 1) * (2 * @view.patchsize)
       left   = (@visibleCanvas.width  / 2) - (length / 2)
       top    = (@visibleCanvas.height / 2) - (length / 2)
 
