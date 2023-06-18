@@ -263,6 +263,9 @@ class ViewWindow
   # I'm just throwing this together for a janky `hubnet-send-follow`.
   # Do better! --Jason B. (10/21/17)
   #
+  # Removed the tempCanvas as it was not necessary. Otherwise, it doesn't seem
+  # to be that janky. --Andre C. (06/18/23)
+  #
   # () => Unit
   _handleZoom: ->
     if @_zoomLevel isnt null
@@ -271,15 +274,9 @@ class ViewWindow
       left   = (@visibleCanvas.width  / 2) - (length / 2)
       top    = (@visibleCanvas.height / 2) - (length / 2)
 
-      tempCanvas        = document.createElement('canvas')
-      tempCanvas.width  = @visibleCanvas.width
-      tempCanvas.height = @visibleCanvas.height
-      tempCanvas.getContext('2d').drawImage(@visibleCanvas, 0, 0)
-
       @visibleCtx.save()
-      @visibleCtx.setTransform(1, 0, 0, 1, 0, 0)
-      @visibleCtx.clearRect(0, 0, @visibleCanvas.width, @visibleCanvas.height)
-      @visibleCtx.drawImage(tempCanvas
+      @visibleCtx.resetTransform()
+      @visibleCtx.drawImage(@visibleCanvas
                           , left, top, length, length
                           , 0, 0, @visibleCanvas.width, @visibleCanvas.height)
       @visibleCtx.restore()
