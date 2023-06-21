@@ -129,10 +129,14 @@ genImportExportConfig = (ractive, viewController, compiler) ->
 # () => InspectionConfig
 genInspectionConfig = ->
   inspect        = ((agent) ->
-    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent("setinspect", { detail: { agent } }))
+    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent("setinspect", { detail: { type: 'add', agent } }))
   )
-  stopInspecting = ((agent) ->)
-  clearDead      = (->)
+  stopInspecting = ((agent) ->
+    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent("setinspect", { detail: { type: 'remove', agent } }))
+  )
+  clearDead      = (->
+    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent("setinspect", { detail: { type: 'clear' } }))
+  )
   { inspect, stopInspecting, clearDead }
 
 # (Ractive) => IOConfig

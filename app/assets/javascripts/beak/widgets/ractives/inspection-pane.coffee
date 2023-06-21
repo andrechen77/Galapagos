@@ -13,14 +13,18 @@ RactiveInspectionPane = Ractive.extend({
   template:
     """
     <div class='netlogo-tab-content'>
-      watched agents: ===============
+      watched agents: ===============<br/>
       {{#each watchedAgents}}
+        -----<br/>
         watched agent here <br/>
+        id is {{id}}<br/>
+        coords are {{xcor}} and {{ycor}}<br/>
+        -----<br/>
       {{/each}}
       <br/>
       specific Agent: ===============
       {{#if watchedAgents.length > 0}}
-      <inspectionWindow viewController={{viewController}} agentType="tortle" agentRef={{watchedAgents[0]}}/>
+      <inspectionWindow viewController={{viewController}} agentType="tortle" agentRef={{watchedAgents.at(-1)}}/>
       {{/if}}
     </div>
     """

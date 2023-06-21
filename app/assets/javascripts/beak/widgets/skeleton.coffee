@@ -142,7 +142,14 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     onrender: ->
       @on('setinspect', (context) ->
-        @set('watchedAgents', [context.event.detail.agent])
+        { type, agent } = context.event.detail
+        switch type
+          when 'add'
+            @push('watchedAgents', agent)
+          when 'remove'
+            @splice('watchedAgents', @get('watchedAgents').indexOf(agent), 1)
+          when 'clear'
+            @set('watchedAgents', [])
       )
 
     data: -> model
