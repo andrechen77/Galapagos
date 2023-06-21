@@ -27,7 +27,7 @@ importFile = (type, ractive) -> (callback) ->
 genAsyncDialogConfig = (ractive, viewController) ->
 
   clearMouse = ->
-    viewController.mouseDown = false
+    # viewController.mouseDown = false TODO fix this
     return
 
   tellDialog = (eventName, args...) ->
@@ -61,7 +61,7 @@ genAsyncDialogConfig = (ractive, viewController) ->
 genDialogConfig = (viewController, notify) ->
 
   clearMouse = ->
-    viewController.mouseDown = false
+    # viewController.mouseDown = false TODO fix this
     return
 
   # `yesOrNo` should eventually be changed to use a proper synchronous, three-button,
@@ -206,8 +206,8 @@ genIOConfig = (ractive) ->
 # (ViewController) => MouseConfig
 genMouseConfig = (viewController) ->
   {
-    peekIsDown:   -> viewController.mouseDown
-    peekIsInside: -> viewController.mouseInside
+    peekIsDown:      viewController.mouseDown
+    peekIsInside:    viewController.mouseInside
     peekX:           viewController.mouseXcor
     peekY:           viewController.mouseYcor
   }

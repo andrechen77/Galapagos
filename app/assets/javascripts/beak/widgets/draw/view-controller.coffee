@@ -5,11 +5,6 @@ import { LinkDrawer } from "./link-drawer.js"
 
 AgentModel = tortoise_require('agentmodel')
 
-###
-TODOs:
-- add mouse tracking to the ViewWindows
-###
-
 class ViewController
   constructor: (fontSize) ->
     @view = new View(fontSize)
@@ -19,14 +14,27 @@ class ViewController
     @spotlightDrawer = new SpotlightDrawer(@view)
     @viewWindows = []
 
-    @mouseDown   = false
-    @mouseInside = false
     @resetModel()
     @repaint()
 
-  # loop over each individual view window and see if any of them have information on where the mouse is
-  ### mouseXcor: => @view.xPixToPcor(@mouseX)
-  mouseYcor: => @view.yPixToPcor(@mouseY) ###
+  # TODO refactor the rest of the engine so that we don't need to loop for each property
+  # i.e. report all of x, y, mouseDown, mouseInside using the single method "getMouseState"
+  mouseInside: => @getMouseState().mouseInside
+  mouseXcor: => @getMouseState().mouseX # could be undefined if the mouse is not inside
+  mouseYcor: => @getMouseState().mouseY # could be undefined if the mouse is not inside
+  mouseDown: => @getMouseState().mouseDown # could be undefined if the mouse is not inside
+
+  # Unit -> { mouseInside: boolean, mouseDown: boolean | undefined, mouseX: number | undefined, mouseY: number | undefined }
+  getMouseState: ->
+    for viewWindow in @viewWindows
+      if viewWindow.mouseInside
+        return {
+          mouseInside: true,
+          mouseDown: viewWindow.mouseDown,
+          mouseX: viewWindow.getMouseXCor(),
+          mouseY: viewWindow.getMouseYCor(),
+        }
+    { mouseInside: false }
 
   resetModel: ->
     @model = new AgentModel()
@@ -201,14 +209,75 @@ class ViewWindow
     @centerX = @view.worldWidth / 2 # not sure what the purpose of this is
     @centerY = @view.worldHeight / 2
     @_zoomLevel = null
+
+    @mouseInside = false # the other mouse data members are only valid if this is true
+    @mouseDown = false
+    @mouseX = 0 # where the mouse is relative to the canvas
+    @mouseY = 0
+    @initMouseTracking()
+    @initTouchTracking()
+
     @container.appendChild(@visibleCanvas)
+
+  # Unit -> Number
+  # Returns the mouse coordinates in model coordinates
+  getMouseXCor: -> @xPixToPcor(@mouseX)
+  getMouseYCor: -> @yPixToPcor(@mouseY)
+
+  # Unit -> Unit
+  initMouseTracking: ->
+    @visibleCanvas.addEventListener('mousedown', => @mouseDown = true)
+    document.addEventListener('mouseup', => @mouseDown = false)
+
+    @visibleCanvas.addEventListener('mouseenter', => @mouseInside = true)
+    @visibleCanvas.addEventListener('mouseleave', => @mouseInside = false)
+
+    @visibleCanvas.addEventListener('mousemove', (e) =>
+      rect = @visibleCanvas.getBoundingClientRect()
+      @mouseX = e.clientX - rect.left
+      @mouseY = e.clientY - rect.top
+    )
+
+  # Unit -> Unit
+  initTouchTracking: ->
+    # event -> Unit
+    endTouch = (e) =>
+      @mouseDown   = false
+      @mouseInside = false
+      return
+
+    # Touch -> Unit
+    trackTouch = ({ clientX, clientY }) =>
+      { bottom, left, top, right } = @visibleCanvas.getBoundingClientRect()
+      if (left <= clientX <= right) and (top <= clientY <= bottom)
+        @mouseInside = true
+        @mouseX      = clientX - left
+        @mouseY      = clientY - top
+      else
+        @mouseInside = false
+      return
+
+    document.addEventListener('touchend',    endTouch)
+    document.addEventListener('touchcancel', endTouch)
+    @visibleCanvas.addEventListener('touchmove', (e) =>
+      e.preventDefault()
+      trackTouch(e.changedTouches[0])
+      return
+    )
+    @visibleCanvas.addEventListener('touchstart', (e) =>
+      @mouseDown = true
+      trackTouch(e.touches[0])
+      return
+    )
+
+    return
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
   xPixToPcor: (x) ->
-    (@view.worldWidth * x / @visibleCanvas.clientWidth + @view.worldWidth - @view.offsetX()) % @view.worldWidth + @view.minpxcor - .5
+    (@view.worldWidth * x / @visibleCanvas.clientWidth + @view.worldWidth - @offsetX()) % @view.worldWidth + @view.minpxcor - .5
   yPixToPcor: (y) ->
-    (- @view.worldHeight * y / @visibleCanvas.clientHeight + 2 * @view.worldHeight - @view.offsetY()) % @view.worldHeight + @view.minpycor - .5
+    (- @view.worldHeight * y / @visibleCanvas.clientHeight + 2 * @view.worldHeight - @offsetY()) % @view.worldHeight + @view.minpycor - .5
 
   # Unlike the above functions, this accounts for @quality. This intentionally does not account
   # for situations like follow (as it's used to make that calculation). BCH 5/6/2015
