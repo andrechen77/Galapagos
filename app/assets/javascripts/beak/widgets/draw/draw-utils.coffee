@@ -3,19 +3,23 @@
 extractWorldShape = (world) ->
   worldShape = {
     quality: Math.max(window.devicePixelRatio ? 2, 2),
-    maxpxcor: world.maxpxcor ? 25,
-    minpxcor: world.minpxcor ? -25,
-    maxpycor: world.maxpycor ? 25,
-    minpycor: world.minpycor ? -25,
+    # note on "actual": the so-called "min"/"max" coordinates are actually the *center* of the
+    # extreme patches, meaning there are actually 0.5 units of space beyond the "min/max"
+    # coordinates. Doing that extra addition now saves us from littering our code with +0.5 and -0.5
+    # and +1.
+    actualMinX: (world.minpxcor ? -25) - 0.5,
+    actualMaxX: (world.maxpxcor ? 25) + 0.5,
+    actualMinY: (world.minpycor ? -25) - 0.5,
+    actualMaxY: (world.maxpycor ? 25) + 0.5,
     patchsize: world.patchsize ? 9,
     wrapX: world.wrappingallowedinx,
     wrapY: world.wrappingallowediny,
   }
   worldShape.onePixel = 1 / worldShape.patchsize
-  worldShape.worldWidth = worldShape.maxpxcor - worldShape.minpxcor + 1
-  worldShape.worldHeight = worldShape.maxpycor - worldShape.minpycor + 1
-  worldShape.worldCenterX = (worldShape.maxpxcor + worldShape.minpxcor) / 2
-  worldShape.worldCenterY = (worldShape.maxpycor + worldShape.minpycor) / 2
+  worldShape.worldWidth = worldShape.actualMaxX - worldShape.actualMinX
+  worldShape.worldHeight = worldShape.actualMaxY - worldShape.actualMinY
+  worldShape.worldCenterX = (worldShape.actualMaxX + worldShape.actualMinX) / 2
+  worldShape.worldCenterY = (worldShape.actualMaxY + worldShape.actualMinY) / 2
   worldShape
 
 # WorldShape, (Context, Fn) -> Unit
@@ -23,26 +27,26 @@ extractWorldShape = (world) ->
 usePatchCoords = (worldShape, ctx, fn) ->
   ctx.save()
   # naming: world width/height and canvas width/height
-  { worldWidth: ww, worldHeight: wh, minpxcor, maxpycor } = worldShape
+  { worldWidth: ww, worldHeight: wh, actualMinX, actualMaxY } = worldShape
   { width: cw, height: ch } = ctx.canvas
   # Argument rows are the standard transformation matrix columns. See spec.
   # http://www.w3.org/TR/2dcontext/#dom-context-2d-transform
   # BCH 5/16/2015
   ctx.setTransform(
-    cw / ww,                      0,
-    0,                            -ch / wh,
-    -(minpxcor-0.5) * cw / ww,    (maxpycor+0.5) * ch / wh
+    cw / ww,                  0,
+    0,                        -ch / wh,
+    -actualMinX * cw / ww,    actualMaxY * ch / wh
   )
   fn(ctx)
   ctx.restore()
 
 # Fn: (Context, xcor, ycor) -> Unit
 useWrapping = (worldShape, ctx, xcor, ycor, size, fn) ->
-  { wrapX, wrapY, worldWidth, worldHeight, minpxcor, maxpxcor, minpycor, maxpycor } = worldShape
+  { wrapX, wrapY, worldWidth, worldHeight, actualMinX, actualMaxX, actualMinY, actualMaxY } = worldShape
   xs = if wrapX then [xcor - worldWidth,  xcor, xcor + worldWidth ] else [xcor]
   ys = if wrapY then [ycor - worldHeight, ycor, ycor + worldHeight] else [ycor]
-  for x in xs when (x + size / 2) > (minpxcor - 0.5) and (x - size / 2) < (maxpxcor + 0.5)
-    for y in ys when (y + size / 2) > (minpycor - 0.5) and (y - size / 2) < (maxpycor + 0.5)
+  for x in xs when (x + size / 2) > actualMinX and (x - size / 2) < actualMaxX
+    for y in ys when (y + size / 2) > actualMinY and (y - size / 2) < actualMaxY
       fn(ctx, x, y)
 
 # Fn: (Context) -> Unit

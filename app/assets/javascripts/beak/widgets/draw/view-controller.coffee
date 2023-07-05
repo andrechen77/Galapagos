@@ -192,11 +192,11 @@ class View
     @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
     { x: @cornerX, y: @cornerY, width: @width, height: @height } = @_getWindowRect()
     { canvas: sourceCanvas, worldShape } = @_sourceLayer.getImageAndWorldShape()
-    { quality, patchsize, minpxcor, minpycor } = worldShape
+    { quality, patchsize, actualMinX, actualMinY } = worldShape
     scale = quality * patchsize
     @_visibleCtx.drawImage(
       sourceCanvas,
-      (@cornerX - minpxcor) * scale, (@cornerY - minpycor) * scale, @width * scale, @height * scale,
+      (@cornerX - actualMinX) * scale, (@cornerY - actualMinY) * scale, @width * scale, @height * scale,
       0, 0, @_visibleCanvas.width, @_visibleCanvas.height
     )
     # TODO handle wrapping
