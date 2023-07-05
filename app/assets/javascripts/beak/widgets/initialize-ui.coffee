@@ -49,11 +49,12 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), viewController.model.observer)
+  mainView = viewController.getPogViewWindow(container.querySelector('.netlogo-view-container'), 'world')
+  mainView.setDimensions(500, 500, 2) # TODO find how to actually set the dimensions; previously we updated the dimensions with every repaint
   ractive.set('viewController', viewController)
 
-  entwineDimensions(viewModel, viewController.model.world)
-  entwine([[viewModel, "fontSize"], [viewController.view, "fontSize"]], viewModel.fontSize)
+  # entwineDimensions(viewModel, viewController.model.world)
+  # entwine([[viewModel, "fontSize"], [viewController.view, "fontSize"]], viewModel.fontSize)
 
   configs    = genConfigs(ractive, viewController, container, compiler)
   controller = new WidgetController(ractive, viewController, configs)

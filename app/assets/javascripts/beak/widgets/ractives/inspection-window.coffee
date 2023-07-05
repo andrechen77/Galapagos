@@ -9,9 +9,9 @@ RactiveInspectionWindow = Ractive.extend({
         @get('viewWindow').destructor()
       viewController = @get('viewController')
       agent = @get('agentRef')
-      newViewWindow = viewController.getNewViewWindow(
+      newViewWindow = viewController.getPogViewWindow(
         @find('.inspection-window-view-container'),
-        viewController.model.turtles[agent.id]
+        'world'
       )
       newViewWindow.setZoom(10) # TODO choose a less arbitrary zoom level
       viewController.repaint()

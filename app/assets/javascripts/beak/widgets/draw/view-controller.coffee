@@ -2,18 +2,35 @@ import { netlogoColorToCSS, netlogoColorToRGB } from "/colors.js"
 import defaultShapes from "/default-shapes.js"
 import { ShapeDrawer, defaultShape } from "./draw-shape.js"
 import { LinkDrawer } from "./link-drawer.js"
+import { extractWorldShape, usePatchCoords, useWrapping, drawTurtle, drawLabel } from "./draw-utils.js"
+import { followWholeUniverse } from "./window-generators.js"
 
+{ unique } = tortoise_require('brazier/array')
 AgentModel = tortoise_require('agentmodel')
+
+createLayerManager = (fontSize) ->
+  turtles = new TurtleLayer(fontSize)
+  # patches = new PatchLayer()
+  # drawing = new DrawingLayer()
+  world = new CompositeLayer([turtles### , patches, drawing ###])
+  # spotlight = new SpotlightLayer()
+  # all = new ComboLayer([world, spotlight])
+
+  new LayerManager({
+    'turtles': turtles,
+    # 'patches': patches,
+    # 'drawing': drawing,
+    'world': world,
+    # 'spotlight': spotlight,
+    # 'all': all
+  })
 
 class ViewController
   constructor: (fontSize) ->
-    @view = new View(fontSize)
-    @turtleDrawer = new TurtleDrawer(@view)
-    @drawingLayer = new DrawingLayer(@view, @turtleDrawer, () => @repaint())
-    @patchDrawer = new PatchDrawer(@view)
-    @spotlightDrawer = new SpotlightDrawer(@view)
-    @viewWindows = []
-
+    @_layerManager = createLayerManager(fontSize)
+    @_layerUseCount = {} # Stores how many views are using each layer.
+    @_views = []
+    @_model = undefined
     @resetModel()
     @repaint()
 
@@ -26,198 +43,85 @@ class ViewController
 
   # Unit -> { mouseInside: boolean, mouseDown: boolean | undefined, mouseX: number | undefined, mouseY: number | undefined }
   getMouseState: ->
-    for viewWindow in @viewWindows
-      if viewWindow.mouseInside
+    for view in @_views
+      if view.mouseInside
         return {
           mouseInside: true,
-          mouseDown: viewWindow.mouseDown,
-          mouseX: viewWindow.getMouseXCor(),
-          mouseY: viewWindow.getMouseYCor(),
+          mouseDown: view.mouseDown,
+          mouseX: view.getMouseXCor(),
+          mouseY: view.getMouseYCor(),
         }
     { mouseInside: false }
 
   resetModel: ->
-    @model = new AgentModel()
-    @model.world.turtleshapelist = defaultShapes
+    @_model = new AgentModel()
+    @_model.world.turtleshapelist = defaultShapes
 
   repaint: ->
-    @view.transformToWorld(@model.world)
-    @patchDrawer.repaint(@model)
-    @drawingLayer.repaint(@model)
-    @turtleDrawer.repaint(@model)
-    @spotlightDrawer.repaint(@model)
-    viewWindow.repaint(@model) for viewWindow in @viewWindows
+    @_layerManager.repaintLayers(
+      @_model,
+      Object.keys(@_layerUseCount).filter((layerName) => @_layerUseCount[layerName] > 0)
+    )
+    for view in @_views
+      view.repaint(@_model)
 
   # (Update|Array[Update]) => Unit
-  applyUpdate: (modelUpdate) ->
+  _applyUpdateToModel: (modelUpdate) ->
     updates = if Array.isArray(modelUpdate) then modelUpdate else [modelUpdate]
-    @model.update(u) for u in updates
+    @_model.update(u) for u in updates
     return
 
   # (Update|Array[Update]) => Unit
   update: (modelUpdate) ->
-    @applyUpdate(modelUpdate)
+    @_applyUpdateToModel(modelUpdate)
     @repaint()
     return
 
+  getPogViewWindow: (container, layerName) ->
+    @getNewViewWindow(container, followWholeUniverse(@_model), layerName)
+
   # returns a new ViewWindow that controls the specified container
   # The returned ViewWindow must be destructed before it is dropped.
-  getNewViewWindow: (container, watchedAgent) ->
-    do =>
+  getNewViewWindow: (container, getWindowRect, layerName) ->
+    if !@_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
+    ++@_layerUseCount[layerName]
+    do => # create a new scope so that the `firstUnused` variable is protected from mutation by
+          # invocations of `getNewViewWindow`
       # find the first unused index
-      firstUnused = @viewWindows.find((element) -> element?) ? @viewWindows.length
-      @viewWindows.push(new ViewWindow(
+      firstUnused = @_views.find((element) -> element?) ? @_views.length
+      @_views.push(new View(
         container,
-        @view,
-        watchedAgent,
+        @_layerManager.getLayer(layerName),
+        getWindowRect,
         () =>
-          @viewWindows[firstUnused] = null
+          @_views[firstUnused] = null
           container.replaceChildren()
       ))
-    @viewWindows.at(-1)
+    @_views.at(-1)
 
-# IDs used in watch, follow, and getCenteredAgent
-turtleType = 1
-patchType = 2
-linkType = 3
-
-# Perspective constants:
-OBSERVE = 0
-RIDE    = 1
-FOLLOW  = 2
-WATCH   = 3
-
+# Each view into the NetLogo universe. Assumes that the canvas element that is used has no padding.
 class View
-  constructor: (@fontSize) ->
-    @canvas = document.createElement('canvas')
-    @ctx = @canvas.getContext('2d')
-
-  transformToWorld: (world) ->
-    @transformCanvasToWorld(world, @canvas, @ctx)
-
-  transformCanvasToWorld: (world, canvas, ctx) ->
-    # 2 seems to look significantly better even on devices with devicePixelratio < 1. BCH 7/12/2015
-    @quality = Math.max(window.devicePixelRatio ? 2, 2)
-    @maxpxcor = if world.maxpxcor? then world.maxpxcor else 25
-    @minpxcor = if world.minpxcor? then world.minpxcor else -25
-    @maxpycor = if world.maxpycor? then world.maxpycor else 25
-    @minpycor = if world.minpycor? then world.minpycor else -25
-    @patchsize = if world.patchsize? then world.patchsize else 9
-    @wrapX = world.wrappingallowedinx
-    @wrapY = world.wrappingallowediny
-    @onePixel = 1/@patchsize  # The size of one pixel in patch coords
-    @worldWidth = @maxpxcor - @minpxcor + 1
-    @worldHeight = @maxpycor - @minpycor + 1
-    @worldCenterX = (@maxpxcor + @minpxcor) / 2
-    @worldCenterY = (@maxpycor + @minpycor) / 2
-    canvas.width =  @worldWidth * @patchsize * @quality
-    canvas.height = @worldHeight * @patchsize * @quality
-    canvas.style.width = "#{@worldWidth * @patchsize}px"
-    canvas.style.height = "#{@worldHeight * @patchsize}px"
-    ctx.font = @fontSize + 'px "Lucida Grande", sans-serif'
-    ctx.imageSmoothingEnabled = false
-    ctx.webkitImageSmoothingEnabled = false
-    ctx.mozImageSmoothingEnabled = false
-    ctx.oImageSmoothingEnabled = false
-    ctx.msImageSmoothingEnabled = false
-
-  usePatchCoordinates: (ctx = @ctx) => (drawFn) =>
-    ctx.save()
-    w = @canvas.width
-    h = @canvas.height
-    # Argument rows are the standard transformation matrix columns. See spec.
-    # http://www.w3.org/TR/2dcontext/#dom-context-2d-transform
-    # BCH 5/16/2015
-    ctx.setTransform(w / @worldWidth,                   0,
-                     0,                                 -h/@worldHeight,
-                     -(@minpxcor-.5) * w / @worldWidth, (@maxpycor+.5) * h / @worldHeight)
-    drawFn()
-    ctx.restore()
-
-  withCompositing: (gco, ctx = @ctx) -> (drawFn) ->
-    oldGCO = ctx.globalCompositeOperation
-    ctx.globalCompositeOperation = gco
-    drawFn()
-    ctx.globalCompositeOperation = oldGCO
-
-  # Wraps text
-  drawLabel: (xcor, ycor, label, color, ctx) ->
-    if not ctx? then ctx = @ctx
-    label = if label? then label.toString() else ''
-    if label.length > 0
-      @drawWrapped(xcor, ycor, label.length * @fontSize / @onePixel, (x, y) =>
-        ctx.save()
-        ctx.translate(x, y)
-        ctx.scale(@onePixel, -@onePixel)
-        ctx.textAlign = 'left'
-        ctx.fillStyle = netlogoColorToCSS(color)
-        # This magic 1.2 value is a pretty good guess for width/height ratio for most fonts. The 2D context does not
-        # give a way to get height directly, so this quick and dirty method works fine.  -Jeremy B April 2023
-        lineHeight   = ctx.measureText("M").width * 1.2
-        lines        = label.split("\n")
-        lineWidths   = lines.map( (line) -> ctx.measureText(line).width )
-        maxLineWidth = Math.max(lineWidths...)
-        # This magic 1.5 value is to get the alignment to mirror what happens in desktop relatively closely.  Without
-        # it, labels are too far out to the "right" of the agent since the origin of the text drawing is calculated
-        # differently there.  -Jeremy B April 2023
-        xOffset      = -1 * (maxLineWidth + 1) / 1.5
-        lines.forEach( (line, i) ->
-          yOffset = i * lineHeight
-          ctx.fillText(line, xOffset, yOffset)
-        )
-        ctx.restore()
-      )
-
-  # drawFn: (xcor, ycor) ->
-  drawWrapped: (xcor, ycor, size, drawFn) ->
-    xs = if @wrapX then [xcor - @worldWidth,  xcor, xcor + @worldWidth ] else [xcor]
-    ys = if @wrapY then [ycor - @worldHeight, ycor, ycor + @worldHeight] else [ycor]
-    for x in xs
-      if (x + size / 2) > @minpxcor - 0.5 and (x - size / 2) < @maxpxcor + 0.5
-        for y in ys
-          if (y + size / 2) > @minpycor - 0.5 and (y - size / 2) < @maxpycor + 0.5
-            drawFn(x, y)
-    return
-
-  # Returns the agent being watched, or null.
-  watch: (model) ->
-    {observer, turtles, links, patches} = model
-    if model.observer.perspective isnt OBSERVE and observer.targetagent and observer.targetagent[1] >= 0
-      [type, id] = observer.targetagent
-      switch type
-        when turtleType then model.turtles[id]
-        when patchType then model.patches[id]
-        when linkType then model.links[id]
-    else
-      null
-
-  # Returns the agent being followed, or null.
-  follow: (model) ->
-    persp = model.observer.perspective
-    if persp is FOLLOW or persp is RIDE then @watch(model) else null
-
-class ViewWindow
-  # centeredAgent is either the observer, in which case the ViewWindow will reflect the observer's
-  # perspective, or it is another agent, in which case the ViewWindow will follow that agent
-  constructor: (@container, @view, @targetedAgent, @destructor) ->
-    @visibleCanvas = document.createElement('canvas')
-    @visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
-    @visibleCanvas.width = 500
-    @visibleCanvas.height = 500
-    @visibleCanvas.style.width = "100%"
-    @visibleCtx = @visibleCanvas.getContext('2d')
-    @centerX = @view.worldWidth / 2 # not sure what the purpose of this is
-    @centerY = @view.worldHeight / 2
-    @_zoomLevel = null
-
+  # _getWindowRect: (Unit) -> { x, y, width, height }; returns the
+  # dimensions (in patch coordinates) of the window that this view looks at.
+  constructor: (container, @_sourceLayer, @_getWindowRect, @destructor) ->
+    # clients of this class should only read, not write to, these public properties
     @mouseInside = false # the other mouse data members are only valid if this is true
     @mouseDown = false
-    @mouseX = 0 # where the mouse is relative to the canvas
+    @mouseX = 0 # where the mouse is in pixels relative to the canvas
     @mouseY = 0
-    @initMouseTracking()
-    @initTouchTracking()
 
-    @container.appendChild(@visibleCanvas)
+    @cornerX = undefined # the top left corner of this view window in patch coordinates
+    @cornerY = undefined
+    @width = undefined # the width and height of this view window in patch coordinates
+    @height = undefined
+
+    @_visibleCanvas = document.createElement('canvas')
+    @_visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
+    @_visibleCtx = @_visibleCanvas.getContext('2d')
+    container.appendChild(@_visibleCanvas)
+
+    @_initMouseTracking()
+    @_initTouchTracking()
 
   # Unit -> Number
   # Returns the mouse coordinates in model coordinates
@@ -225,21 +129,23 @@ class ViewWindow
   getMouseYCor: -> @yPixToPcor(@mouseY)
 
   # Unit -> Unit
-  initMouseTracking: ->
-    @visibleCanvas.addEventListener('mousedown', => @mouseDown = true)
+  _initMouseTracking: ->
+    @_visibleCanvas.addEventListener('mousedown', => @mouseDown = true)
     document.addEventListener('mouseup', => @mouseDown = false)
 
-    @visibleCanvas.addEventListener('mouseenter', => @mouseInside = true)
-    @visibleCanvas.addEventListener('mouseleave', => @mouseInside = false)
+    @_visibleCanvas.addEventListener('mouseenter', => @mouseInside = true)
+    @_visibleCanvas.addEventListener('mouseleave', => @mouseInside = false)
 
-    @visibleCanvas.addEventListener('mousemove', (e) =>
-      rect = @visibleCanvas.getBoundingClientRect()
-      @mouseX = e.clientX - rect.left
-      @mouseY = e.clientY - rect.top
+    @_visibleCanvas.addEventListener('mousemove', (e) =>
+      # rect = @_visibleCanvas.getBoundingClientRect()
+      # @mouseX = e.clientX - rect.left
+      # @mouseY = e.clientY - rect.top
+      @mouseX = e.offsetX
+      @mouseY = e.offsetY
     )
 
   # Unit -> Unit
-  initTouchTracking: ->
+  _initTouchTracking: ->
     # event -> Unit
     endTouch = (e) =>
       @mouseDown   = false
@@ -248,7 +154,7 @@ class ViewWindow
 
     # Touch -> Unit
     trackTouch = ({ clientX, clientY }) =>
-      { bottom, left, top, right } = @visibleCanvas.getBoundingClientRect()
+      { bottom, left, top, right } = @_visibleCanvas.getBoundingClientRect()
       if (left <= clientX <= right) and (top <= clientY <= bottom)
         @mouseInside = true
         @mouseX      = clientX - left
@@ -259,12 +165,12 @@ class ViewWindow
 
     document.addEventListener('touchend',    endTouch)
     document.addEventListener('touchcancel', endTouch)
-    @visibleCanvas.addEventListener('touchmove', (e) =>
+    @_visibleCanvas.addEventListener('touchmove', (e) =>
       e.preventDefault()
       trackTouch(e.changedTouches[0])
       return
     )
-    @visibleCanvas.addEventListener('touchstart', (e) =>
+    @_visibleCanvas.addEventListener('touchstart', (e) =>
       @mouseDown = true
       trackTouch(e.touches[0])
       return
@@ -272,448 +178,196 @@ class ViewWindow
 
     return
 
+  # Sets the dimensions of this View's visible canvas; doesn't change the part of the source layer
+  # being copied.
+  setDimensions: (width, height, quality) ->
+    @_visibleCanvas.width = width * quality
+    @_visibleCanvas.height = height * quality
+    @_visibleCanvas.style.width = "#{width}px"
+    @_visibleCanvas.style.height = "#{height}px"
+
+  # Repaints the visible canvas and updates the object such that mouse tracking is relative to the
+  # new frame.
+  repaint: ->
+    @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
+    { x: @cornerX, y: @cornerY, width: @width, height: @height } = @_getWindowRect()
+    { canvas: sourceCanvas, worldShape } = @_sourceLayer.getImageAndWorldShape()
+    { quality, patchsize, minpxcor, minpycor } = worldShape
+    scale = quality * patchsize
+    @_visibleCtx.drawImage(
+      sourceCanvas,
+      (@cornerX - minpxcor) * scale, (@cornerY - minpycor) * scale, @width * scale, @height * scale,
+      0, 0, @_visibleCanvas.width, @_visibleCanvas.height
+    )
+    # TODO handle wrapping
+
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
-  xPixToPcor: (x) ->
-    (@view.worldWidth * x / @visibleCanvas.clientWidth + @view.worldWidth - @offsetX()) % @view.worldWidth + @view.minpxcor - .5
-  yPixToPcor: (y) ->
-    (- @view.worldHeight * y / @visibleCanvas.clientHeight + 2 * @view.worldHeight - @offsetY()) % @view.worldHeight + @view.minpycor - .5
+  xPixToPcor: (xPix) ->
+    (@cornerX + xPix / @_visibleCanvas.clientWidth * @width)
+  yPixToPcor: (yPix) ->
+    (@cornerY + yPix / @_visibleCanvas.clientHeight * @height)
 
-  # Unlike the above functions, this accounts for @quality. This intentionally does not account
-  # for situations like follow (as it's used to make that calculation). BCH 5/6/2015
-  xPcorToCanvas: (x) -> (x - @view.minpxcor + .5) / @view.worldWidth * @visibleCanvas.width
-  yPcorToCanvas: (y) -> (@view.maxpycor + .5 - y) / @view.worldHeight * @visibleCanvas.height
-
-  offsetX: -> @view.worldCenterX - @centerX
-  offsetY: -> @view.worldCenterY - @centerY
-
-  getTargetedAgent: (model) ->
-    {observer, turtles, links, patches} = model
-    if @targetedAgent != observer
-      @targetedAgent
-    else
-      @view.follow(model)
-
-  # (Number) => Unit
-  setZoom: (zoomLevel) ->
-    @_zoomLevel =
-      if Number.isInteger(zoomLevel)
-        Math.min(Math.max(0, zoomLevel), Math.floor(@view.worldWidth / 2), Math.floor(@view.worldHeight / 2))
-      else
-        null
-    return
-
-  repaint: (model) ->
-    target = @getTargetedAgent(model)
-    @visibleCanvas.width = @view.canvas.width
-    @visibleCanvas.height = @view.canvas.height
-    @visibleCanvas.style.width = @view.canvas.style.width
-    @visibleCanvas.style.height = @view.canvas.style.height
-    if target?
-      width = @visibleCanvas.width
-      height = @visibleCanvas.height
-      @centerX = target.xcor
-      @centerY = target.ycor
-      x = -@xPcorToCanvas(@centerX) + width / 2
-      y = -@yPcorToCanvas(@centerY) + height / 2
-      xs = if @view.wrapX then [x - width,  x, x + width ] else [x]
-      ys = if @view.wrapY then [y - height, y, y + height] else [y]
-      for dx in xs
-        for dy in ys
-          @visibleCtx.drawImage(@view.canvas, dx, dy)
-    else
-      @centerX = @view.worldCenterX
-      @centerY = @view.worldCenterY
-      @visibleCtx.drawImage(@view.canvas, 0, 0)
-    @_handleZoom()
-    return
-
-  # A very naïve and unaesthetic implementation!
-  # I'm just throwing this together for a janky `hubnet-send-follow`.
-  # Do better! --Jason B. (10/21/17)
-  #
-  # Removed the tempCanvas as it was not necessary. Otherwise, it doesn't seem
-  # to be that janky. --Andre C. (06/18/23)
-  #
-  # () => Unit
-  _handleZoom: ->
-    if @_zoomLevel isnt null
-
-      length = ((2 * @_zoomLevel) + 1) * (2 * @view.patchsize)
-      left   = (@visibleCanvas.width  / 2) - (length / 2)
-      top    = (@visibleCanvas.height / 2) - (length / 2)
-
-      @visibleCtx.save()
-      @visibleCtx.resetTransform()
-      @visibleCtx.drawImage(@visibleCanvas
-                          , left, top, length, length
-                          , 0, 0, @visibleCanvas.width, @visibleCanvas.height)
-      @visibleCtx.restore()
-
-    return
-
-class Drawer
-  constructor: (@view) ->
+getAllDependencies = (layer) ->
+  result = unique(layer.getDirectDependencies().flatMap(getAllDependencies))
+  result.push(layer)
+  result
 
 ###
+LayerManager owns all the layers
 
-type DrawingEvent = { type: "clear-drawing" | "line" | "stamp-image" | "import-drawing" }
+Layers can have dependencies on other layers (but the layers being depended on don't know that)
 
-Possible drawing events:
-
-{ type: "clear-drawing" }
-
-{ type: "line", fromX, fromY, toX, toY, rgb, size, penMode }
-
-{ type: "stamp-image", agentType: "turtle", stamp: {x, y, size, heading, color, shapeName, stampMode} }
-
-{ type: "stamp-image", agentType: "link", stamp: {
-    x1, y1, x2, y2, midpointX, midpointY, heading, color, shapeName, thickness, 'directed?', size, 'hidden?', stampMode
-  }
-}
-
-{ type: "import-drawing", imageBase64 }
-
+Client requests the LayerManager update some Layers, given the state of some agent model.
+LayerManager goes through each of the Layers and tells them to update in the correct order.
 ###
 
-class DrawingLayer extends Drawer
-  constructor: (view, turtleDrawer, repaintView) ->
-    super()
-    @view         = view
-    @turtleDrawer = turtleDrawer
-    @repaintView  = repaintView
-    @canvas       = document.createElement('canvas')
-    @canvas.id    = 'dlayer'
-    @ctx          = @canvas.getContext('2d')
+class LayerManager
+  # `layers` is an object mapping each layer name to its layer object. There must not be circular
+  # dependencies or dependencies outside this LayerManager.
+  constructor: (layers = {}) ->
+    @_layers = {}
+    # `_dependencies` (Map<String, Array[Layer]>) is an object mapping each layer name to a sequence
+    # of layers that must update before that layer can be correctly updated. Always includes the
+    # layer itself as the final element ("to update layer A, one must first update layer A")
+    @_dependencies = {}
+    for layerName, layer of layers
+      @addLayer(layerName, layer)
 
-  resizeCanvas: ->
-    @canvas.width  = @view.canvas.width
-    @canvas.height = @view.canvas.height
+  # Adds the specified layer object to this LayerManager under the specified name.
+  # Must not create circular dependencies, or dependencies on layers outside this manager.
+  # (String, Layer, Array[String]) -> Unit
+  addLayer: (layerName, layer) ->
+    @_dependencies[layerName] = unique(getAllDependencies(layer))
+    @_dependencies[layerName].push(layer)
+    @_layers[layerName] = layer
 
-  clearDrawing: ->
-    @ctx.clearRect(0, 0, @canvas.width, @canvas.height)
+  getLayer: (layerName) -> @_layers[layerName]
 
-  # (String, Number, Number) => Unit
-  importImage: (base64, x, y) =>
-    q = @view.quality
-    image = new Image()
-    image.onload = () =>
-      smoothing = @ctx.imageSmoothingEnabled
-      @ctx.imageSmoothingEnabled = false
-      @ctx.drawImage(image, x * q, y  * q, image.width * q, image.height * q)
-      @ctx.imageSmoothingEnabled = smoothing
-      @repaintView()
-      return
-    image.src = base64
-    return
+  # Updates the specified layers with the specified models (may also update their dependencies)
+  # Array[String]-> Unit
+  repaintLayers: (model, layerNames) ->
+    worldShape = extractWorldShape(model.world)
+    layersToRepaint = unique(layerNames.flatMap((layerName) => @_dependencies[layerName]))
+    for layer in layersToRepaint
+      layer.repaint(worldShape, model)
 
-  # (String) => Unit
-  importDrawing: (base64) ->
-    @ctx.clearRect(0, 0, @canvas.width, @canvas.height)
-    image = new Image()
-    image.onload = () =>
-      canvasRatio = @canvas.width / @canvas.height
-      imageRatio  = image.width / image.height
-      width  = @canvas.width
-      height = @canvas.height
-      if (canvasRatio >= imageRatio)
-        # canvas is "wider" than the image, use full image height and partial width
-        width = (imageRatio / canvasRatio) * @canvas.width
-      else
-        # canvas is "thinner" than the image, use full image width and partial height
-        height = (canvasRatio / imageRatio) * @canvas.height
+###
+Interface for parts of the full view universe.
+###
+class Layer
+  constructor: ->
+    @_latestWorldShape = undefined # stores the latest world shape when this layer is repainted so
+                                   # that it can drawTo properly
 
-      @ctx.drawImage(image, (@canvas.width - width) / 2, (@canvas.height - height) / 2, width, height)
-      @repaintView()
-      return
-    image.src = base64
-    return
+  # (Unit) -> { image: HTMLCanvasElement, worldShape }
+  # Returns a source canvas from which another canvas can `drawImage` onto itself. This canvas
+  # should not be modified. Unless this layer is repainted, the returned canvas should always hold
+  # the same image.
+  # Prefer to use `drawTo` when possible.
+  # This is a default implementation that works, but if it ends up being used, it's probably a sign
+  # that the layer should be refactored to get its own internal canvas which can be directly
+  # returned.
+  getImageAndWorldShape: ->
+    canvas = document.createElement('canvas')
+    ctx = canvas.getContext('2d')
+    @drawTo(ctx)
+    { canvas, worldShape: @_latestWorldShape }
 
-  _rgbToCss: ([r, g, b]) ->
-    "rgb(#{r}, #{g}, #{b})"
+  # Draws the rectangle from this layer onto the specified context. Assumes that the destination
+  # context is correctly sized to hold the whole image from this layer.
+  drawTo: (context) ->
 
-  makeMockTurtleObject: ({ x: xcor, y: ycor, shapeName: shape, size, heading, color }) ->
-    { xcor, ycor, shape, size, heading, color }
+  # Updates the current layer assuming that all its dependencies are up-to-date. Doesn't necessarily
+  # update an internal canvas, but it must be enough for the `drawTo` method to accurately
+  # draw this layer to another. Overriding methods should still call `super(worldShape, model)` to
+  # ensure that @_latestWorldShape is updated.
+  repaint: (worldShape, model) ->
+    @_latestWorldShape = worldShape
 
-  makeMockLinkObject: ({ x1, y1, x2, y2, shapeName, color, heading, size, 'directed?': isDirected
-                       , 'hidden?': isHidden, midpointX, midpointY, thickness }) ->
-    end1 = { xcor: x1, ycor: y1 }
-    end2 = { xcor: x2, ycor: y2 }
+  # Returns an array of all this layer's direct dependencies
+  getDirectDependencies: -> []
 
-    mockLink = { shape: shapeName, color, heading, size, 'directed?': isDirected
-                 , 'hidden?': isHidden, midpointX, midpointY, thickness }
-
-    [mockLink, end1, end2]
-
-  stampTurtle: (turtleStamp) ->
-    mockTurtleObject = @makeMockTurtleObject(turtleStamp)
-    @view.usePatchCoordinates(@ctx)( =>
-      @view.withCompositing(@compositingOperation(turtleStamp.stampMode), @ctx)( =>
-        @turtleDrawer.drawTurtle(mockTurtleObject, @ctx, true)
-      )
-    )
-
-  stampLink: (linkStamp) ->
-    mockLinkObject = @makeMockLinkObject(linkStamp)
-    @view.usePatchCoordinates(@ctx)( =>
-      @view.withCompositing(@compositingOperation(linkStamp.stampMode), @ctx)( =>
-        @turtleDrawer.linkDrawer.draw(mockLinkObject..., @wrapX, @wrapY, @ctx, true)
-      )
-    )
-
-  compositingOperation: (mode) ->
-    if mode is 'erase' then 'destination-out' else 'source-over'
-
-  drawStamp: ({ agentType, stamp }) ->
-    if agentType is 'turtle'
-      @stampTurtle(stamp)
-    else if agentType is 'link'
-      @stampLink(stamp)
-
-  drawLine: ({ rgb: color, size, penMode, fromX: x1, fromY: y1, toX: x2, toY: y2 }) =>
-    if penMode isnt 'up'
-      penColor = color
-
-      @view.usePatchCoordinates(@ctx)( =>
-        @ctx.save()
-
-        @ctx.strokeStyle = @_rgbToCss(penColor)
-        @ctx.lineWidth   = size * @view.onePixel
-        @ctx.lineCap     = 'round'
-
-        @ctx.beginPath()
-
-        @ctx.moveTo(x1, y1)
-        @ctx.lineTo(x2, y2)
-
-        @view.withCompositing(@compositingOperation(penMode), @ctx)( =>
-          @ctx.stroke()
-        )
-
-        @ctx.restore()
-      )
-
-  draw: ->
-    @events.forEach((event) =>
-      switch event.type
-        when 'clear-drawing'  then @clearDrawing()
-        when 'line'           then @drawLine(event)
-        when 'stamp-image'    then @drawStamp(event)
-        when 'import-drawing' then @importDrawing(event.imageBase64)
-    )
-
-  repaint: (model) ->
-    # Potato --JTT 5/29/15
-    # I think Jordan makes a really good point here. --Jason B. (8/6/15)
-    world  = model.world
-    @wrapX = world.wrappingallowedinx
-    @wrapY = world.wrappingallowediny
-
-    @events = model.drawingEvents
-    model.drawingEvents = []
-
-    if @canvas.width isnt @view.canvas.width or @canvas.height isnt @view.canvas.height
-      @resizeCanvas()
-
-    @draw()
-    @view.ctx.drawImage(@canvas, 0, 0)
-
-class SpotlightDrawer extends Drawer
-  constructor: (view) ->
-    super()
-    @view = view
-
-  # Names and values taken from org.nlogo.render.SpotlightDrawer
-  dimmed: "rgba(0, 0, 50, #{ 100 / 255 })"
-  spotlightInnerBorder: "rgba(200, 255, 255, #{ 100 / 255 })"
-  spotlightOuterBorder: "rgba(200, 255, 255, #{ 50 / 255 })"
-  clear: 'white'  # for clearing with 'destination-out' compositing
-
-  outer:  -> 10 / @view.patchsize
-  middle: -> 8  / @view.patchsize
-  inner:  -> 4  / @view.patchsize
-
-  drawCircle: (x, y, innerDiam, outerDiam, color) ->
-    ctx = @view.ctx
-    ctx.fillStyle = color
-    ctx.beginPath()
-    ctx.arc(x, y, outerDiam / 2, 0, 2 * Math.PI)
-    ctx.arc(x, y, innerDiam / 2, 0, 2 * Math.PI, true)
-    ctx.fill()
-
-  drawSpotlight: (xcor, ycor, size, dimOther) ->
-    ctx = @view.ctx
-    ctx.lineWidth = @view.onePixel
-
-    ctx.beginPath()
-    # Draw arc anti-clockwise so that it's subtracted from the fill. See the
-    # fill() documentation and specifically the "nonzero" rule. BCH 3/17/2015
-    if dimOther
-      @view.drawWrapped(xcor, ycor, size + @outer(), (x, y) =>
-        ctx.moveTo(x, y) # Don't want the context to draw a path between the circles. BCH 5/6/2015
-        ctx.arc(x, y, (size + @outer()) / 2, 0, 2 * Math.PI, true)
-      )
-      ctx.rect(@view.minpxcor - 0.5, @view.minpycor - 0.5, @view.worldWidth, @view.worldHeight)
-      ctx.fillStyle = @dimmed
-      ctx.fill()
-
-    @view.drawWrapped(xcor, ycor, size + @outer(), (x, y) =>
-      @drawCircle(x, y, size, size + @outer(), @dimmed)
-      @drawCircle(x, y, size, size + @middle(), @spotlightOuterBorder)
-      @drawCircle(x, y, size, size + @inner(), @spotlightInnerBorder)
-    )
-
-  adjustSize: (size) -> Math.max(size, @view.worldWidth / 16, @view.worldHeight / 16)
-
-  dimensions: (agent) ->
-    if agent.xcor?
-      [agent.xcor, agent.ycor, 2 * agent.size]
-    else if agent.pxcor?
-      [agent.pxcor, agent.pycor, 2]
+filteredByBreed = (agents, breeds) ->
+  # TODO is it necessary that we draw agents by breed? We can optimize this generator if we draw
+  # agents in the order that they're given. --Andre C.
+  breededAgents = {}
+  for _, agent of agents
+    members = []
+    breedName = agent.breed.toUpperCase()
+    if not breededAgents[breedName]?
+      breededAgents[breedName] = members
     else
-      [agent.midpointx, agent.midpointy, agent.size]
+      members = breededAgents[breedName]
+    members.push(agent)
+  for breedName in breeds
+    if breededAgents[breedName]?
+      members = breededAgents[breedName]
+      for agent in members
+        yield agent
 
-  repaint: (model) ->
-    @view.usePatchCoordinates()( =>
-      watched = @view.watch(model)
-      if watched?
-        [xcor, ycor, size] = @dimensions(watched)
-        @drawSpotlight(xcor, ycor,  @adjustSize(size), model.observer.perspective is WATCH)
-    )
-
-class TurtleDrawer extends Drawer
-  constructor: (view) ->
+# CompositeLayer forms its image by sequentially copying over the images from its source layers.
+class CompositeLayer extends Layer
+  constructor: (@_sourceLayers) ->
     super()
-    @view = view
-    @turtleShapeDrawer = new ShapeDrawer({}, @view.onePixel)
-    @linkDrawer = new LinkDrawer(@view, {})
+    @_canvas = document.createElement('canvas')
+    @_ctx = @_canvas.getContext('2d')
 
-  drawTurtle: (turtle, ctx = @view.ctx, isStamp = false) ->
-    if not turtle['hidden?']
-      xcor = turtle.xcor
-      ycor = turtle.ycor
-      size = turtle.size
-      @view.drawWrapped(xcor, ycor, size,
-        ((x, y) => @drawTurtleAt(turtle, x, y, ctx)))
-      if not isStamp
-        @view.drawLabel(xcor + turtle.size / 2,
-                        ycor - turtle.size / 2,
-                        turtle.label,
-                        turtle['label-color'],
-                        ctx)
+  getImageAndWorldShape: ->
+    { canvas: @_canvas, worldShape: @_latestWorldShape }
 
-  drawTurtleAt: (turtle, xcor, ycor, ctx) ->
-    heading = turtle.heading
-    scale = turtle.size
-    angle = (180-heading)/360 * 2*Math.PI
-    shapeName = turtle.shape
-    shape = @turtleShapeDrawer.shapes[shapeName] or defaultShape
-    ctx.save()
-    ctx.translate(xcor, ycor)
-    if shape.rotate
-      ctx.rotate(angle)
-    else
-      ctx.rotate(Math.PI)
-    ctx.scale(scale, scale)
-    @turtleShapeDrawer.drawShape(ctx, turtle.color, shapeName, 1 / scale)
-    ctx.restore()
+  drawTo: (context) ->
+    context.drawImage(@_canvas, 0, 0)
 
-  drawLink: (link, end1, end2, wrapX, wrapY) ->
-    @linkDrawer.draw(link, end1, end2, wrapX, wrapY)
+  repaint: (worldShape, model) ->
+    super(worldShape, model)
+    { worldWidth, worldHeight, patchsize, quality } = worldShape
+    @_canvas.width = worldWidth * patchsize * quality
+    @_canvas.height = worldHeight * patchsize * quality
+    @_canvas.style.width = "#{worldWidth * patchsize}px"
+    @_canvas.style.height = "#{worldHeight * patchsize}px"
+    # TODO should we keep these, or move them somewhere else?  Also note that I got rid of the font thing
+    @_ctx.imageSmoothingEnabled = false
+    @_ctx.webkitImageSmoothingEnabled = false
+    @_ctx.mozImageSmoothingEnabled = false
+    @_ctx.oImageSmoothingEnabled = false
+    @_ctx.msImageSmoothingEnabled = false
+    for layer in @_sourceLayers
+      layer.drawTo(@_ctx)
 
-  repaint: (model) ->
-    world = model.world
-    turtles = model.turtles
-    links = model.links
-    turtleShapeListChanged = world.turtleshapelist? and world.turtleshapelist isnt @turtleShapeDrawer.shapes
-    pixelRatioChanged = @turtleShapeDrawer.onePixel isnt @view.onePixel
-    if turtleShapeListChanged or pixelRatioChanged
-      @turtleShapeDrawer = new ShapeDrawer(world.turtleshapelist ? @turtleShapeDrawer.shapes, @view.onePixel)
-    if world.linkshapelist isnt @linkDrawer.shapes and world.linkshapelist?
-      @linkDrawer = new LinkDrawer(@view, world.linkshapelist)
-    @view.usePatchCoordinates()( =>
-      @drawAgents(links,
-        if (world.linkbreeds?) then world.linkbreeds else [ "LINKS" ],
-        (link) =>
-          @drawLink(link, turtles[link.end1], turtles[link.end2], world.wrappingallowedinx, world.wrappingallowediny)
-      )
-      @view.ctx.lineWidth = @onePixel
-      @drawAgents(turtles,
-        if (world.turtlebreeds?) then world.turtlebreeds else [ "TURTLES" ],
-        (turtle) =>
-          @drawTurtle(turtle)
-      )
-      return
+  getDirectDependencies: -> @_sourceLayers
+
+class TurtleLayer extends Layer
+  constructor: (@_fontSize) ->
+    super()
+    @_latestModel = undefined # stores the latest model from when this layer was repainted so that
+                              # it can drawTo properly
+
+  drawTo: (context) ->
+    { world, turtles, links } = @_latestModel
+    turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, @_latestWorldShape.onePixel)
+    linkDrawer = new LinkDrawer(@_latestWorldShape, context, world.linkshapelist ? {}, @_fontSize)
+    usePatchCoords(
+      @_latestWorldShape,
+      context,
+      (context) =>
+        for link from filteredByBreed(links, world.linkbreeds ? ["LINKS"])
+          linkDrawer.draw(
+            link,
+            turtles[link.end1],
+            turtles[link.end2],
+            world.wrappingallowedinx,
+            world.wrappingallowediny
+          )
+        context.lineWidth = @_latestWorldShape.onePixel # TODO can be more elegant?
+        for turtle from filteredByBreed(turtles, world.turtlebreeds ? ["TURTLES"])
+          drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize)
     )
 
-  drawAgents: (agents, breeds, draw) ->
-    breededAgents = { }
-    for _, agent of agents
-      members = []
-      breedName = agent.breed.toUpperCase()
-      if not breededAgents[breedName]?
-        breededAgents[breedName] = members
-      else
-        members = breededAgents[breedName]
-      members.push(agent)
+  repaint: (worldShape, model) ->
+    super(worldShape, model)
+    @_latestModel = model
 
-    for breedName in breeds
-      if breededAgents[breedName]?
-        members = breededAgents[breedName]
-        for agent in members
-          draw(agent)
-
-
-# Works by creating a scratchCanvas that has a pixel per patch. Those pixels
-# are colored accordingly. Then, the scratchCanvas is drawn onto the main
-# canvas scaled. This is very, very fast. It also prevents weird lines between
-# patches.
-class PatchDrawer
-  constructor: (@view) ->
-    @scratchCanvas = document.createElement('canvas')
-    @scratchCtx = @scratchCanvas.getContext('2d')
-
-  colorPatches: (patches) ->
-    width = @view.worldWidth
-    height = @view.worldHeight
-    minX = @view.minpxcor
-    maxX = @view.maxpxcor
-    minY = @view.minpycor
-    maxY = @view.maxpycor
-    @scratchCanvas.width = width
-    @scratchCanvas.height = height
-    imageData = @scratchCtx.createImageData(width,height)
-    numPatches = ((maxY - minY)*width + (maxX - minX)) * 4
-    for i in [0...numPatches]
-      patch = patches[i]
-      if patch?
-        j = 4 * i
-        [r,g,b] = netlogoColorToRGB(patch.pcolor)
-        imageData.data[j+0] = r
-        imageData.data[j+1] = g
-        imageData.data[j+2] = b
-        imageData.data[j+3] = 255
-    @scratchCtx.putImageData(imageData, 0, 0)
-    @view.ctx.drawImage(@scratchCanvas, 0, 0, @view.canvas.width, @view.canvas.height)
-
-  labelPatches: (patches) ->
-    @view.usePatchCoordinates()( =>
-      for ignore, patch of patches
-        @view.drawLabel(patch.pxcor + .5, patch.pycor - .5, patch.plabel, patch['plabel-color'])
-    )
-
-  clearPatches: ->
-    @view.ctx.fillStyle = "black"
-    @view.ctx.fillRect(0, 0, @view.canvas.width, @view.canvas.height)
-
-  repaint: (model) ->
-    world = model.world
-    patches = model.patches
-    if world.patchesallblack
-      @clearPatches()
-    else
-      @colorPatches(patches)
-    if world.patcheswithlabels
-      @labelPatches(patches)
+  getDirectDependencies: -> []
 
 export default ViewController

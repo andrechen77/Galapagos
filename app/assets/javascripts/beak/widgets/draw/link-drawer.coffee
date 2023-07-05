@@ -10,11 +10,11 @@ class Line
     [midpointX, midpointY]
 
 class LinkDrawer
-  constructor: (@view, @shapes) ->
+  constructor: (@worldShape, @context, @shapes, @fontSize) ->
     directionIndicators = {}
     for name, shape of @shapes
       directionIndicators[name] = shape['direction-indicator']
-    @linkShapeDrawer = new ShapeDrawer(directionIndicators, @view.onePixel)
+    @linkShapeDrawer = new ShapeDrawer(directionIndicators, @worldShape.onePixel)
 
   traceCurvedLine: (x1, y1, x2, y2, cx, cy, ctx) =>
     ctx.moveTo(x1, y1)
@@ -37,7 +37,7 @@ class LinkDrawer
     [xcomp, ycomp]
 
   calculateSublineOffset: (centerOffset, thickness, xcomp, ycomp) ->
-    thicknessFactor = thickness / @view.onePixel
+    thicknessFactor = thickness / @worldShape.onePixel
     xOff = centerOffset * thicknessFactor * xcomp
     yOff = centerOffset * thicknessFactor * ycomp
     [xOff, yOff]
@@ -58,7 +58,7 @@ class LinkDrawer
     ctx.save()
     ctx.beginPath()
 
-    ctx.setLineDash(dashPattern.map((x) => x * @view.onePixel))
+    ctx.setLineDash(dashPattern.map((x) => x * @worldShape.onePixel))
     ctx.strokeStyle = netlogoColorToCSS(color)
     ctx.lineWidth   = thickness
 
@@ -79,7 +79,7 @@ class LinkDrawer
     shiftCoefficientX = if x - cx > 0 then -1 else 1
     shiftCoefficientY = if y - cy > 0 then -1 else 1
 
-    shift = @view.onePixel * 20
+    shift = @worldShape.onePixel * 20
     sx    = x + shift * Math.abs(Math.cos(theta)) * shiftCoefficientX
     sy    = y + shift * Math.abs(Math.sin(theta)) * shiftCoefficientY
 
@@ -93,10 +93,10 @@ class LinkDrawer
       ctx.rotate(Math.PI)
 
     # one pixel should == one patch (before scale) -- JTT 4/15/15
-    thicknessFactor = thickness / @view.onePixel
+    thicknessFactor = thickness / @worldShape.onePixel
 
     if thickness <= 1
-      scale         = 1 / @view.onePixel / 5
+      scale         = 1 / @worldShape.onePixel / 5
       realThickness = thickness * 10
     else
       scale         = thicknessFactor / 2
@@ -109,9 +109,9 @@ class LinkDrawer
     ctx.restore()
 
   drawLabel: (x, y, labelText, color) ->
-    @view.drawLabel(x - 3 * @view.onePixel, y + 3 * @view.onePixel, labelText, color)
+    drawLabel(@worldShape, context, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize)
 
-  draw: (link, end1, end2, canWrapX, canWrapY, ctx = @view.ctx, isStamp = false) ->
+  draw: (link, end1, end2, canWrapX, canWrapY, ctx = @worldShape.ctx, isStamp = false) ->
     if not link['hidden?']
       { color, thickness } = link
       { xcor: x1, ycor: y1 } = end1
@@ -119,10 +119,10 @@ class LinkDrawer
 
       theta = @calculateShortestLineAngle(x1, y1, x2, y2)
 
-      adjustedThickness = if thickness > @view.onePixel then thickness else @view.onePixel
+      adjustedThickness = if thickness > @worldShape.onePixel then thickness else @worldShape.onePixel
 
-      wrapX = @shouldWrapInDim(canWrapX, @view.worldWidth,  x1, x2)
-      wrapY = @shouldWrapInDim(canWrapY, @view.worldHeight, y1, y2)
+      wrapX = @shouldWrapInDim(canWrapX, @worldShape.worldWidth,  x1, x2)
+      wrapY = @shouldWrapInDim(canWrapY, @worldShape.worldHeight, y1, y2)
 
       @getWrappedLines(x1, y1, x2, y2, wrapX, wrapY).forEach(@_drawLinkLine(link, adjustedThickness, ctx, isStamp))
 
@@ -153,7 +153,7 @@ class LinkDrawer
             @drawSubline(offsetSubline, dashPattern, thickness, color, isCurved, controlX, controlY, ctx)
 
           if isMiddleLine
-            if isDirected and size > (.25 * @view.onePixel)
+            if isDirected and size > (.25 * @worldShape.onePixel)
               @drawShape(x2, y2, controlX, controlY, heading, color, thickness, linkShape, shapeName, ctx)
 
             hasLabel = label?
@@ -163,8 +163,8 @@ class LinkDrawer
     )
 
   getWrappedLines: (x1, y1, x2, y2, lineWrapsX, lineWrapsY) ->
-    worldWidth = @view.worldWidth
-    worldHeight = @view.worldHeight
+    worldWidth = @worldShape.worldWidth
+    worldHeight = @worldShape.worldHeight
 
     if lineWrapsX and lineWrapsY
       if x1 < x2
