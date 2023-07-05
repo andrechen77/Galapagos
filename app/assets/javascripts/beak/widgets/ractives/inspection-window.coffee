@@ -1,3 +1,5 @@
+import { followAgentPreserveAspRatio } from '../draw/window-generators.js'
+
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
     agentType: undefined, # String; one of "turtle", "patch", or "link"
@@ -9,11 +11,11 @@ RactiveInspectionWindow = Ractive.extend({
         @get('viewWindow').destructor()
       viewController = @get('viewController')
       agent = @get('agentRef')
-      newViewWindow = viewController.getPogViewWindow(
+      newViewWindow = viewController.getNewViewWindow(
         @find('.inspection-window-view-container'),
+        followAgentPreserveAspRatio(agent)
         'world'
       )
-      newViewWindow.setZoom(10) # TODO choose a less arbitrary zoom level
       viewController.repaint()
       @set('viewWindow', newViewWindow)
   }

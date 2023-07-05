@@ -6,6 +6,7 @@ import handleContextMenu from "./handle-context-menu.js"
 import controlEventTraffic from "./event-traffic-control.js"
 import genConfigs from "./config-shims.js"
 import ViewController from "./draw/view-controller.js"
+import { followWholeUniverse } from "./draw/window-generators.js"
 
 # (Element|String, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, String, BrowserCompiler) => WidgetController
@@ -49,8 +50,8 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getPogViewWindow(container.querySelector('.netlogo-view-container'), 'world')
-  mainView.setDimensions(500, 500, 2) # TODO find how to actually set the dimensions; previously we updated the dimensions with every repaint
+  mainView = viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), followWholeUniverse(), 'world')
+  mainView.setCanvasHeight(400) # TODO find how to actually set the dimensions; previously we updated the dimensions with every repaint
   ractive.set('viewController', viewController)
 
   # entwineDimensions(viewModel, viewController.model.world)

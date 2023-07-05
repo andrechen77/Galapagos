@@ -77,12 +77,9 @@ class ViewController
     @repaint()
     return
 
-  getPogViewWindow: (container, layerName) ->
-    @getNewViewWindow(container, followWholeUniverse(@_model), layerName)
-
   # returns a new ViewWindow that controls the specified container
   # The returned ViewWindow must be destructed before it is dropped.
-  getNewViewWindow: (container, getWindowRect, layerName) ->
+  getNewViewWindow: (container, windowRectGen, layerName) ->
     if !@_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
     ++@_layerUseCount[layerName]
     do => # create a new scope so that the `firstUnused` variable is protected from mutation by
@@ -92,7 +89,7 @@ class ViewController
       @_views.push(new View(
         container,
         @_layerManager.getLayer(layerName),
-        getWindowRect,
+        windowRectGen,
         () =>
           @_views[firstUnused] = null
           container.replaceChildren()
@@ -101,19 +98,20 @@ class ViewController
 
 # Each view into the NetLogo universe. Assumes that the canvas element that is used has no padding.
 class View
-  # _getWindowRect: (Unit) -> { x, y, width, height }; returns the
+  # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
-  constructor: (container, @_sourceLayer, @_getWindowRect, @destructor) ->
+  constructor: (container, @_sourceLayer, @_windowRectGen, @destructor) ->
     # clients of this class should only read, not write to, these public properties
+
     @mouseInside = false # the other mouse data members are only valid if this is true
     @mouseDown = false
     @mouseX = 0 # where the mouse is in pixels relative to the canvas
     @mouseY = 0
 
-    @cornerX = undefined # the top left corner of this view window in patch coordinates
-    @cornerY = undefined
-    @width = undefined # the width and height of this view window in patch coordinates
-    @height = undefined
+    @windowCornerX = undefined # the top left corner of this view window in patch coordinates
+    @windowCornerY = undefined
+    @windowWidth = undefined # the width and height of this view window in patch coordinates
+    @windowHeight = undefined
 
     @_visibleCanvas = document.createElement('canvas')
     @_visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
@@ -178,25 +176,65 @@ class View
 
     return
 
-  # Sets the dimensions of this View's visible canvas; doesn't change the part of the source layer
-  # being copied.
-  setDimensions: (width, height, quality) ->
-    @_visibleCanvas.width = width * quality
-    @_visibleCanvas.height = height * quality
-    @_visibleCanvas.style.width = "#{width}px"
-    @_visibleCanvas.style.height = "#{height}px"
+  # Sets the height of the visible canvas. The width will always respect the aspect ratio of the
+  # rectangles returned by the passed-in window generator.
+  setCanvasHeight: (canvasHeight) ->
+    @_visibleCanvas.width = canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
+    @_visibleCanvas.height = canvasHeight
 
-  # Repaints the visible canvas and updates the object such that mouse tracking is relative to the
-  # new frame.
-  repaint: ->
+  _clearCanvas: ->
     @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
-    { x: @cornerX, y: @cornerY, width: @width, height: @height } = @_getWindowRect()
+
+  # Takes the new windowRect object and changes this view's visible canvas dimensions to match
+  # the aspect ratio of the new window. Clears the canvas as a side effect.
+  # See "./window-generators.coffee" for type info on `windowRect`
+  _updateDimensions: (worldShape, windowRect) ->
+    { actualMinX, actualMaxY, worldWidth, worldHeight } = worldShape
+    if !windowRect?
+      # Use the entire universe as the window
+      if worldWidth != @windowWidth or worldHeight != @windowHeight
+        @_visibleCanvas.width = @_visibleCanvas.height * worldWidth / worldHeight
+      else
+        @_clearCanvas() # since we avoided clearing
+      @windowCornerX = actualMinX
+      @windowCornerY = actualMaxY
+      @windowWidth = worldWidth
+      @windowHeight = worldHeight
+      return
+
+    # Now we know the rectangle must specify a new top-left corner.
+    { x: @windowCornerX, y: @windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
+
+    if !newWindowHeight?
+      # The new rectangle has the same dimensions as the old, so there's no dimension fiddling to do.
+      # Just clear the canvas and be done with it.
+      @_clearCanvas()
+      return
+
+    # Now we know the rectangle must specify a new height.
+    @windowHeight = newWindowHeight
+    if newWindowWidth?
+      @windowWidth = newWindowWidth
+      # The rectangle specified a new width, and therefore the aspect ratio might change.
+      @_visibleCanvas.width = @_visibleCanvas.height * newWindowWidth / newWindowHeight
+    else
+      # Since the rectangle did not specify a new width, we should calculate the width ourselves
+      # to maintain the aspect ratio.
+      @windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
+      @_clearCanvas() # since we avoided clearing the canvas till now
+
+  # Repaints the visible canvas, updating its dimensions and making it so that mouse tracking is
+  # relative to the new frame.
+  repaint: ->
     { canvas: sourceCanvas, worldShape } = @_sourceLayer.getImageAndWorldShape()
-    { quality, patchsize, actualMinX, actualMinY } = worldShape
+    { quality, patchsize, actualMinX, actualMaxY } = worldShape
+
+    @_updateDimensions(worldShape, @_windowRectGen.next().value)
+
     scale = quality * patchsize
     @_visibleCtx.drawImage(
       sourceCanvas,
-      (@cornerX - actualMinX) * scale, (@cornerY - actualMinY) * scale, @width * scale, @height * scale,
+      (@windowCornerX - actualMinX) * scale, (actualMaxY - @windowCornerY) * scale, @windowWidth * scale, @windowHeight * scale,
       0, 0, @_visibleCanvas.width, @_visibleCanvas.height
     )
     # TODO handle wrapping
@@ -204,9 +242,9 @@ class View
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
   xPixToPcor: (xPix) ->
-    (@cornerX + xPix / @_visibleCanvas.clientWidth * @width)
+    (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
   yPixToPcor: (yPix) ->
-    (@cornerY + yPix / @_visibleCanvas.clientHeight * @height)
+    (@windowCornerY + yPix / @_visibleCanvas.clientHeight * @windowHeight)
 
 getAllDependencies = (layer) ->
   result = unique(layer.getDirectDependencies().flatMap(getAllDependencies))
@@ -324,7 +362,7 @@ class CompositeLayer extends Layer
     { worldWidth, worldHeight, patchsize, quality } = worldShape
     @_canvas.width = worldWidth * patchsize * quality
     @_canvas.height = worldHeight * patchsize * quality
-    @_canvas.style.width = "#{worldWidth * patchsize}px"
+    @_canvas.style.width = "#{worldWidth * patchsize}px" # TODO do we need this?
     @_canvas.style.height = "#{worldHeight * patchsize}px"
     # TODO should we keep these, or move them somewhere else?  Also note that I got rid of the font thing
     @_ctx.imageSmoothingEnabled = false
