@@ -1,8 +1,6 @@
 # Given an World, returns WorldShape, an object with properties of the world relevant to rendering
-# N.B. this depends on window.devicePixelRatio (not a pure function)
 extractWorldShape = (world) ->
   worldShape = {
-    quality: Math.max(window.devicePixelRatio ? 2, 2),
     # note on "actual": the so-called "min"/"max" coordinates are actually the *center* of the
     # extreme patches, meaning there are actually 0.5 units of space beyond the "min/max"
     # coordinates. Doing that extra addition now saves us from littering our code with +0.5 and -0.5
@@ -40,6 +38,7 @@ usePatchCoords = (worldShape, ctx, fn) ->
   fn(ctx)
   ctx.restore()
 
+# Assumes that the context is already using patch coordinates.
 # Fn: (Context, xcor, ycor) -> Unit
 useWrapping = (worldShape, ctx, xcor, ycor, size, fn) ->
   { wrapX, wrapY, worldWidth, worldHeight, actualMinX, actualMaxX, actualMinY, actualMaxY } = worldShape

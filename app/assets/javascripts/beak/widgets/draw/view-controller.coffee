@@ -9,10 +9,11 @@ import { followWholeUniverse } from "./window-generators.js"
 AgentModel = tortoise_require('agentmodel')
 
 createLayerManager = (fontSize) ->
+  quality = Math.max(window.devicePixelRatio ? 2, 2)
   turtles = new TurtleLayer(fontSize)
   # patches = new PatchLayer()
   # drawing = new DrawingLayer()
-  world = new CompositeLayer([turtles### , patches, drawing ###])
+  world = new CompositeLayer(quality, [turtles### , patches, drawing ###])
   # spotlight = new SpotlightLayer()
   # all = new ComboLayer([world, spotlight])
 
@@ -117,6 +118,9 @@ class View
     @windowWidth = undefined # the width and height of this view window in patch coordinates
     @windowHeight = undefined
 
+    # N.B.: since the canvas's dimensions might often change, the canvas is always kept at its
+    # default drawing state (no transformations, no fillStyle, etc.) except temporarily when it is
+    # actively being drawn to.
     @_visibleCanvas = document.createElement('canvas')
     @_visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
     @_visibleCtx = @_visibleCanvas.getContext('2d')
@@ -180,17 +184,21 @@ class View
 
     return
 
-  # Sets the height of the visible canvas. The width will always respect the aspect ratio of the
-  # rectangles returned by the passed-in window generator.
-  setCanvasHeight: (canvasHeight) ->
-    @_visibleCanvas.width = canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
-    @_visibleCanvas.height = canvasHeight
+  # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
+  # the aspect ratio of the rectangles returned by the passed-in window generator.
+  setCanvasHeight: (canvasHeight, quality) ->
+    @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
+    @_visibleCanvas.height = quality * canvasHeight
+    @_visibleCanvas.style.height = "#{canvasHeight}px"
+    @_quality = quality
 
   _clearCanvas: ->
     @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
 
   # Takes the new windowRect object and changes this view's visible canvas dimensions to match
-  # the aspect ratio of the new window. Clears the canvas as a side effect.
+  # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
+  # avoid changing the canvas's dimensions when possible, as that is an expensive operation
+  # (https://stackoverflow.com/a/6722031)
   # See "./window-generators.coffee" for type info on `windowRect`
   _updateDimensions: (worldShape, windowRect) ->
     { actualMinX, actualMaxY, worldWidth, worldHeight } = worldShape
@@ -231,11 +239,11 @@ class View
   # relative to the new frame.
   repaint: ->
     { canvas: sourceCanvas, worldShape } = @_sourceLayer.getImageAndWorldShape()
-    { quality, patchsize, actualMinX, actualMaxY } = worldShape
+    { patchsize, actualMinX, actualMaxY } = worldShape
 
     @_updateDimensions(worldShape, @_windowRectGen.next().value)
 
-    scale = quality * patchsize
+    scale = @_quality * patchsize
     @_visibleCtx.drawImage(
       sourceCanvas,
       (@windowCornerX - actualMinX) * scale, (actualMaxY - @windowCornerY) * scale, @windowWidth * scale, @windowHeight * scale,
@@ -244,7 +252,7 @@ class View
     # TODO handle wrapping
 
   # These convert between model coordinates and position in the canvas DOM element
-  # This will differ from untransformed canvas position if @quality != 1. BCH 5/6/2015
+  # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
   xPixToPcor: (xPix) ->
     (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
   yPixToPcor: (yPix) ->
@@ -350,7 +358,7 @@ filteredByBreed = (agents, breeds) ->
 
 # CompositeLayer forms its image by sequentially copying over the images from its source layers.
 class CompositeLayer extends Layer
-  constructor: (@_sourceLayers) ->
+  constructor: (@_quality, @_sourceLayers) ->
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
@@ -363,11 +371,9 @@ class CompositeLayer extends Layer
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
-    { worldWidth, worldHeight, patchsize, quality } = worldShape
-    @_canvas.width = worldWidth * patchsize * quality
-    @_canvas.height = worldHeight * patchsize * quality
-    @_canvas.style.width = "#{worldWidth * patchsize}px" # TODO do we need this?
-    @_canvas.style.height = "#{worldHeight * patchsize}px"
+    { worldWidth, worldHeight, patchsize } = worldShape
+    @_canvas.width = worldWidth * patchsize * @_quality
+    @_canvas.height = worldHeight * patchsize * @_quality
     # TODO should we keep these, or move them somewhere else?  Also note that I got rid of the font thing
     @_ctx.imageSmoothingEnabled = false
     @_ctx.webkitImageSmoothingEnabled = false
