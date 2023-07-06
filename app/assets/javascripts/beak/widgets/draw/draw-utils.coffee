@@ -1,3 +1,5 @@
+import { netlogoColorToCSS } from "/colors.js"
+
 # Given an World, returns WorldShape, an object with properties of the world relevant to rendering
 extractWorldShape = (world) ->
   worldShape = {

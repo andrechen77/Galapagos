@@ -402,7 +402,8 @@ class TurtleLayer extends Layer
             turtles[link.end1],
             turtles[link.end2],
             world.wrappingallowedinx,
-            world.wrappingallowediny
+            world.wrappingallowediny,
+            context
           )
         context.lineWidth = @_latestWorldShape.onePixel # TODO can be more elegant?
         for turtle from filteredByBreed(turtles, world.turtlebreeds ? ["TURTLES"])

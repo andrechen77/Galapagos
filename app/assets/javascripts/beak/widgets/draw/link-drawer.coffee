@@ -1,5 +1,6 @@
 import { netlogoColorToCSS } from "/colors.js"
 import { ShapeDrawer } from "./draw-shape.js"
+import { drawLabel } from "./draw-utils.js"
 
 class Line
   constructor: (@x1, @y1, @x2, @y2) ->
@@ -108,10 +109,10 @@ class LinkDrawer
 
     ctx.restore()
 
-  drawLabel: (x, y, labelText, color) ->
-    drawLabel(@worldShape, context, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize)
+  drawLabel: (x, y, labelText, color, ctx) ->
+    drawLabel(@worldShape, ctx, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize)
 
-  draw: (link, end1, end2, canWrapX, canWrapY, ctx = @worldShape.ctx, isStamp = false) ->
+  draw: (link, end1, end2, canWrapX, canWrapY, ctx, isStamp = false) ->
     if not link['hidden?']
       { color, thickness } = link
       { xcor: x1, ycor: y1 } = end1
@@ -158,7 +159,7 @@ class LinkDrawer
 
             hasLabel = label?
             if hasLabel and not isStamp
-              @drawLabel(controlX, controlY, label, labelColor)
+              @drawLabel(controlX, controlY, label, labelColor, ctx)
 
     )
 
