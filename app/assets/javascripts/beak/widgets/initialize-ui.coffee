@@ -50,7 +50,7 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), followWholeUniverse(), 'world')
+  mainView = viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), followWholeUniverse(viewController._model.world), 'world') # TODO find the actual model so we can do away with the access violation
   mainView.setCanvasHeight(400, 2) # TODO find how to actually set the dimensions; previously we updated the dimensions with every repaint
   ractive.set('viewController', viewController)
 

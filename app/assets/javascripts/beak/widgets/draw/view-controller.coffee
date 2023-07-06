@@ -190,34 +190,23 @@ class View
     @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
     @_visibleCanvas.height = quality * canvasHeight
     @_visibleCanvas.style.height = "#{canvasHeight}px"
-    @_quality = quality
 
   _clearCanvas: ->
     @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
+
+
 
   # Takes the new windowRect object and changes this view's visible canvas dimensions to match
   # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
   # avoid changing the canvas's dimensions when possible, as that is an expensive operation
   # (https://stackoverflow.com/a/6722031)
   # See "./window-generators.coffee" for type info on `windowRect`
-  _updateDimensions: (worldShape, windowRect) ->
-    { actualMinX, actualMaxY, worldWidth, worldHeight } = worldShape
-    if !windowRect?
-      # Use the entire universe as the window
-      if worldWidth != @windowWidth or worldHeight != @windowHeight
-        @_visibleCanvas.width = @_visibleCanvas.height * worldWidth / worldHeight
-      else
-        @_clearCanvas() # since we avoided clearing
-      @windowCornerX = actualMinX
-      @windowCornerY = actualMaxY
-      @windowWidth = worldWidth
-      @windowHeight = worldHeight
-      return
-
-    # Now we know the rectangle must specify a new top-left corner.
+  _updateDimensions: (windowRect) ->
+    # The rectangle must always specify at least a new top-left corner.
     { x: @windowCornerX, y: @windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
 
-    if !newWindowHeight?
+    # See if the height has changed.
+    if !newWindowHeight? or newWindowHeight == @windowHeight
       # The new rectangle has the same dimensions as the old, so there's no dimension fiddling to do.
       # Just clear the canvas and be done with it.
       @_clearCanvas()
@@ -225,7 +214,9 @@ class View
 
     # Now we know the rectangle must specify a new height.
     @windowHeight = newWindowHeight
-    if newWindowWidth?
+
+    # See if the width has changed.
+    if newWindowWidth? and newWindowWidth != @windowWidth
       @windowWidth = newWindowWidth
       # The rectangle specified a new width, and therefore the aspect ratio might change.
       @_visibleCanvas.width = @_visibleCanvas.height * newWindowWidth / newWindowHeight
@@ -238,18 +229,8 @@ class View
   # Repaints the visible canvas, updating its dimensions and making it so that mouse tracking is
   # relative to the new frame.
   repaint: ->
-    { canvas: sourceCanvas, worldShape } = @_sourceLayer.getImageAndWorldShape()
-    { patchsize, actualMinX, actualMaxY } = worldShape
-
-    @_updateDimensions(worldShape, @_windowRectGen.next().value)
-
-    scale = @_quality * patchsize
-    @_visibleCtx.drawImage(
-      sourceCanvas,
-      (@windowCornerX - actualMinX) * scale, (actualMaxY - @windowCornerY) * scale, @windowWidth * scale, @windowHeight * scale,
-      0, 0, @_visibleCanvas.width, @_visibleCanvas.height
-    )
-    # TODO handle wrapping
+    @_updateDimensions(@_windowRectGen.next().value)
+    @_sourceLayer.drawRectTo(@_visibleCtx, @windowCornerX, @windowCornerY, @windowWidth, @windowHeight)
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
@@ -302,6 +283,21 @@ class LayerManager
     for layer in layersToRepaint
       layer.repaint(worldShape, model)
 
+# Draws a rectangle (specified in patch coordinates) from a source canvas to a destination canvas,
+# assuming that neither canvas has transformations and scaling the image to fit the destination.
+# The rectangle is specified by its top-left corner and width and height. `worldShape` and `quality`
+# are used to make the calculation for which pixels from the source canvas are actually inside the
+# specified rectangle.
+helperDrawRectTo = (srcCanvas, dstCtx, x, y, w, h, worldShape, quality) ->
+  { patchsize, actualMinX, actualMaxY } = worldShape
+  scale = quality * patchsize # the size of a patch in canvas pixels
+  dstCtx.drawImage(
+    srcCanvas,
+    (x - actualMinX) * scale, (actualMaxY - y) * scale, w * scale, h * scale,
+    0, 0, dstCtx.canvas.width, dstCtx.canvas.height
+  )
+  # TODO handle wrapping
+
 ###
 Interface for parts of the full view universe.
 ###
@@ -310,19 +306,20 @@ class Layer
     @_latestWorldShape = undefined # stores the latest world shape when this layer is repainted so
                                    # that it can drawTo properly
 
-  # (Unit) -> { image: HTMLCanvasElement, worldShape }
-  # Returns a source canvas from which another canvas can `drawImage` onto itself. This canvas
-  # should not be modified. Unless this layer is repainted, the returned canvas should always hold
-  # the same image.
-  # Prefer to use `drawTo` when possible.
-  # This is a default implementation that works, but if it ends up being used, it's probably a sign
-  # that the layer should be refactored to get its own internal canvas which can be directly
-  # returned.
-  getImageAndWorldShape: ->
-    canvas = document.createElement('canvas')
-    ctx = canvas.getContext('2d')
-    @drawTo(ctx)
-    { canvas, worldShape: @_latestWorldShape }
+  # Given dimensions specifying (in patch coordinates) a rectangle, draws that rectangle from this
+  # layer to the specified context, scaling to fit. It is the responsibility of the caller to ensure
+  # that the destination context has enough pixels to render a good-looking image. The rectangle is
+  # specified by its top-left corner and width and height.
+  # prefer to use `drawTo` when possible.
+  # This is a default implementation that works, but if it ends up being used, is probably a sign
+  # that the layer should be refactored to get its own internal canvas which can be directly used.
+  drawRectTo: (ctx, x, y, w, h) ->
+    quality = 2
+    sourceCanvas = document.createElement('canvas')
+    sourceCanvas.width = worldWidth * patchsize * quality
+    sourceCanvas.height = worldHeight * patchsize * quality
+    @drawTo(sourceCanvas.getContext('2d'))
+    helperDrawRectTo(sourceCanvas, ctx, x, y, w, h, @_latestWorldShape, quality)
 
   # Draws the rectangle from this layer onto the specified context. Assumes that the destination
   # context is correctly sized to hold the whole image from this layer.
@@ -363,8 +360,8 @@ class CompositeLayer extends Layer
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
 
-  getImageAndWorldShape: ->
-    { canvas: @_canvas, worldShape: @_latestWorldShape }
+  drawRectTo: (ctx, x, y, w, h) ->
+    helperDrawRectTo(@_canvas, ctx, x, y, w, h, @_latestWorldShape, @_quality)
 
   drawTo: (context) ->
     context.drawImage(@_canvas, 0, 0)

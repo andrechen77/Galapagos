@@ -1,7 +1,8 @@
+import { extractWorldShape } from "./draw-utils.js"
+
 ###
 This file defines generators (more precisely, iterators) that are used to get the window that a
 specific view should be looking at. Each value returned should be one of:
-- null, meaning the whole universe should be shown
 - { x, y }, meaning a rectangle with its top left corner at (x, y) and the same dimensions as the
   previous rectangle.
 - { x, y, h }, meaning a rectangle with a new corner and height; the width should be
@@ -9,9 +10,15 @@ specific view should be looking at. Each value returned should be one of:
 - { x, y, h, w }, meaning a rectangle with completely new dimensions.
 ###
 
-followWholeUniverse = () ->
+followWholeUniverse = (world) ->
   loop
-    yield null
+    { actualMinX, actualMaxY, worldWidth, worldHeight } = extractWorldShape(world)
+    yield {
+      x: actualMinX,
+      y: actualMaxY,
+      w: worldWidth,
+      h: worldHeight
+    }
 
 followAgent = (agent) ->
   yield {
