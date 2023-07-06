@@ -29,7 +29,7 @@ class ViewController
   constructor: (fontSize) ->
     @_layerManager = createLayerManager(fontSize)
     @_layerUseCount = {} # Stores how many views are using each layer.
-    @_views = []
+    @_views = [] # Stores the views themselves; some values might be null for destructed views
     @_model = undefined
     @resetModel()
     @repaint()
@@ -43,7 +43,7 @@ class ViewController
 
   # Unit -> { mouseInside: boolean, mouseDown: boolean | undefined, mouseX: number | undefined, mouseY: number | undefined }
   getMouseState: ->
-    for view in @_views
+    for view in @_views when view?
       if view.mouseInside
         return {
           mouseInside: true,
@@ -62,7 +62,7 @@ class ViewController
       @_model,
       Object.keys(@_layerUseCount).filter((layerName) => @_layerUseCount[layerName] > 0)
     )
-    for view in @_views
+    for view in @_views when view?
       view.repaint(@_model)
 
   # (Update|Array[Update]) => Unit
@@ -82,19 +82,23 @@ class ViewController
   getNewViewWindow: (container, windowRectGen, layerName) ->
     if !@_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
     ++@_layerUseCount[layerName]
-    do => # create a new scope so that the `firstUnused` variable is protected from mutation by
-          # invocations of `getNewViewWindow`
-      # find the first unused index
-      firstUnused = @_views.find((element) -> element?) ? @_views.length
-      @_views.push(new View(
+
+    # find the first unused index
+    firstUnused = @_views.findIndex((element) -> !element?)
+    if firstUnused == -1 then firstUnused = @_views.length
+    # create a new scope so that the variables specific to this one view are protected from mutation
+    # by future invocations of `getNewViewWindow`; I think the `this` variable should already be
+    # protected because it is bound by the fat arrow. --Andre C.
+    do (layerName, firstUnused, container) =>
+      return @_views[firstUnused] = new View(
         container,
         @_layerManager.getLayer(layerName),
         windowRectGen,
         () =>
+          --@_layerUseCount[layerName]
           @_views[firstUnused] = null
           container.replaceChildren()
-      ))
-    @_views.at(-1)
+      )
 
 # Each view into the NetLogo universe. Assumes that the canvas element that is used has no padding.
 class View
@@ -244,7 +248,7 @@ class View
   xPixToPcor: (xPix) ->
     (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
   yPixToPcor: (yPix) ->
-    (@windowCornerY + yPix / @_visibleCanvas.clientHeight * @windowHeight)
+    (@windowCornerY - yPix / @_visibleCanvas.clientHeight * @windowHeight)
 
 getAllDependencies = (layer) ->
   result = unique(layer.getDirectDependencies().flatMap(getAllDependencies))
