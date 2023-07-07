@@ -275,18 +275,33 @@ class LayerManager
 
 # Draws a rectangle (specified in patch coordinates) from a source canvas to a destination canvas,
 # assuming that neither canvas has transformations and scaling the image to fit the destination.
-# The rectangle is specified by its top-left corner and width and height. `worldShape` and `quality`
-# are used to make the calculation for which pixels from the source canvas are actually inside the
-# specified rectangle.
-helperDrawRectTo = (srcCanvas, dstCtx, x, y, w, h, worldShape, quality) ->
-  { patchsize, actualMinX, actualMaxY } = worldShape
-  scale = quality * patchsize # the size of a patch in canvas pixels
-  dstCtx.drawImage(
-    srcCanvas,
-    (x - actualMinX) * scale, (actualMaxY - y) * scale, w * scale, h * scale,
-    0, 0, dstCtx.canvas.width, dstCtx.canvas.height
-  )
-  # TODO handle wrapping
+# The rectangle is specified by its top-left corner and width and height. `worldShape` and
+# `srcQuality` are used to make the calculation for which pixels from the source canvas are actually
+# inside the specified rectangle.
+helperDrawRectTo = (srcCanvas, dstCtx, xPcor, yPcor, wPcor, hPcor, worldShape, srcQuality) ->
+  { patchsize, actualMinX, actualMaxY, wrapX, wrapY } = worldShape
+  { width: canvasWidth, height: canvasHeight } = srcCanvas
+  scale = srcQuality * patchsize # the size of a patch in canvas pixels
+
+  # Imagine "wrapping" as, instead of taking one small rectangle from the source canvas,
+  # simultaneously taking a 3 by 3 grid of rectangles spaced apart by the width/height of the source
+  # canvas and putting them together.
+
+  # Convert patch coordinates to canvas coordinates
+  centerXPix = (xPcor - actualMinX) * scale # the top-left corner of the rectangle at the center of the 3 by 3
+  centerYPix = (actualMaxY - yPcor) * scale
+  wPix = wPcor * scale
+  hPix = hPcor * scale
+
+  xPixs = if wrapX then [centerXPix - canvasWidth, centerXPix, centerXPix + canvasWidth] else [centerXPix]
+  yPixs = if wrapY then [centerYPix - canvasHeight, centerYPix, centerYPix + canvasHeight] else [centerYPix]
+  for xPix in xPixs
+    for yPix in yPixs
+      dstCtx.drawImage(
+        srcCanvas,
+        xPix, yPix, wPix, hPix,
+        0, 0, dstCtx.canvas.width, dstCtx.canvas.height
+      )
 
 ###
 Interface for parts of the full view universe.

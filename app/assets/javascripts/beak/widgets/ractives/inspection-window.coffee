@@ -1,4 +1,4 @@
-import { followAgentPreserveAspRatio } from '../draw/window-generators.js'
+import { followAgent } from '../draw/window-generators.js'
 
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
@@ -13,7 +13,7 @@ RactiveInspectionWindow = Ractive.extend({
       agent = @get('agentRef')
       newViewWindow = viewController.getNewViewWindow(
         @find('.inspection-window-view-container'),
-        followAgentPreserveAspRatio(agent)
+        followAgent(agent)
         'world'
       )
       viewController.repaint()
