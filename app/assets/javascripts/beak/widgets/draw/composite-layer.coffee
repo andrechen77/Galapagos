@@ -15,9 +15,13 @@ class CompositeLayer extends Layer
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
+    # Makes sure that the canvas is properly sized to the world, using this layer's @_quality. Avoids
+    # resizing the canvas if possible, as that is an expensive operation. (https://stackoverflow.com/a/6722031)
     { worldWidth, worldHeight, patchsize } = worldShape
-    @_canvas.width = worldWidth * patchsize * @_quality
-    @_canvas.height = worldHeight * patchsize * @_quality
+    newWidth = worldWidth * patchsize * @_quality
+    newHeight = worldHeight * patchsize * @_quality
+    if @_canvas.width != newWidth then @_canvas.width = newWidth
+    if @_canvas.height != newHeight then @_canvas.height = newHeight
     # TODO should we keep these, or move them somewhere else?  Also note that I got rid of the font thing
     @_ctx.imageSmoothingEnabled = false
     @_ctx.webkitImageSmoothingEnabled = false
