@@ -94,6 +94,7 @@ class Layer
   # This is a default implementation that works, but if it ends up being used, is probably a sign
   # that the layer should be refactored to get its own internal canvas which can be directly used.
   drawRectTo: (ctx, x, y, w, h) ->
+    { worldWidth, worldHeight, patchsize } = @_latestWorldShape
     quality = 2
     sourceCanvas = document.createElement('canvas')
     sourceCanvas.width = worldWidth * patchsize * quality
