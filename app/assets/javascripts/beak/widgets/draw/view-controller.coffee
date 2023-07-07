@@ -32,27 +32,25 @@ class ViewController
     @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
     @_model = undefined
+    # _sharedMouseState is an object shared by all Views plus the ViewController that any one of
+    # them can update when they have more up-to-date information about the mouse. The `x` and `y`
+    # properties should be kept at their last valid positions when the mouse leaves a view, and the
+    # `down` property should be set false at the same time that the mouse leaves a view. We have
+    # faith that mutations to this object do not interleave; it's not likely/possible that the mouse
+    # moves quickly enough to cause that.
+    @_sharedMouseState = {
+      inside: false,
+      down: false,
+      x: 0,
+      y: 0
+    }
     @resetModel()
     @repaint()
 
-  # TODO refactor the rest of the engine so that we don't need to loop for each property
-  # i.e. report all of x, y, mouseDown, mouseInside using the single method "getMouseState"
-  mouseInside: => @getMouseState().mouseInside
-  mouseXcor: => @getMouseState().mouseX # could be undefined if the mouse is not inside
-  mouseYcor: => @getMouseState().mouseY # could be undefined if the mouse is not inside
-  mouseDown: => @getMouseState().mouseDown # could be undefined if the mouse is not inside
-
-  # Unit -> { mouseInside: boolean, mouseDown: boolean | undefined, mouseX: number | undefined, mouseY: number | undefined }
-  getMouseState: ->
-    for view in @_views when view?
-      if view.mouseInside
-        return {
-          mouseInside: true,
-          mouseDown: view.mouseDown,
-          mouseX: view.getMouseXCor(),
-          mouseY: view.getMouseYCor(),
-        }
-    { mouseInside: false }
+  mouseInside: => @_sharedMouseState.inside
+  mouseXcor: => @_sharedMouseState.x
+  mouseYcor: => @_sharedMouseState.y
+  mouseDown: => @_sharedMouseState.down
 
   resetModel: ->
     @_model = new AgentModel()
@@ -95,6 +93,7 @@ class ViewController
         container,
         @_layerManager.getLayer(layerName),
         windowRectGen,
+        @_sharedMouseState,
         () =>
           --@_layerUseCount[layerName]
           @_views[firstUnused] = null
@@ -105,14 +104,9 @@ class ViewController
 class View
   # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
-  constructor: (container, @_sourceLayer, @_windowRectGen, @destructor) ->
+  # _sharedMouseState: see comment in Viewcontroller
+  constructor: (container, @_sourceLayer, @_windowRectGen, @_sharedMouseState, @destructor) ->
     # clients of this class should only read, not write to, these public properties
-
-    @mouseInside = false # the other mouse data members are only valid if this is true
-    @mouseDown = false
-    @mouseX = 0 # where the mouse is in pixels relative to the canvas
-    @mouseY = 0
-
     @windowCornerX = undefined # the top left corner of this view window in patch coordinates
     @windowCornerY = undefined
     @windowWidth = undefined # the width and height of this view window in patch coordinates
@@ -129,44 +123,40 @@ class View
     @_initMouseTracking()
     @_initTouchTracking()
 
-  # Unit -> Number
-  # Returns the mouse coordinates in model coordinates
-  getMouseXCor: -> @xPixToPcor(@mouseX)
-  getMouseYCor: -> @yPixToPcor(@mouseY)
-
   # Unit -> Unit
   _initMouseTracking: ->
-    @_visibleCanvas.addEventListener('mousedown', => @mouseDown = true)
-    document.addEventListener('mouseup', => @mouseDown = false)
+    @_visibleCanvas.addEventListener('mousedown', => @_sharedMouseState.down = true)
+    document.addEventListener('mouseup', => @_sharedMouseState.down = false)
 
-    @_visibleCanvas.addEventListener('mouseenter', => @mouseInside = true)
-    @_visibleCanvas.addEventListener('mouseleave', => @mouseInside = false)
+    @_visibleCanvas.addEventListener('mouseenter', => @_sharedMouseState.inside = true)
+    @_visibleCanvas.addEventListener('mouseleave', =>
+      @_sharedMouseState.inside = false
+      @_sharedMouseState.down = false
+    )
 
     @_visibleCanvas.addEventListener('mousemove', (e) =>
-      # rect = @_visibleCanvas.getBoundingClientRect()
-      # @mouseX = e.clientX - rect.left
-      # @mouseY = e.clientY - rect.top
-      @mouseX = e.offsetX
-      @mouseY = e.offsetY
+      @_sharedMouseState.x = @xPixToPcor(e.offsetX)
+      @_sharedMouseState.y = @yPixToPcor(e.offsetY)
     )
 
   # Unit -> Unit
   _initTouchTracking: ->
     # event -> Unit
     endTouch = (e) =>
-      @mouseDown   = false
-      @mouseInside = false
+      @_sharedMouseState.inside = false
+      @_sharedMouseState.down   = false
       return
 
     # Touch -> Unit
     trackTouch = ({ clientX, clientY }) =>
       { bottom, left, top, right } = @_visibleCanvas.getBoundingClientRect()
       if (left <= clientX <= right) and (top <= clientY <= bottom)
-        @mouseInside = true
-        @mouseX      = clientX - left
-        @mouseY      = clientY - top
+        @_sharedMouseState.inside = true
+        @_sharedMouseState.x = @xPixToPcor(clientX - left)
+        @_sharedMouseState.y = @yPixToPcor(clientY - top)
       else
-        @mouseInside = false
+        @_sharedMouseState.inside = false
+        @_sharedMouseState.down = false
       return
 
     document.addEventListener('touchend',    endTouch)
