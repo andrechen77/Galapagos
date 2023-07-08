@@ -3,9 +3,17 @@ import { ShapeDrawer } from "./draw-shape.js"
 import { usePatchCoords, drawTurtle } from "./draw-utils.js"
 import { LinkDrawer } from "./link-drawer.js"
 
-filteredByBreed = (agents, breeds) ->
-  # TODO is it necessary that we draw agents by breed? We can optimize this generator if we draw
-  # agents in the order that they're given. --Andre C.
+# Yields each name in `breedNames`, except that `unbreededName` comes last if it exists.
+breedNameGen = (unbreededName, breedNames) ->
+  seenUnbreededName = false
+  for breedName in breedNames
+    if breedName is unbreededName
+      seenUnbreededName = true
+    else
+      yield breedName
+  if seenUnbreededName then yield unbreededName
+
+filteredByBreed = (unbreededName, agents, breeds) ->
   breededAgents = {}
   for _, agent of agents
     members = []
@@ -15,7 +23,7 @@ filteredByBreed = (agents, breeds) ->
     else
       members = breededAgents[breedName]
     members.push(agent)
-  for breedName in breeds
+  for breedName from breedNameGen(unbreededName, breeds)
     if breededAgents[breedName]?
       members = breededAgents[breedName]
       for agent in members
@@ -33,7 +41,7 @@ class TurtleLayer extends Layer
       @_latestWorldShape,
       context,
       (context) =>
-        for link from filteredByBreed(links, world.linkbreeds ? ["LINKS"])
+        for link from filteredByBreed('LINKS', links, world.linkbreeds ? [])
           linkDrawer.draw(
             link,
             turtles[link.end1],
@@ -43,7 +51,7 @@ class TurtleLayer extends Layer
             context
           )
         context.lineWidth = @_latestWorldShape.onePixel # TODO can be more elegant?
-        for turtle from filteredByBreed(turtles, world.turtlebreeds ? ["TURTLES"])
+        for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize)
     )
 
