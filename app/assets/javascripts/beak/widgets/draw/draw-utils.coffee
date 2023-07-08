@@ -22,6 +22,16 @@ extractWorldShape = (world) ->
   worldShape.worldCenterY = (worldShape.actualMaxY + worldShape.actualMinY) / 2
   worldShape
 
+# Makes sure that the canvas is properly sized to the world, using quality and patchsize to
+# calculate pixel density. Avoids resizing the canvas if possible, as that is an expensive
+# operation. (https://stackoverflow.com/a/6722031)
+resizeCanvas = (canvas, worldShape, quality) ->
+  { worldWidth, worldHeight, patchsize } = worldShape
+  newWidth = worldWidth * patchsize * quality
+  newHeight = worldHeight * patchsize * quality
+  if canvas.width != newWidth then canvas.width = newWidth
+  if canvas.height != newHeight then canvas.height = newHeight
+
 # WorldShape, (Context, Fn) -> Unit
 # where Fn: (Context) -> Unit
 usePatchCoords = (worldShape, ctx, fn) ->
@@ -117,6 +127,7 @@ drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize) ->
 
 export {
   extractWorldShape,
+  resizeCanvas,
   usePatchCoords,
   useWrapping,
   useCompositing,

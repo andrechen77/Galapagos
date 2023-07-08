@@ -3,6 +3,7 @@ import { LayerManager } from "./layer.js"
 import { CompositeLayer } from "./composite-layer.js"
 import { TurtleLayer } from "./turtle-layer.js"
 import { PatchLayer } from "./patch-layer.js"
+import { DrawingLayer } from "./drawing-layer.js"
 
 AgentModel = tortoise_require('agentmodel')
 
@@ -10,15 +11,15 @@ createLayerManager = (fontSize) ->
   quality = Math.max(window.devicePixelRatio ? 2, 2)
   turtles = new TurtleLayer(fontSize)
   patches = new PatchLayer(fontSize)
-  # drawing = new DrawingLayer()
-  world = new CompositeLayer(quality, [patches, turtles###, drawing ###])
+  drawing = new DrawingLayer(quality, fontSize)
+  world = new CompositeLayer(quality, [patches, drawing, turtles])
   # spotlight = new SpotlightLayer()
   # all = new ComboLayer([world, spotlight])
 
   new LayerManager({
     'turtles': turtles,
     'patches': patches,
-    # 'drawing': drawing,
+    'drawing': drawing,
     'world': world,
     # 'spotlight': spotlight,
     # 'all': all

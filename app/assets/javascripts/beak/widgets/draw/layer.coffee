@@ -38,12 +38,15 @@ class LayerManager
   getLayer: (layerName) -> @_layers[layerName]
 
   # Updates the specified layers with the specified models (may also update their dependencies)
+  # Unfortunately, due to the design of the model, this will mutate the model:
+  # - resets `model.drawingEvents`
   # Array[String]-> Unit
   repaintLayers: (model, layerNames) ->
     worldShape = extractWorldShape(model.world)
     layersToRepaint = unique(layerNames.flatMap((layerName) => @_dependencies[layerName]))
     for layer in layersToRepaint
       layer.repaint(worldShape, model)
+    model.drawingEvents = []
 
 # Draws a rectangle (specified in patch coordinates) from a source canvas to a destination canvas,
 # assuming that neither canvas has transformations and scaling the image to fit the destination.
@@ -108,8 +111,9 @@ class Layer
 
   # Updates the current layer assuming that all its dependencies are up-to-date. Doesn't necessarily
   # update an internal canvas, but it must be enough for the `drawTo` method to accurately
-  # draw this layer to another. Overriding methods should still call `super(worldShape, model)` to
-  # ensure that @_latestWorldShape is updated.
+  # draw this layer to another. Does not modify its arguments.
+  # Overriding methods should still call `super(worldShape, model)` to ensure that
+  # @_latestWorldShape is updated.
   # Rendering is often split between between this method and the `drawTo` method, depending on what
   # makes most sense for the layer to store internally.
   repaint: (worldShape, model) ->
