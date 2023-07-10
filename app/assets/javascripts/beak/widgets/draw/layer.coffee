@@ -1,4 +1,4 @@
-import { extractWorldShape } from "./draw-utils.js"
+import { extractWorldShape, drawRectTo, drawFullTo } from "./draw-utils.js"
 { unique } = tortoise_require('brazier/array')
 
 getAllDependencies = (layer) ->
@@ -48,35 +48,14 @@ class LayerManager
       layer.repaint(worldShape, model)
     model.drawingEvents = []
 
-# Draws a rectangle (specified in patch coordinates) from a source canvas to a destination canvas,
-# assuming that neither canvas has transformations and scaling the image to fit the destination.
-# The rectangle is specified by its top-left corner and width and height. `worldShape` and
-# `srcQuality` are used to make the calculation for which pixels from the source canvas are actually
-# inside the specified rectangle.
-helperDrawRectTo = (srcCanvas, dstCtx, xPcor, yPcor, wPcor, hPcor, worldShape, srcQuality) ->
-  { patchsize, actualMinX, actualMaxY, wrapX, wrapY } = worldShape
-  { width: canvasWidth, height: canvasHeight } = srcCanvas
-  scale = srcQuality * patchsize # the size of a patch in canvas pixels
-
-  # Imagine "wrapping" as, instead of taking one small rectangle from the source canvas,
-  # simultaneously taking a 3 by 3 grid of rectangles spaced apart by the width/height of the source
-  # canvas and putting them together.
-
-  # Convert patch coordinates to canvas coordinates
-  centerXPix = (xPcor - actualMinX) * scale # the top-left corner of the rectangle at the center of the 3 by 3
-  centerYPix = (actualMaxY - yPcor) * scale
-  wPix = wPcor * scale
-  hPix = hPcor * scale
-
-  xPixs = if wrapX then [centerXPix - canvasWidth, centerXPix, centerXPix + canvasWidth] else [centerXPix]
-  yPixs = if wrapY then [centerYPix - canvasHeight, centerYPix, centerYPix + canvasHeight] else [centerYPix]
-  for xPix in xPixs
-    for yPix in yPixs
-      dstCtx.drawImage(
-        srcCanvas,
-        xPix, yPix, wPix, hPix,
-        0, 0, dstCtx.canvas.width, dstCtx.canvas.height
-      )
+# Returns a canvas with the current state of the layer like a freeze frame.
+convertLayerToCanvas = (layer, quality) ->
+  { worldWidth, worldHeight, patchsize } = layer.getWorldShape()
+  canvas = document.createElement('canvas')
+  canvas.width = worldWidth * patchsize * quality
+  canvas.height = worldHeight * patchsize * quality
+  layer.drawTo(canvas.getContext('2d'))
+  canvas
 
 ###
 Interface for parts of the full view universe.
@@ -89,25 +68,33 @@ class Layer
     @_latestWorldShape = undefined
     @_latestModel = undefined
 
+  getWorldShape: -> @_latestWorldShape
+
   # Given dimensions specifying (in patch coordinates) a rectangle, draws that rectangle from this
-  # layer to the specified context, scaling to fit. It is the responsibility of the caller to ensure
-  # that the destination context has enough pixels to render a good-looking image. The rectangle is
-  # specified by its top-left corner and width and height.
-  # prefer to use `drawTo` when possible.
+  # layer to the specified context, scaling to fit and accounting for wrapping. It is the
+  # responsibility of the caller to ensure that the destination context has enough pixels to render
+  # a good-looking image. The rectangle is specified by its top-left corner and width and height.
+  # Prefer to use `drawFullTo` or `blindlyDrawTo` when possible for performance reasons.
   # This is a default implementation that works, but if it ends up being used, is probably a sign
   # that the layer should be refactored to get its own internal canvas which can be directly used.
   drawRectTo: (ctx, x, y, w, h) ->
-    { worldWidth, worldHeight, patchsize } = @_latestWorldShape
     quality = 2
-    sourceCanvas = document.createElement('canvas')
-    sourceCanvas.width = worldWidth * patchsize * quality
-    sourceCanvas.height = worldHeight * patchsize * quality
-    @drawTo(sourceCanvas.getContext('2d'))
-    helperDrawRectTo(sourceCanvas, ctx, x, y, w, h, @_latestWorldShape, quality)
+    sourceCanvas = convertLayerToCanvas(this, quality)
+    drawRectTo(sourceCanvas, ctx, x, y, w, h, @_latestWorldShape, quality)
+
+  # Draws the full layer onto the specified context, scaling to fit. It is the responsibility of the
+  # caller to ensure that the destination context has enough pixels to render a good-looking image.
+  # Prefer to use `blindlyDrawTo` when possible for performance reasons.
+  # This is a default implementation that works, but if it ends up being used, is probably a sign
+  # that the layer should be refactored to get its own internal canvas which can be directly used.
+  drawFullTo: (ctx) ->
+    quality = 2
+    sourceCanvas = convertLayerToCanvas(this, quality)
+    drawFullTo(sourceCanvas, ctx)
 
   # Draws the rectangle from this layer onto the specified context. Assumes that the destination
   # context is correctly sized to hold the whole image from this layer.
-  drawTo: (context) ->
+  blindlyDrawTo: (context) ->
 
   # Updates the current layer assuming that all its dependencies are up-to-date. Doesn't necessarily
   # update an internal canvas, but it must be enough for the `drawTo` method to accurately
@@ -125,6 +112,5 @@ class Layer
 
 export {
   LayerManager,
-  helperDrawRectTo,
   Layer
 }

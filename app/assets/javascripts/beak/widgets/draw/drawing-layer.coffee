@@ -41,7 +41,7 @@ class DrawingLayer extends Layer
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
 
-  drawTo: (ctx) ->
+  blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
 
   repaint: (worldShape, model) ->

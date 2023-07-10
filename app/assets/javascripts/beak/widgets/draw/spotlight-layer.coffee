@@ -87,7 +87,7 @@ class SpotlightLayer extends Layer
   constructor: ->
     super()
 
-  drawTo: (ctx) ->
+  blindlyDrawTo: (ctx) ->
     watched = getWatchedAgent(@_latestModel)
     if !watched? then return
     usePatchCoords(@_latestWorldShape, ctx, (ctx) =>

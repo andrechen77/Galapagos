@@ -51,7 +51,7 @@ class PatchLayer extends Layer
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
 
-  drawTo: (context) ->
+  blindlyDrawTo: (context) ->
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
     if @_latestModel.world.patcheswithlabels
       labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_fontSize)

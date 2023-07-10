@@ -22,15 +22,64 @@ extractWorldShape = (world) ->
   worldShape.worldCenterY = (worldShape.actualMaxY + worldShape.actualMinY) / 2
   worldShape
 
+clearCtx = (ctx) ->
+  ctx.save()
+  ctx.resetTransform()
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  ctx.restore()
+
 # Makes sure that the canvas is properly sized to the world, using quality and patchsize to
 # calculate pixel density. Avoids resizing the canvas if possible, as that is an expensive
-# operation. (https://stackoverflow.com/a/6722031)
+# operation. (https://stackoverflow.com/a/6722031). Returns whether the canvas dimensions changed.
 resizeCanvas = (canvas, worldShape, quality) ->
   { worldWidth, worldHeight, patchsize } = worldShape
   newWidth = worldWidth * patchsize * quality
   newHeight = worldHeight * patchsize * quality
-  if canvas.width != newWidth then canvas.width = newWidth
-  if canvas.height != newHeight then canvas.height = newHeight
+  changed = false
+  if canvas.width != newWidth
+    canvas.width = newWidth
+    changed = true
+  if canvas.height != newHeight
+    canvas.height = newHeight
+    changed = true
+  changed
+
+# Draws a rectangle (specified in patch coordinates) from a source canvas to a destination canvas,
+# assuming that neither canvas has transformations and scaling the image to fit the destination.
+# The rectangle is specified by its top-left corner and width and height. `worldShape` and
+# `srcQuality` are used to make the calculation for which pixels from the source canvas are actually
+# inside the specified rectangle.
+drawRectTo = (srcCanvas, dstCtx, xPcor, yPcor, wPcor, hPcor, worldShape, srcQuality) ->
+  { patchsize, actualMinX, actualMaxY, wrapX, wrapY } = worldShape
+  { width: canvasWidth, height: canvasHeight } = srcCanvas
+  scale = srcQuality * patchsize # the size of a patch in canvas pixels
+
+  # Imagine "wrapping" as, instead of taking one small rectangle from the source canvas,
+  # simultaneously taking a 3 by 3 grid of rectangles spaced apart by the width/height of the source
+  # canvas and putting them together.
+
+  # Convert patch coordinates to canvas coordinates
+  centerXPix = (xPcor - actualMinX) * scale # the top-left corner of the rectangle at the center of the 3 by 3
+  centerYPix = (actualMaxY - yPcor) * scale
+  wPix = wPcor * scale
+  hPix = hPcor * scale
+
+  xPixs = if wrapX then [centerXPix - canvasWidth, centerXPix, centerXPix + canvasWidth] else [centerXPix]
+  yPixs = if wrapY then [centerYPix - canvasHeight, centerYPix, centerYPix + canvasHeight] else [centerYPix]
+  for xPix in xPixs
+    for yPix in yPixs
+      dstCtx.drawImage(
+        srcCanvas,
+        xPix, yPix, wPix, hPix,
+        0, 0, dstCtx.canvas.width, dstCtx.canvas.height
+      )
+
+drawFullTo = (srcCanvas, dstCtx) ->
+  dstCtx.drawImage(
+    srcCanvas,
+    0, 0, srcCanvas.width, srcCanvas.height,
+    0, 0, dstCtx.canvas.width, dstCtx.canvas.height
+  )
 
 # WorldShape, (Context, Fn) -> Unit
 # where Fn: (Context) -> Unit
@@ -128,6 +177,9 @@ drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize) ->
 export {
   extractWorldShape,
   resizeCanvas,
+  clearCtx,
+  drawRectTo,
+  drawFullTo,
   usePatchCoords,
   useWrapping,
   useCompositing,

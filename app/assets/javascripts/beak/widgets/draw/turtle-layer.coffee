@@ -33,7 +33,7 @@ class TurtleLayer extends Layer
   constructor: (@_fontSize) ->
     super()
 
-  drawTo: (context) ->
+  blindlyDrawTo: (context) ->
     { world, turtles, links } = @_latestModel
     turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, @_latestWorldShape.onePixel)
     linkDrawer = new LinkDrawer(@_latestWorldShape, context, world.linkshapelist ? {}, @_fontSize)

@@ -11,10 +11,10 @@ RactiveInspectionWindow = Ractive.extend({
         @get('viewWindow').destructor()
       viewController = @get('viewController')
       agent = @get('agentRef')
-      newViewWindow = viewController.getNewViewWindow(
+      newViewWindow = viewController.getNewWindowView(
         @find('.inspection-window-view-container'),
+        'world',
         followAgent(agent)
-        'world'
       )
       viewController.repaint()
       @set('viewWindow', newViewWindow)

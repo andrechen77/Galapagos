@@ -5,6 +5,7 @@ import { TurtleLayer } from "./turtle-layer.js"
 import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
+import { resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
@@ -76,36 +77,55 @@ class ViewController
     @repaint()
     return
 
-  # returns a new ViewWindow that controls the specified container
-  # The returned ViewWindow must be destructed before it is dropped.
-  getNewViewWindow: (container, windowRectGen, layerName) ->
+  # Returns a new WindowView that controls the specified container
+  # The returned View must be destructed before it is dropped.
+  getNewWindowView: (container, layerName, windowRectGen) ->
+    layer = @_layerManager.getLayer(layerName)
+    sharedMouseState = @_sharedMouseState
+    @_registerView(layerName, (unregisterThisView) ->
+      new WindowView(container, layer, sharedMouseState, unregisterThisView, windowRectGen)
+    )
+
+  # Returns a new FullView that controls the specified container.
+  # The returned View must be destructed before it is dropped.
+  getNewFullView: (container, layerName) ->
+    layer = @_layerManager.getLayer(layerName)
+    sharedMouseState = @_sharedMouseState
+    @_registerView(layerName, (unregisterThisView) ->
+      new FullView(container, layer, sharedMouseState, unregisterThisView)
+    )
+
+  # Using the passed in `createView` function, creates and registers a new View to this
+  # ViewController, then returns that view. The `createView` function should handle everything
+  # involved with creating the view, except for the View's unregister function, which it takes as
+  # a parameter (because it's only during the registration process that the unregister function
+  # can be determined).
+  _registerView: (layerName, createView) ->
     if !@_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
     ++@_layerUseCount[layerName]
 
-    # find the first unused index
-    firstUnused = @_views.findIndex((element) -> !element?)
-    if firstUnused == -1 then firstUnused = @_views.length
-    # create a new scope so that the variables specific to this one view are protected from mutation
-    # by future invocations of `getNewViewWindow`; I think the `this` variable should already be
-    # protected because it is bound by the fat arrow. --Andre C.
-    do (layerName, firstUnused, container) =>
-      return @_views[firstUnused] = new View(
-        container,
-        @_layerManager.getLayer(layerName),
-        windowRectGen,
-        @_sharedMouseState,
-        () =>
-          --@_layerUseCount[layerName]
-          @_views[firstUnused] = null
-          container.replaceChildren()
-      )
+    # find the first unused index to put this view
+    index = @_views.findIndex((element) -> !element?)
+    if index == -1 then index = @_views.length
+    # Create a new scope so that variables are protected in case someone decides to create
+    # like-named variables in a higher scope, thus causing CoffeeScript to destroy this scope.
+    # CoffeeScript issues ;-; --Andre C.
+    return do (layerName, index) =>
+      unregisterThisView = =>
+        --@_layerUseCount[layerName]
+        @_views[index] = null
+      view = createView(unregisterThisView)
+      @_views[index] = view
+      return view
 
-# Each view into the NetLogo universe. Assumes that the canvas element that is used has no padding.
+# Abstract class controlling each view into the NetLogo universe. Assumes that the canvas element
+# that is used has no padding. To instantiate, requires a `repaint` method that repaints the canvas
+# and updates `window...` variables to match the window that the view is looking at.
 class View
   # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
   # _sharedMouseState: see comment in Viewcontroller
-  constructor: (container, @_sourceLayer, @_windowRectGen, @_sharedMouseState, @destructor) ->
+  constructor: (container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
     # clients of this class should only read, not write to, these public properties
     @windowCornerX = undefined # the top left corner of this view window in patch coordinates
     @windowCornerY = undefined
@@ -174,15 +194,40 @@ class View
 
     return
 
+  # Repaints the visible canvas, updating its dimensions.
+  repaint: ->
+
+  # These convert between model coordinates and position in the canvas DOM element
+  # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
+  xPixToPcor: (xPix) ->
+    (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
+  yPixToPcor: (yPix) ->
+    (@windowCornerY - yPix / @_visibleCanvas.clientHeight * @windowHeight)
+
+  destructor: ->
+    @_container.replaceChildren()
+    @_unregisterThisView()
+
+# A View that takes an iterator to determine which part of the universe to display. The height of
+# the view is set by the `setCanvasHeight` method, but the aspect ratio is determined by the window
+# into the universe that this view looks at.
+class WindowView extends View
+  # _windowRectGen: see "./window-generators.coffee" for type info; returns the
+  # dimensions (in patch coordinates) of the window that this view looks at.
+  # _sharedMouseState: see comment in ViewController
+  constructor: (container, sourceLayer, sharedMouseState, unregisterThisView, @_windowRectGen) ->
+    super(container, sourceLayer, sharedMouseState, unregisterThisView)
+
+  repaint: ->
+    @_updateDimensions(@_windowRectGen.next().value)
+    @_sourceLayer.drawRectTo(@_visibleCtx, @windowCornerX, @windowCornerY, @windowWidth, @windowHeight)
+
   # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
   # the aspect ratio of the rectangles returned by the passed-in window generator.
   setCanvasHeight: (canvasHeight, quality) ->
     @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
     @_visibleCanvas.height = quality * canvasHeight
-    @_visibleCanvas.style.height = "#{canvasHeight}px"
-
-  _clearCanvas: ->
-    @_visibleCtx.clearRect(0, 0, @_visibleCanvas.width, @_visibleCanvas.height);
+    @_visibleCanvas.style.height = canvasHeight
 
   # Takes the new windowRect object and changes this view's visible canvas dimensions to match
   # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
@@ -197,7 +242,7 @@ class View
     if !newWindowHeight? or newWindowHeight == @windowHeight
       # The new rectangle has the same dimensions as the old, so there's no dimension fiddling to do.
       # Just clear the canvas and be done with it.
-      @_clearCanvas()
+      clearCtx(@_visibleCtx)
       return
 
     # Now we know the rectangle must specify a new height.
@@ -212,19 +257,32 @@ class View
       # Since the rectangle did not specify a new width, we should calculate the width ourselves
       # to maintain the aspect ratio.
       @windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
-      @_clearCanvas() # since we avoided clearing the canvas till now
+      clearCtx(@_visibleCtx) # since we avoided clearing the canvas till now
 
-  # Repaints the visible canvas, updating its dimensions and making it so that mouse tracking is
-  # relative to the new frame.
+# A View that always displays the full NetLogo universe. The dimensions of the View are determined
+# by the dimensions of the universe.
+class FullView extends View
+  constructor: (container, sourceLayer, sharedMouseState, unregisterThisView) ->
+    super(container, sourceLayer, sharedMouseState, unregisterThisView)
+    @_quality = 1
+
+  setQuality: (@_quality) ->
+
   repaint: ->
-    @_updateDimensions(@_windowRectGen.next().value)
-    @_sourceLayer.drawRectTo(@_visibleCtx, @windowCornerX, @windowCornerY, @windowWidth, @windowHeight)
+    @_updateDimensions()
+    @_sourceLayer.drawFullTo(@_visibleCtx)
 
-  # These convert between model coordinates and position in the canvas DOM element
-  # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
-  xPixToPcor: (xPix) ->
-    (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
-  yPixToPcor: (yPix) ->
-    (@windowCornerY - yPix / @_visibleCanvas.clientHeight * @windowHeight)
+  _updateDimensions: ->
+    worldShape = @_sourceLayer.getWorldShape()
+    {
+      actualMinX: @windowCornerX,
+      actualMinY: @windowCornerY,
+      worldWidth: @windowWidth,
+      worldHeight: @windowHeight,
+      patchsize
+    } = worldShape
+    cleared = resizeCanvas(@_visibleCanvas, worldShape, @_quality)
+    if !cleared then clearCtx(@_visibleCtx)
+    @_visibleCanvas.style.width = @windowWidth * patchsize
 
 export default ViewController

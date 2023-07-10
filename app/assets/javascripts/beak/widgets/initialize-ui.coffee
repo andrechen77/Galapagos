@@ -50,8 +50,8 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getNewViewWindow(container.querySelector('.netlogo-view-container'), followWholeUniverse(viewController._model.world), 'all') # TODO find the actual model so we can do away with the access violation
-  mainView.setCanvasHeight(400, 2) # TODO find how to actually set the dimensions; previously we updated the dimensions with every repaint
+  mainView = viewController.getNewFullView(container.querySelector('.netlogo-view-container'), 'all')
+  mainView.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
   ractive.set('viewController', viewController)
 
   # entwineDimensions(viewModel, viewController.model.world)
