@@ -11,7 +11,7 @@ class Line
     [midpointX, midpointY]
 
 class LinkDrawer
-  constructor: (@worldShape, @context, @shapes, @fontSize) ->
+  constructor: (@worldShape, @context, @shapes, @fontSize, @font) ->
     directionIndicators = {}
     for name, shape of @shapes
       directionIndicators[name] = shape['direction-indicator']
@@ -110,7 +110,7 @@ class LinkDrawer
     ctx.restore()
 
   drawLabel: (x, y, labelText, color, ctx) ->
-    drawLabel(@worldShape, ctx, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize)
+    drawLabel(@worldShape, ctx, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize, @font)
 
   draw: (link, end1, end2, canWrapX, canWrapY, ctx, isStamp = false) ->
     if not link['hidden?']

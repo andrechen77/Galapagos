@@ -9,11 +9,11 @@ import { resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
-createLayerManager = (fontSize) ->
+createLayerManager = (fontSize, font) ->
   quality = Math.max(window.devicePixelRatio ? 2, 2)
-  turtles = new TurtleLayer(fontSize)
-  patches = new PatchLayer(fontSize)
-  drawing = new DrawingLayer(quality, fontSize)
+  turtles = new TurtleLayer(fontSize, font)
+  patches = new PatchLayer(fontSize, font)
+  drawing = new DrawingLayer(quality, fontSize, font)
   world = new CompositeLayer(quality, [patches, drawing, turtles])
   spotlight = new SpotlightLayer()
   all = new CompositeLayer(quality, [world, spotlight])
@@ -29,7 +29,7 @@ createLayerManager = (fontSize) ->
 
 class ViewController
   constructor: (fontSize) ->
-    @_layerManager = createLayerManager(fontSize)
+    @_layerManager = createLayerManager(fontSize, '"Lucida Grande", sans-serif')
     @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
     @_model = undefined

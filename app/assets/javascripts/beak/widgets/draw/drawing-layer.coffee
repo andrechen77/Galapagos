@@ -36,7 +36,7 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  constructor: (@_quality, @_fontSize) ->
+  constructor: (@_quality, @_fontSize, @_font) ->
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
@@ -49,7 +49,7 @@ class DrawingLayer extends Layer
     resizeCanvas(@_canvas, worldShape, @_quality)
     { world } = model
     @_turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, worldShape.onePixel)
-    @_linkDrawer = new LinkDrawer(worldShape, @_ctx, world.linkshapelist ? {}, @_fontSize)
+    @_linkDrawer = new LinkDrawer(worldShape, @_ctx, world.linkshapelist ? {}, @_fontSize, @_font)
     for event in model.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()

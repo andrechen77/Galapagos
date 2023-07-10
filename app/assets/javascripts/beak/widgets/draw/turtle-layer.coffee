@@ -30,13 +30,13 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  constructor: (@_fontSize) ->
+  constructor: (@_fontSize, @_font) ->
     super()
 
   blindlyDrawTo: (context) ->
     { world, turtles, links } = @_latestModel
     turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, @_latestWorldShape.onePixel)
-    linkDrawer = new LinkDrawer(@_latestWorldShape, context, world.linkshapelist ? {}, @_fontSize)
+    linkDrawer = new LinkDrawer(@_latestWorldShape, context, world.linkshapelist ? {}, @_fontSize, @_font)
     usePatchCoords(
       @_latestWorldShape,
       context,
@@ -52,7 +52,7 @@ class TurtleLayer extends Layer
           )
         context.lineWidth = @_latestWorldShape.onePixel # TODO can be more elegant?
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
-          drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize)
+          drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize, @_font)
     )
 
   getDirectDependencies: -> []

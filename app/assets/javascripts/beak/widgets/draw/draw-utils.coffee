@@ -116,7 +116,7 @@ useCompositing = (compositingOperation, ctx, fn) ->
   fn(ctx)
   ctx.globalCompositeOperation = oldGCO
 
-drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10) ->
+drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10, font = '"Lucida Grande", sans-serif') ->
   if not turtle['hidden?']
     { xcor, ycor, size } = turtle
     useWrapping(worldShape, ctx, xcor, ycor, size,
@@ -129,7 +129,8 @@ drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize =
         ycor - turtle.size / 2,
         turtle.label,
         turtle['label-color'],
-        fontSize
+        fontSize,
+        font
       )
 
 drawTurtleAt = (turtleDrawer, turtle, xcor, ycor, ctx) ->
@@ -148,13 +149,14 @@ drawTurtleAt = (turtleDrawer, turtle, xcor, ycor, ctx) ->
   turtleDrawer.drawShape(ctx, turtle.color, shapeName, 1 / scale)
   ctx.restore()
 
-drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize) ->
+drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize, font = '"Lucida Grande", sans-serif') ->
   label = if label? then label.toString() else ''
   if label.length > 0
     useWrapping(worldShape, ctx, xcor, ycor, label.length * fontSize / worldShape.onePixel, (ctx, x, y) =>
       ctx.save()
       ctx.translate(x, y)
       ctx.scale(worldShape.onePixel, -worldShape.onePixel)
+      ctx.font = "#{fontSize}px #{font}"
       ctx.textAlign = 'left'
       ctx.fillStyle = netlogoColorToCSS(color)
       # This magic 1.2 value is a pretty good guess for width/height ratio for most fonts. The 2D context does not

@@ -24,7 +24,7 @@ colorPatches = (ctx, worldShape, patches) ->
     imageData.data[j + 3] = 255
   ctx.putImageData(imageData, 0, 0)
 
-labelPatches = (ctx, worldShape, patches, fontSize) ->
+labelPatches = (ctx, worldShape, patches, fontSize, font) ->
   usePatchCoords(
     worldShape,
     ctx,
@@ -37,7 +37,8 @@ labelPatches = (ctx, worldShape, patches, fontSize) ->
           patch.pycor - 0.5,
           patch.plabel,
           patch['plabel-color'],
-          fontSize
+          fontSize,
+          font
         )
   )
 
@@ -46,7 +47,7 @@ labelPatches = (ctx, worldShape, patches, fontSize) ->
 # canvas scaled. This is very, very fast. It also prevents weird lines between
 # patches.
 class PatchLayer extends Layer
-  constructor: (@_fontSize) ->
+  constructor: (@_fontSize, @_font) ->
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
@@ -54,7 +55,7 @@ class PatchLayer extends Layer
   blindlyDrawTo: (context) ->
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
     if @_latestModel.world.patcheswithlabels
-      labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_fontSize)
+      labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_fontSize, @_font)
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
