@@ -126,11 +126,11 @@ class View
   # dimensions (in patch coordinates) of the window that this view looks at.
   # _sharedMouseState: see comment in Viewcontroller
   constructor: (container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
-    # clients of this class should only read, not write to, these public properties
-    @windowCornerX = undefined # the top left corner of this view window in patch coordinates
-    @windowCornerY = undefined
-    @windowWidth = undefined # the width and height of this view window in patch coordinates
-    @windowHeight = undefined
+    @_windowCornerX = undefined # the top left corner of this view window in patch coordinates
+    @_windowCornerY = undefined
+    @_windowWidth = undefined # the width and height of this view window in patch coordinates
+    @_windowHeight = undefined
+    @_latestWorldShape = undefined # tracked so that the `pixToPcor` methods can handle wrapping
 
     # N.B.: since the canvas's dimensions might often change, the canvas is always kept at its
     # default drawing state (no transformations, no fillStyle, etc.) except temporarily when it is
@@ -194,15 +194,32 @@ class View
 
     return
 
-  # Repaints the visible canvas, updating its dimensions.
+  # Repaints the visible canvas, updating its dimensions. Overriding methods should call `super()`.
   repaint: ->
+    @_latestWorldShape = @_sourceLayer.getWorldShape()
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
   xPixToPcor: (xPix) ->
-    (@windowCornerX + xPix / @_visibleCanvas.clientWidth * @windowWidth)
+    { actualMinX, worldWidth, wrapX } = @_latestWorldShape
+    # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
+    # relative position to the window, ignoring possible wrapping.
+    rawPcor = @_windowCornerX + xPix / @_visibleCanvas.clientWidth * @_windowWidth
+    if wrapX
+      # Account for wrapping in the world.
+      (rawPcor - actualMinX) %% worldWidth + actualMinX
+    else
+      rawPcor
   yPixToPcor: (yPix) ->
-    (@windowCornerY - yPix / @_visibleCanvas.clientHeight * @windowHeight)
+    { actualMinY, worldHeight, wrapY } = @_latestWorldShape
+    # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
+    # relative position to the window, ignoring possible wrapping.
+    rawPcor = @_windowCornerY - yPix / @_visibleCanvas.clientHeight * @_windowHeight
+    if wrapY
+      # Account for wrapping in the world
+      (rawPcor - actualMinY) %% worldHeight + actualMinY
+    else
+      rawPcor
 
   destructor: ->
     @_container.replaceChildren()
@@ -219,8 +236,9 @@ class WindowView extends View
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
 
   repaint: ->
+    super()
     @_updateDimensions(@_windowRectGen.next().value)
-    @_sourceLayer.drawRectTo(@_visibleCtx, @windowCornerX, @windowCornerY, @windowWidth, @windowHeight)
+    @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
 
   # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
   # the aspect ratio of the rectangles returned by the passed-in window generator.
@@ -236,7 +254,7 @@ class WindowView extends View
   # See "./window-generators.coffee" for type info on `windowRect`
   _updateDimensions: (windowRect) ->
     # The rectangle must always specify at least a new top-left corner.
-    { x: @windowCornerX, y: @windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
+    { x: @_windowCornerX, y: @_windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
 
     # See if the height has changed.
     if !newWindowHeight? or newWindowHeight == @windowHeight
@@ -246,17 +264,17 @@ class WindowView extends View
       return
 
     # Now we know the rectangle must specify a new height.
-    @windowHeight = newWindowHeight
+    @_windowHeight = newWindowHeight
 
     # See if the width has changed.
     if newWindowWidth? and newWindowWidth != @windowWidth
-      @windowWidth = newWindowWidth
+      @_windowWidth = newWindowWidth
       # The rectangle specified a new width, and therefore the aspect ratio might change.
       @_visibleCanvas.width = @_visibleCanvas.height * newWindowWidth / newWindowHeight
     else
       # Since the rectangle did not specify a new width, we should calculate the width ourselves
       # to maintain the aspect ratio.
-      @windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
+      @_windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
       clearCtx(@_visibleCtx) # since we avoided clearing the canvas till now
 
 # A View that always displays the full NetLogo universe. The dimensions of the View are determined
@@ -269,20 +287,20 @@ class FullView extends View
   setQuality: (@_quality) ->
 
   repaint: ->
+    super()
     @_updateDimensions()
     @_sourceLayer.drawFullTo(@_visibleCtx)
 
   _updateDimensions: ->
-    worldShape = @_sourceLayer.getWorldShape()
     {
-      actualMinX: @windowCornerX,
-      actualMinY: @windowCornerY,
-      worldWidth: @windowWidth,
-      worldHeight: @windowHeight,
+      actualMinX: @_windowCornerX,
+      actualMinY: @_windowCornerY,
+      worldWidth: @_windowWidth,
+      worldHeight: @_windowHeight,
       patchsize
-    } = worldShape
-    cleared = resizeCanvas(@_visibleCanvas, worldShape, @_quality)
+    } = @_latestWorldShape
+    cleared = resizeCanvas(@_visibleCanvas, @_latestWorldShape, @_quality)
     if !cleared then clearCtx(@_visibleCtx)
-    @_visibleCanvas.style.width = @windowWidth * patchsize
+    @_visibleCanvas.style.width = @_windowWidth * patchsize
 
 export default ViewController
