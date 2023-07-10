@@ -22,6 +22,13 @@ extractWorldShape = (world) ->
   worldShape.worldCenterY = (worldShape.actualMaxY + worldShape.actualMinY) / 2
   worldShape
 
+setImageSmoothing = (ctx, imageSmoothing) ->
+  ctx.imageSmoothingEnabled = imageSmoothing
+  ctx.webkitImageSmoothingEnabled = imageSmoothing
+  ctx.mozImageSmoothingEnabled = imageSmoothing
+  ctx.oImageSmoothingEnabled = imageSmoothing
+  ctx.msImageSmoothingEnabled = imageSmoothing
+
 clearCtx = (ctx) ->
   ctx.save()
   ctx.resetTransform()
@@ -178,6 +185,7 @@ drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize, font = '"Lucid
 
 export {
   extractWorldShape,
+  setImageSmoothing,
   resizeCanvas,
   clearCtx,
   drawRectTo,

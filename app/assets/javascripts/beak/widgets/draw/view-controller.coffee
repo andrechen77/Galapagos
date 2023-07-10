@@ -5,7 +5,7 @@ import { TurtleLayer } from "./turtle-layer.js"
 import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
-import { resizeCanvas, clearCtx } from "./draw-utils.js"
+import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
@@ -138,6 +138,7 @@ class View
     @_visibleCanvas = document.createElement('canvas')
     @_visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
     @_visibleCtx = @_visibleCanvas.getContext('2d')
+    setImageSmoothing(@_visibleCtx, false)
     container.appendChild(@_visibleCanvas)
 
     @_initMouseTracking()
