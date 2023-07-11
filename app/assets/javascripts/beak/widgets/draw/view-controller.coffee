@@ -9,6 +9,9 @@ import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
+# Due to the requirement that "config-shims.coffee" be able to have some `importImage` method to
+# use, we're forced to expose the `importImage` function of the "drawing" layer, and return it
+# alongside the main result of this function (which is the LayerManager).
 createLayerManager = (fontSize, font) ->
   quality = Math.max(window.devicePixelRatio ? 2, 2)
   turtles = new TurtleLayer(fontSize, font)
@@ -18,7 +21,7 @@ createLayerManager = (fontSize, font) ->
   spotlight = new SpotlightLayer()
   all = new CompositeLayer(quality, [world, spotlight])
 
-  new LayerManager({
+  layerManager = new LayerManager({
     'turtles': turtles,
     'patches': patches,
     'drawing': drawing,
@@ -27,9 +30,20 @@ createLayerManager = (fontSize, font) ->
     'all': all
   })
 
+  {
+    layerManager,
+    importImage: drawing.importImage.bind(drawing)
+  }
+
 class ViewController
   constructor: (fontSize) ->
-    @_layerManager = createLayerManager(fontSize, '"Lucida Grande", sans-serif')
+    {
+      layerManager: @_layerManager
+      importImage
+    } = createLayerManager(fontSize, '"Lucida Grande", sans-serif')
+    @importImage = (b64, x, y) =>
+      importImage(b64, x, y)
+      .then(=> @repaint())
     @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
     @_model = undefined

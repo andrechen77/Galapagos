@@ -123,6 +123,13 @@ useCompositing = (compositingOperation, ctx, fn) ->
   fn(ctx)
   ctx.globalCompositeOperation = oldGCO
 
+# Fn: (Context) -> Unit
+useImageSmoothing = (imageSmoothing, ctx, fn) ->
+  ctx.save()
+  setImageSmoothing(ctx, imageSmoothing)
+  fn(ctx)
+  ctx.restore()
+
 drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10, font = '"Lucida Grande", sans-serif') ->
   if not turtle['hidden?']
     { xcor, ycor, size } = turtle
@@ -193,6 +200,7 @@ export {
   usePatchCoords,
   useWrapping,
   useCompositing,
+  useImageSmoothing,
   drawTurtle,
   drawLabel
 }

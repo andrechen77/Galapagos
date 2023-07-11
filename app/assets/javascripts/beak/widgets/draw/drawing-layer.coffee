@@ -1,7 +1,7 @@
 import { Layer } from "./layer.js"
 import { ShapeDrawer } from "./draw-shape.js"
 import { LinkDrawer } from "./link-drawer.js"
-import { resizeCanvas, usePatchCoords, useCompositing, drawTurtle } from "./draw-utils.js"
+import { resizeCanvas, usePatchCoords, useCompositing, useImageSmoothing, drawTurtle } from "./draw-utils.js"
 
 rgbToCss = ([r, g, b]) -> "rgb(#{r}, #{g}, #{b})"
 
@@ -127,7 +127,21 @@ class DrawingLayer extends Layer
       @_ctx.drawImage(image, (@_canvas.width - width) / 2, (@_canvas.height - height) / 2, width, height)
     image.src = base64
 
-  # TODO importImage method used by config-shims
+  # x and y coordinates are given in CSS pixels not accounting for quality.
+  # Because this depends on some image to load, this method returns a Promise that resolves once the
+  # image has actually been drawn to this DrawingLayer.
+  importImage: (base64, x, y) ->
+    ctx = @_ctx
+    q = @_quality
+    image = new Image()
+    new Promise((resolve) ->
+      image.onload = ->
+        useImageSmoothing(false, ctx, (ctx) =>
+          ctx.drawImage(image, x * q, y * q, image.width * q, image.height * q)
+        )
+        resolve()
+      image.src = base64 # What's the reason this line comes *after* setting image.onload? --Andre C
+    )
 
 export {
   DrawingLayer
