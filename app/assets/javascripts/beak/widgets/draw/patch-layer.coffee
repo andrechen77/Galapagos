@@ -7,8 +7,8 @@ clearPatches = (ctx) ->
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
 colorPatches = (ctx, worldShape, patches) ->
-  # Make sure that the canvas is properly sized to the world, using this layer's @_quality. Avoids
-  # resizing the canvas if possible, as that is an expensive operation. (https://stackoverflow.com/a/6722031)
+  # Make sure that the canvas is properly sized to the world, one pixel per patch.
+  # Avoids resizing the canvas if possible, as that is an expensive operation. (https://stackoverflow.com/a/6722031)
   { worldWidth, worldHeight } = worldShape
   if ctx.canvas.width != worldWidth then ctx.canvas.width = worldWidth
   if ctx.canvas.height != worldHeight then ctx.canvas.height = worldHeight
