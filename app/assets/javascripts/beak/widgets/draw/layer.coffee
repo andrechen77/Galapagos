@@ -25,6 +25,7 @@ class LayerManager
     @_dependencies = {}
     for layerName, layer of layers
       @addLayer(layerName, layer)
+    return
 
   # Adds the specified layer object to this LayerManager under the specified name.
   # Must not create circular dependencies, or dependencies on layers outside this manager.
@@ -34,6 +35,7 @@ class LayerManager
     @_dependencies[layerName] = unique(getAllDependencies(layer))
     @_dependencies[layerName].push(layer)
     @_layers[layerName] = layer
+    return
 
   getLayer: (layerName) -> @_layers[layerName]
 
@@ -47,6 +49,7 @@ class LayerManager
     for layer in layersToRepaint
       layer.repaint(worldShape, model)
     model.drawingEvents = []
+    return
 
 # Returns a canvas with the current state of the layer like a freeze frame.
 convertLayerToCanvas = (layer, quality) ->
@@ -67,6 +70,7 @@ class Layer
     # if you use them (obviously).
     @_latestWorldShape = undefined
     @_latestModel = undefined
+    return
 
   getWorldShape: -> @_latestWorldShape
 
@@ -81,6 +85,7 @@ class Layer
     quality = 2
     sourceCanvas = convertLayerToCanvas(this, quality)
     drawRectTo(sourceCanvas, ctx, x, y, w, h, @_latestWorldShape, quality)
+    return
 
   # Draws the full layer onto the specified context, scaling to fit. It is the responsibility of the
   # caller to ensure that the destination context has enough pixels to render a good-looking image.
@@ -91,6 +96,7 @@ class Layer
     quality = 2
     sourceCanvas = convertLayerToCanvas(this, quality)
     drawFullTo(sourceCanvas, ctx)
+    return
 
   # Draws the rectangle from this layer onto the specified context. Assumes that the destination
   # context is correctly sized to hold the whole image from this layer.
@@ -106,6 +112,7 @@ class Layer
   repaint: (worldShape, model) ->
     @_latestWorldShape = worldShape
     @_latestModel = model
+    return
 
   # Returns an array of all this layer's direct dependencies
   getDirectDependencies: -> []

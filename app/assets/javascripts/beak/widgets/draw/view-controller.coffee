@@ -61,6 +61,7 @@ class ViewController
     }
     @resetModel()
     @repaint()
+    return
 
   mouseInside: => @_sharedMouseState.inside
   mouseXcor: => @_sharedMouseState.x
@@ -70,6 +71,7 @@ class ViewController
   resetModel: ->
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes
+    return
 
   repaint: ->
     @_layerManager.repaintLayers(
@@ -78,6 +80,7 @@ class ViewController
     )
     for view in @_views when view?
       view.repaint(@_model)
+    return
 
   # (Update|Array[Update]) => Unit
   _applyUpdateToModel: (modelUpdate) ->
@@ -157,6 +160,7 @@ class View
 
     @_initMouseTracking()
     @_initTouchTracking()
+    return
 
   # Unit -> Unit
   _initMouseTracking: ->
@@ -173,6 +177,7 @@ class View
       @_sharedMouseState.x = @xPixToPcor(e.offsetX)
       @_sharedMouseState.y = @yPixToPcor(e.offsetY)
     )
+    return
 
   # Unit -> Unit
   _initTouchTracking: ->
@@ -212,6 +217,7 @@ class View
   # Repaints the visible canvas, updating its dimensions. Overriding methods should call `super()`.
   repaint: ->
     @_latestWorldShape = @_sourceLayer.getWorldShape()
+    return
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
@@ -239,6 +245,7 @@ class View
   destructor: ->
     @_container.replaceChildren()
     @_unregisterThisView()
+    return
 
 # A View that takes an iterator to determine which part of the universe to display. The height of
 # the view is set by the `setCanvasHeight` method, but the aspect ratio is determined by the window
@@ -249,11 +256,13 @@ class WindowView extends View
   # _sharedMouseState: see comment in ViewController
   constructor: (container, sourceLayer, sharedMouseState, unregisterThisView, @_windowRectGen) ->
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
+    return
 
   repaint: ->
     super()
     @_updateDimensions(@_windowRectGen.next().value)
     @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
+    return
 
   # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
   # the aspect ratio of the rectangles returned by the passed-in window generator.
@@ -261,6 +270,7 @@ class WindowView extends View
     @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
     @_visibleCanvas.height = quality * canvasHeight
     @_visibleCanvas.style.height = canvasHeight
+    return
 
   # Takes the new windowRect object and changes this view's visible canvas dimensions to match
   # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
@@ -291,6 +301,7 @@ class WindowView extends View
       # to maintain the aspect ratio.
       @_windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
       clearCtx(@_visibleCtx) # since we avoided clearing the canvas till now
+    return
 
 # A View that always displays the full NetLogo universe. The dimensions of the View are determined
 # by the dimensions of the universe.
@@ -298,6 +309,7 @@ class FullView extends View
   constructor: (container, sourceLayer, sharedMouseState, unregisterThisView) ->
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
     @_quality = 1
+    return
 
   setQuality: (@_quality) ->
 
@@ -305,6 +317,7 @@ class FullView extends View
     super()
     @_updateDimensions()
     @_sourceLayer.drawFullTo(@_visibleCtx)
+    return
 
   _updateDimensions: ->
     {
@@ -317,5 +330,6 @@ class FullView extends View
     cleared = resizeCanvas(@_visibleCanvas, @_latestWorldShape, @_quality)
     if !cleared then clearCtx(@_visibleCtx)
     @_visibleCanvas.style.width = @_windowWidth * patchsize
+    return
 
 export default ViewController

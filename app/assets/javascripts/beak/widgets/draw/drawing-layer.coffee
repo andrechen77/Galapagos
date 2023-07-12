@@ -40,9 +40,11 @@ class DrawingLayer extends Layer
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
+    return
 
   blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
+    return
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
@@ -61,11 +63,13 @@ class DrawingLayer extends Layer
         when 'import-drawing' then @_importDrawing(event.imageBase64)
     # For those who still remember, `model.drawingEvents` is now reset by the LayerManager after
     # every layer has finished repainting.
+    return
 
   getDirectDependencies: -> []
 
   _clearDrawing: ->
     @_ctx.clearRect(0, 0, @_canvas.width, @_canvas.height)
+    return
 
   _drawLine: ({ rgb, size, penMode, fromX, fromY, toX, toY }) ->
     if penMode is 'up' then return
@@ -86,6 +90,7 @@ class DrawingLayer extends Layer
 
       ctx.restore()
     )
+    return
 
   _drawTurtleStamp: (turtleStamp) ->
     mockTurtleObject = makeMockTurtleObject(turtleStamp)
@@ -94,6 +99,7 @@ class DrawingLayer extends Layer
         drawTurtle(@_turtleDrawer, @_latestWorldShape, ctx, mockTurtleObject, true)
       )
     )
+    return
 
   _drawLinkStamp: (linkStamp) ->
     mockLinkObject = makeMockLinkObject(linkStamp)
@@ -108,6 +114,7 @@ class DrawingLayer extends Layer
         )
       )
     )
+    return
 
   _importDrawing: (base64) ->
     _clearDrawing()
@@ -126,6 +133,7 @@ class DrawingLayer extends Layer
 
       @_ctx.drawImage(image, (@_canvas.width - width) / 2, (@_canvas.height - height) / 2, width, height)
     image.src = base64
+    return
 
   # x and y coordinates are given in CSS pixels not accounting for quality.
   # Because this depends on some image to load, this method returns a Promise that resolves once the

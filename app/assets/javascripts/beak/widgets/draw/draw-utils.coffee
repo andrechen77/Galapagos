@@ -28,12 +28,14 @@ setImageSmoothing = (ctx, imageSmoothing) ->
   ctx.mozImageSmoothingEnabled = imageSmoothing
   ctx.oImageSmoothingEnabled = imageSmoothing
   ctx.msImageSmoothingEnabled = imageSmoothing
+  return
 
 clearCtx = (ctx) ->
   ctx.save()
   ctx.resetTransform()
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
   ctx.restore()
+  return
 
 # Makes sure that the canvas is properly sized to the world, using quality and patchsize to
 # calculate pixel density. Avoids resizing the canvas if possible, as that is an expensive
@@ -80,6 +82,7 @@ drawRectTo = (srcCanvas, dstCtx, xPcor, yPcor, wPcor, hPcor, worldShape, srcQual
         xPix, yPix, wPix, hPix,
         0, 0, dstCtx.canvas.width, dstCtx.canvas.height
       )
+  return
 
 drawFullTo = (srcCanvas, dstCtx) ->
   dstCtx.drawImage(
@@ -87,6 +90,7 @@ drawFullTo = (srcCanvas, dstCtx) ->
     0, 0, srcCanvas.width, srcCanvas.height,
     0, 0, dstCtx.canvas.width, dstCtx.canvas.height
   )
+  return
 
 # WorldShape, (Context, Fn) -> Unit
 # where Fn: (Context) -> Unit
@@ -105,6 +109,7 @@ usePatchCoords = (worldShape, ctx, fn) ->
   )
   fn(ctx)
   ctx.restore()
+  return
 
 # Assumes that the context is already using patch coordinates.
 # Fn: (Context, xcor, ycor) -> Unit
@@ -115,6 +120,7 @@ useWrapping = (worldShape, ctx, xcor, ycor, size, fn) ->
   for x in xs when (x + size / 2) > actualMinX and (x - size / 2) < actualMaxX
     for y in ys when (y + size / 2) > actualMinY and (y - size / 2) < actualMaxY
       fn(ctx, x, y)
+  return
 
 # Fn: (Context) -> Unit
 useCompositing = (compositingOperation, ctx, fn) ->
@@ -122,6 +128,7 @@ useCompositing = (compositingOperation, ctx, fn) ->
   ctx.globalCompositeOperation = compositingOperation
   fn(ctx)
   ctx.globalCompositeOperation = oldGCO
+  return
 
 # Fn: (Context) -> Unit
 useImageSmoothing = (imageSmoothing, ctx, fn) ->
@@ -129,6 +136,7 @@ useImageSmoothing = (imageSmoothing, ctx, fn) ->
   setImageSmoothing(ctx, imageSmoothing)
   fn(ctx)
   ctx.restore()
+  return
 
 drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10, font = '"Lucida Grande", sans-serif') ->
   if not turtle['hidden?']

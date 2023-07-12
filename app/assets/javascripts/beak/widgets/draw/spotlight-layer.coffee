@@ -53,6 +53,7 @@ drawCircle = (ctx, x, y, innerDiam, outerDiam, color) ->
   ctx.arc(x, y, innerDiam / 2, 0, 2 * Math.PI, true)
   ctx.fill()
   ctx.restore()
+  return
 
 drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   { patchsize, actualMinX, actualMinY, worldWidth, worldHeight } = worldShape
@@ -82,10 +83,12 @@ drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   )
 
   ctx.restore()
+  return
 
 class SpotlightLayer extends Layer
   constructor: ->
     super()
+    return
 
   blindlyDrawTo: (ctx) ->
     watched = getWatchedAgent(@_latestModel)
@@ -101,9 +104,11 @@ class SpotlightLayer extends Layer
         @_latestModel.observer.perspective is WATCH
       )
     )
+    return
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
+    return
 
   getDirectDependencies: -> []
 

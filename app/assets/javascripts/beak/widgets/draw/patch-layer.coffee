@@ -5,6 +5,7 @@ import { netlogoColorToRGB } from "/colors.js"
 clearPatches = (ctx) ->
   ctx.fillStyle = "black"
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+  return
 
 colorPatches = (ctx, worldShape, patches) ->
   # Make sure that the canvas is properly sized to the world, one pixel per patch.
@@ -23,6 +24,7 @@ colorPatches = (ctx, worldShape, patches) ->
     imageData.data[j + 2] = b
     imageData.data[j + 3] = 255
   ctx.putImageData(imageData, 0, 0)
+  return
 
 labelPatches = (ctx, worldShape, patches, fontSize, font) ->
   usePatchCoords(
@@ -41,6 +43,7 @@ labelPatches = (ctx, worldShape, patches, fontSize, font) ->
           font
         )
   )
+  return
 
 # Works by creating a scratchCanvas that has a pixel per patch. Those pixels
 # are colored accordingly. Then, the scratchCanvas is drawn onto the main
@@ -51,11 +54,13 @@ class PatchLayer extends Layer
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
+    return
 
   blindlyDrawTo: (context) ->
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
     if @_latestModel.world.patcheswithlabels
       labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_fontSize, @_font)
+    return
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
@@ -63,6 +68,7 @@ class PatchLayer extends Layer
       clearPatches(@_ctx)
     else
       colorPatches(@_ctx, worldShape, model.patches)
+    return
 
   getDirectDependencies: -> []
 

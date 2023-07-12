@@ -32,6 +32,7 @@ filteredByBreed = (unbreededName, agents, breeds) ->
 class TurtleLayer extends Layer
   constructor: (@_fontSize, @_font) ->
     super()
+    return
 
   blindlyDrawTo: (context) ->
     { world, turtles, links } = @_latestModel
@@ -54,6 +55,7 @@ class TurtleLayer extends Layer
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize, @_font)
     )
+    return
 
   getDirectDependencies: -> []
 

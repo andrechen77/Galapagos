@@ -7,15 +7,19 @@ class CompositeLayer extends Layer
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
+    return
 
   drawRectTo: (ctx, x, y, w, h) ->
     drawRectTo(@_canvas, ctx, x, y, w, h, @_latestWorldShape, @_quality)
+    return
 
   drawFullTo: (ctx) ->
     drawFullTo(@_canvas, ctx)
+    return
 
   blindlyDrawTo: (context) ->
     context.drawImage(@_canvas, 0, 0)
+    return
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
@@ -24,6 +28,7 @@ class CompositeLayer extends Layer
     setImageSmoothing(@_ctx, false)
     for layer in @_sourceLayers
       layer.blindlyDrawTo(@_ctx)
+    return
 
   getDirectDependencies: -> @_sourceLayers
 
