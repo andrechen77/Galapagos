@@ -29,6 +29,10 @@ setImageSmoothing = (ctx, imageSmoothing) ->
   ctx.oImageSmoothingEnabled = imageSmoothing
   ctx.msImageSmoothingEnabled = imageSmoothing
 
+# (Context, Array[Number]) -> Unit
+setTransparency = (ctx, color) ->
+  ctx.globalAlpha = if color.length > 3 then color[3] / 255 else 1
+
 clearCtx = (ctx) ->
   ctx.save()
   ctx.resetTransform()
@@ -130,69 +134,10 @@ useImageSmoothing = (imageSmoothing, ctx, fn) ->
   fn(ctx)
   ctx.restore()
 
-drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10, font = '"Lucida Grande", sans-serif') ->
-  if not turtle['hidden?']
-    { xcor, ycor, size } = turtle
-    useWrapping(worldShape, ctx, xcor, ycor, size,
-      ((ctx, x, y) => drawTurtleAt(turtleDrawer, turtle, x, y, ctx)))
-    if not isStamp
-      drawLabel(
-        worldShape,
-        ctx,
-        xcor + turtle.size / 2,
-        ycor - turtle.size / 2,
-        turtle.label,
-        turtle['label-color'],
-        fontSize,
-        font
-      )
-
-drawTurtleAt = (turtleDrawer, turtle, xcor, ycor, ctx) ->
-  heading = turtle.heading
-  scale = turtle.size
-  angle = (180-heading)/360 * 2*Math.PI
-  shapeName = turtle.shape
-  shape = turtleDrawer.shapes[shapeName] or defaultShape
-  ctx.save()
-  ctx.translate(xcor, ycor)
-  if shape.rotate
-    ctx.rotate(angle)
-  else
-    ctx.rotate(Math.PI)
-  ctx.scale(scale, scale)
-  turtleDrawer.drawShape(ctx, turtle.color, shapeName, 1 / scale)
-  ctx.restore()
-
-drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize, font = '"Lucida Grande", sans-serif') ->
-  label = if label? then label.toString() else ''
-  if label.length > 0
-    useWrapping(worldShape, ctx, xcor, ycor, label.length * fontSize / worldShape.onePixel, (ctx, x, y) =>
-      ctx.save()
-      ctx.translate(x, y)
-      ctx.scale(worldShape.onePixel, -worldShape.onePixel)
-      ctx.font = "#{fontSize}px #{font}"
-      ctx.textAlign = 'left'
-      ctx.fillStyle = netlogoColorToCSS(color)
-      # This magic 1.2 value is a pretty good guess for width/height ratio for most fonts. The 2D context does not
-      # give a way to get height directly, so this quick and dirty method works fine.  -Jeremy B April 2023
-      lineHeight   = ctx.measureText("M").width * 1.2
-      lines        = label.split("\n")
-      lineWidths   = lines.map( (line) -> ctx.measureText(line).width )
-      maxLineWidth = Math.max(lineWidths...)
-      # This magic 1.5 value is to get the alignment to mirror what happens in desktop relatively closely.  Without
-      # it, labels are too far out to the "right" of the agent since the origin of the text drawing is calculated
-      # differently there.  -Jeremy B April 2023
-      xOffset      = -1 * (maxLineWidth + 1) / 1.5
-      lines.forEach( (line, i) ->
-        yOffset = i * lineHeight
-        ctx.fillText(line, xOffset, yOffset)
-      )
-      ctx.restore()
-    )
-
 export {
   extractWorldShape,
   setImageSmoothing,
+  setTransparency,
   resizeCanvas,
   clearCtx,
   drawRectTo,
@@ -200,7 +145,5 @@ export {
   usePatchCoords,
   useWrapping,
   useCompositing,
-  useImageSmoothing,
-  drawTurtle,
-  drawLabel
+  useImageSmoothing
 }
