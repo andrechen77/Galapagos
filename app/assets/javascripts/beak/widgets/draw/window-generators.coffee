@@ -2,7 +2,7 @@ import { extractWorldShape } from "./draw-utils.js"
 
 ###
 This file defines generators (more precisely, iterators) that are used to get the window that a
-specific view should be looking at. Each value returned should be one of:
+specific view should be looking at. Each value returned should be of Rectangle type:
 - { x, y }, meaning a rectangle with its top left corner at (x, y) and the same dimensions as the
   previous rectangle.
 - { x, y, h }, meaning a rectangle with a new corner and height; the width should be
@@ -20,51 +20,42 @@ followWholeUniverse = (world) ->
       h: worldHeight
     }
 
-followAgent = (agent) ->
-  yield {
-    x: agent.xcor - 10,
-    y: agent.ycor + 10,
-    w: 20,
-    h: 20
-  }
-  loop
-    yield {
-      x: agent.xcor - 10
-      y: agent.ycor + 10
+# Returns an iterator that generates windows following the specified agent. If the zoomRadius is specified during
+# construction or later set to a number, that will be the Moore radius of the window. Otherwise, the zoomRadius will
+# depend on the size of the agent (TODO how?).
+# (Agent, number | null) -> Iterator<Rectangle>
+# where Rectangle is defined above in the comment;
+# can also safely set the public properties `agent` and `zoomRadius`
+followAgentWithZoom = (agent, zoomRadius = null) -> return {
+  agent,
+  zoomRadius,
+  next: ->
+    [x, y, size] = getDimensions(@agent) # note that for some reason the returned size is actually twice agent._size
+    r = @zoomRadius ? size
+    return {
+      value: {
+        x: x - r,
+        y: y + r,
+        w: r * 2,
+        h: r * 2
+      },
+      done: false
     }
+}
 
-followAgentChangeAspRatio = (agent) ->
-  width = 20
-  loop
-    yield {
-      x: agent.xcor - 10,
-      y: agent.ycor + 10,
-      h: 20,
-      w: width
-    }
-    width += 1
-    if width > 100 then width = 20
-
-followAgentPreserveAspRatio = (agent) ->
-  sideLength = 100
-  yield {
-    x: agent.xcor - sideLength / 2,
-    y: agent.ycor + sideLength / 2,
-    h: sideLength
-    w: sideLength
-  }
-  loop
-    yield {
-      x: agent.xcor - sideLength / 2,
-      y: agent.ycor + sideLength / 2,
-      h: sideLength
-    }
-    sideLength -= 1
-    if sideLength <= 0 then sideLength = 100
+# TODO Ideally we'd want to reuse the `getDimensions` function in "./perspective-utils.coffee" to find the dimensions of
+# the agent, but since the agent argument that we have access to here is is taken directly from the model, while the
+# other `getDimensions` function was designed for agents of the duplicate AgentModel used in ViewController, the code
+# cannot be reused. When unification of the models happens, this should be revisited.
+getDimensions = (agent) ->
+  if agent.xcor?
+    [agent.xcor, agent.ycor, 2 * agent._size]
+  else if agent.pxcor?
+    [agent.pxcor, agent.pycor, 2]
+  else
+    [agent.midpointx, agent.midpointy, agent._size]
 
 export {
   followWholeUniverse,
-  followAgent,
-  followAgentChangeAspRatio,
-  followAgentPreserveAspRatio
+  followAgentWithZoom
 }
