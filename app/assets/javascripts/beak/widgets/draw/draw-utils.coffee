@@ -45,10 +45,10 @@ resizeCanvas = (canvas, worldShape, quality) ->
   newWidth = worldWidth * patchsize * quality
   newHeight = worldHeight * patchsize * quality
   changed = false
-  if canvas.width != newWidth
+  if canvas.width isnt newWidth
     canvas.width = newWidth
     changed = true
-  if canvas.height != newHeight
+  if canvas.height isnt newHeight
     canvas.height = newHeight
     changed = true
   changed
@@ -138,7 +138,15 @@ useImageSmoothing = (imageSmoothing, ctx, fn) ->
   ctx.restore()
   return
 
-drawTurtle = (turtleDrawer, worldShape, ctx, turtle, isStamp = false, fontSize = 10, font = '"Lucida Grande", sans-serif') ->
+drawTurtle = (
+  turtleDrawer,
+  worldShape,
+  ctx,
+  turtle,
+  isStamp = false,
+  fontSize = 10,
+  font = '"Lucida Grande", sans-serif'
+) ->
   if not turtle['hidden?']
     { xcor, ycor, size } = turtle
     useWrapping(worldShape, ctx, xcor, ycor, size,

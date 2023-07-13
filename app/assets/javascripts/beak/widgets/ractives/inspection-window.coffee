@@ -4,7 +4,7 @@ RactiveInspectionWindow = Ractive.extend({
   data: -> {
     agentType: undefined, # String; one of "turtle", "patch", or "link"
     agentRef: undefined, # Agent; a reference to the agent from the world
-    viewController: undefined, # ViewController; a reference to the ViewController from which this inspection window is taking its ViewWindow
+    viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
     viewWindow: undefined # ViewWindow; a reference to the ViewWindow associated with the current agent
     updateView: ->
       if @get('viewWindow')?

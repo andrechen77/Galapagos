@@ -23,8 +23,8 @@ class CompositeLayer extends Layer
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
-    cleared= resizeCanvas(@_canvas, worldShape, @_quality)
-    if !cleared then clearCtx(@_ctx)
+    cleared = resizeCanvas(@_canvas, worldShape, @_quality)
+    if not cleared then clearCtx(@_ctx)
     setImageSmoothing(@_ctx, false)
     for layer in @_sourceLayers
       layer.blindlyDrawTo(@_ctx)

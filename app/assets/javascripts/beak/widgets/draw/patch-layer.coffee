@@ -11,8 +11,8 @@ colorPatches = (ctx, worldShape, patches) ->
   # Make sure that the canvas is properly sized to the world, one pixel per patch.
   # Avoids resizing the canvas if possible, as that is an expensive operation. (https://stackoverflow.com/a/6722031)
   { worldWidth, worldHeight } = worldShape
-  if ctx.canvas.width != worldWidth then ctx.canvas.width = worldWidth
-  if ctx.canvas.height != worldHeight then ctx.canvas.height = worldHeight
+  if ctx.canvas.width isnt worldWidth then ctx.canvas.width = worldWidth
+  if ctx.canvas.height isnt worldHeight then ctx.canvas.height = worldHeight
   imageData = ctx.createImageData(worldWidth, worldHeight)
   numPatches = worldWidth * worldHeight
   for i in [0...numPatches] # Is there a reason we iterate by number instead of directly?

@@ -3,7 +3,7 @@ import RactiveInspectionWindow from "./inspection-window.js"
 RactiveInspectionPane = Ractive.extend({
   data: -> {
     watchedAgents: [] # Array[Agent]
-    viewController: undefined # ViewController; a reference to the ViewController from which this inspection window is taking its ViewWindow
+    viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
   }
 
   components: {

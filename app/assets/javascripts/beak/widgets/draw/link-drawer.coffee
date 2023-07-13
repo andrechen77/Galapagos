@@ -110,7 +110,16 @@ class LinkDrawer
     ctx.restore()
 
   drawLabel: (x, y, labelText, color, ctx) ->
-    drawLabel(@worldShape, ctx, x - 3 * @worldShape.onePixel, y + 3 * @worldShape.onePixel, labelText, color, @fontSize, @font)
+    drawLabel(
+      @worldShape,
+      ctx,
+      x - 3 * @worldShape.onePixel,
+      y + 3 * @worldShape.onePixel,
+      labelText,
+      color,
+      @fontSize,
+      @font
+    )
 
   draw: (link, end1, end2, canWrapX, canWrapY, ctx, isStamp = false) ->
     if not link['hidden?']

@@ -118,12 +118,12 @@ class ViewController
   # a parameter (because it's only during the registration process that the unregister function
   # can be determined).
   _registerView: (layerName, createView) ->
-    if !@_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
+    if not @_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
     ++@_layerUseCount[layerName]
 
     # find the first unused index to put this view
-    index = @_views.findIndex((element) -> !element?)
-    if index == -1 then index = @_views.length
+    index = @_views.findIndex((element) -> not element?)
+    if index is -1 then index = @_views.length
     # Create a new scope so that variables are protected in case someone decides to create
     # like-named variables in a higher scope, thus causing CoffeeScript to destroy this scope.
     # CoffeeScript issues ;-; --Andre C.
@@ -282,7 +282,7 @@ class WindowView extends View
     { x: @_windowCornerX, y: @_windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
 
     # See if the height has changed.
-    if !newWindowHeight? or newWindowHeight == @windowHeight
+    if not newWindowHeight? or newWindowHeight is @windowHeight
       # The new rectangle has the same dimensions as the old, so there's no dimension fiddling to do.
       # Just clear the canvas and be done with it.
       clearCtx(@_visibleCtx)
@@ -292,7 +292,7 @@ class WindowView extends View
     @_windowHeight = newWindowHeight
 
     # See if the width has changed.
-    if newWindowWidth? and newWindowWidth != @windowWidth
+    if newWindowWidth? and newWindowWidth isnt @windowWidth
       @_windowWidth = newWindowWidth
       # The rectangle specified a new width, and therefore the aspect ratio might change.
       @_visibleCanvas.width = @_visibleCanvas.height * newWindowWidth / newWindowHeight
@@ -328,7 +328,7 @@ class FullView extends View
       patchsize
     } = @_latestWorldShape
     cleared = resizeCanvas(@_visibleCanvas, @_latestWorldShape, @_quality)
-    if !cleared then clearCtx(@_visibleCtx)
+    if not cleared then clearCtx(@_visibleCtx)
     @_visibleCanvas.style.width = @_windowWidth * patchsize
     return
 

@@ -92,7 +92,7 @@ class SpotlightLayer extends Layer
 
   blindlyDrawTo: (ctx) ->
     watched = getWatchedAgent(@_latestModel)
-    if !watched? then return
+    if not watched? then return
     usePatchCoords(@_latestWorldShape, ctx, (ctx) =>
       [xcor, ycor, size] = getDimensions(watched)
       drawSpotlight(
