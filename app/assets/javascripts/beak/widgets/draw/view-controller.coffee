@@ -69,6 +69,11 @@ class ViewController
   mouseYcor: => @_sharedMouseState.y
   mouseDown: => @_sharedMouseState.down
 
+  # Forces the mouse state to consider the mouse as not being clicked. Only lasts until the next time the presses the
+  # mouse or begins a touch.
+  # (Unit) -> Unit
+  forceMouseUp: -> @_sharedMouseState.down = false
+
   resetModel: ->
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes

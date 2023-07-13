@@ -27,7 +27,7 @@ importFile = (type, ractive) -> (callback) ->
 genAsyncDialogConfig = (ractive, viewController) ->
 
   clearMouse = ->
-    # viewController.mouseDown = false TODO fix this
+    viewController.forceMouseUp()
     return
 
   tellDialog = (eventName, args...) ->
@@ -61,7 +61,7 @@ genAsyncDialogConfig = (ractive, viewController) ->
 genDialogConfig = (viewController, notify) ->
 
   clearMouse = ->
-    # viewController.mouseDown = false TODO fix this
+    viewController.forceMouseUp()
     return
 
   # `yesOrNo` should eventually be changed to use a proper synchronous, three-button,
