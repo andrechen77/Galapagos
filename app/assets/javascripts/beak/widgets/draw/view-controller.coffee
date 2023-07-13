@@ -142,7 +142,7 @@ class View
   # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
   # _sharedMouseState: see comment in Viewcontroller
-  constructor: (container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
+  constructor: (@_container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
     @_windowCornerX = undefined # the top left corner of this view window in patch coordinates
     @_windowCornerY = undefined
     @_windowWidth = undefined # the width and height of this view window in patch coordinates
@@ -156,7 +156,7 @@ class View
     @_visibleCanvas.classList.add('netlogo-canvas', 'unselectable')
     @_visibleCtx = @_visibleCanvas.getContext('2d')
     setImageSmoothing(@_visibleCtx, false)
-    container.appendChild(@_visibleCanvas)
+    @_container.appendChild(@_visibleCanvas)
 
     @_initMouseTracking()
     @_initTouchTracking()
