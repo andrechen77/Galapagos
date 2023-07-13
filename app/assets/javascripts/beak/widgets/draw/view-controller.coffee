@@ -13,6 +13,7 @@ AgentModel = tortoise_require('agentmodel')
 # Due to the requirement that "config-shims.coffee" be able to have some `importImage` method to
 # use, we're forced to expose the `importImage` function of the "drawing" layer, and return it
 # alongside the main result of this function (which is the LayerManager).
+# (number, string) -> LayerManager
 createLayerManager = (fontSize, font) ->
   quality = Math.max(window.devicePixelRatio ? 2, 2)
   turtles = new TurtleLayer(fontSize, font)
@@ -37,6 +38,7 @@ createLayerManager = (fontSize, font) ->
   }
 
 class ViewController
+  # (number) -> Unit
   constructor: (fontSize) ->
     {
       layerManager: @_layerManager
@@ -64,28 +66,30 @@ class ViewController
     @repaint()
     return
 
-  mouseInside: => @_sharedMouseState.inside
-  mouseXcor: => @_sharedMouseState.x
-  mouseYcor: => @_sharedMouseState.y
-  mouseDown: => @_sharedMouseState.down
+  mouseInside: => @_sharedMouseState.inside # (Unit) -> boolean
+  mouseXcor: => @_sharedMouseState.x # (Unit) -> number; patch coordinates
+  mouseYcor: => @_sharedMouseState.y # (Unit) -> number; patch coordinates
+  mouseDown: => @_sharedMouseState.down # (Unit) -> boolean
 
   # Forces the mouse state to consider the mouse as not being clicked. Only lasts until the next time the presses the
   # mouse or begins a touch.
   # (Unit) -> Unit
   forceMouseUp: -> @_sharedMouseState.down = false
 
+  # (Unit) -> Unit
   resetModel: ->
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes
     return
 
+  # (Unit) -> Unit
   repaint: ->
     @_layerManager.repaintLayers(
       @_model,
       Object.keys(@_layerUseCount).filter((layerName) => @_layerUseCount[layerName] > 0)
     )
     for view in @_views when view?
-      view.repaint(@_model)
+      view.repaint()
     return
 
   # (Update|Array[Update]) => Unit
@@ -102,6 +106,7 @@ class ViewController
 
   # Returns a new WindowView that controls the specified container
   # The returned View must be destructed before it is dropped.
+  # (Node, string, Iterator<Rectangle>) -> WindowView
   getNewWindowView: (container, layerName, windowRectGen) ->
     layer = @_layerManager.getLayer(layerName)
     sharedMouseState = @_sharedMouseState
@@ -111,6 +116,7 @@ class ViewController
 
   # Returns a new FullView that controls the specified container.
   # The returned View must be destructed before it is dropped.
+  # (Node, string) -> FullView
   getNewFullView: (container, layerName) ->
     layer = @_layerManager.getLayer(layerName)
     sharedMouseState = @_sharedMouseState
@@ -123,6 +129,7 @@ class ViewController
   # involved with creating the view, except for the View's unregister function, which it takes as
   # a parameter (because it's only during the registration process that the unregister function
   # can be determined).
+  # (string, ((Unit) -> Unit) -> View) -> View
   _registerView: (layerName, createView) ->
     if not @_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
     ++@_layerUseCount[layerName]
@@ -148,6 +155,7 @@ class View
   # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
   # _sharedMouseState: see comment in Viewcontroller
+  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit) -> Unit
   constructor: (@_container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
     @_windowCornerX = undefined # the top left corner of this view window in patch coordinates
     @_windowCornerY = undefined
@@ -221,12 +229,14 @@ class View
     return
 
   # Repaints the visible canvas, updating its dimensions. Overriding methods should call `super()`.
+  # (Unit) -> Unit
   repaint: ->
     @_latestWorldShape = @_sourceLayer.getWorldShape()
     return
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
+  # (number) -> number
   xPixToPcor: (xPix) ->
     { actualMinX, worldWidth, wrapX } = @_latestWorldShape
     # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
@@ -248,6 +258,7 @@ class View
     else
       rawPcor
 
+  # (Unit) -> Unit
   destructor: ->
     @_container.replaceChildren()
     @_unregisterThisView()
@@ -260,10 +271,12 @@ class WindowView extends View
   # _windowRectGen: see "./window-generators.coffee" for type info; returns the
   # dimensions (in patch coordinates) of the window that this view looks at.
   # _sharedMouseState: see comment in ViewController
+  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit, Iterator<Rectangle>) -> Unit
   constructor: (container, sourceLayer, sharedMouseState, unregisterThisView, @_windowRectGen) ->
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
     return
 
+  # (Unit) -> Unit
   repaint: ->
     super()
     @_updateDimensions(@_windowRectGen.next().value)
@@ -272,6 +285,7 @@ class WindowView extends View
 
   # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
   # the aspect ratio of the rectangles returned by the passed-in window generator.
+  # (number, number) -> Unit
   setCanvasHeight: (canvasHeight, quality) ->
     @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
     @_visibleCanvas.height = quality * canvasHeight
@@ -282,6 +296,7 @@ class WindowView extends View
   # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
   # avoid changing the canvas's dimensions when possible, as that is an expensive operation
   # (https://stackoverflow.com/a/6722031)
+  # (Rectangle) -> Unit
   # See "./window-generators.coffee" for type info on `windowRect`
   _updateDimensions: (windowRect) ->
     # The rectangle must always specify at least a new top-left corner.
@@ -312,13 +327,16 @@ class WindowView extends View
 # A View that always displays the full NetLogo universe, except that it tracks agents if the `ride` or `follow` command
 # are used. The dimensions of the View are determined by the dimensions of the universe.
 class FullView extends View
+  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit) -> Unit
   constructor: (container, sourceLayer, sharedMouseState, unregisterThisView) ->
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
     @_quality = 1
     return
 
+  # (number) -> Unit
   setQuality: (@_quality) ->
 
+  # (Unit) -> Unit
   repaint: ->
     super()
     mightWrap = @_updateDimensions()
@@ -332,7 +350,7 @@ class FullView extends View
 
   # Returns whether the view window has been shifted to center on a specific agent, and therefore whether wrapping
   # should be accounted for.
-  # Unit -> Boolean
+  # (Unit) -> Boolean
   _updateDimensions: ->
     # Let's assume we want to see the full universe, without centering on an agent.
     {
