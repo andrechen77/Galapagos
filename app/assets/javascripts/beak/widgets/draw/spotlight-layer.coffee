@@ -1,36 +1,6 @@
 import { usePatchCoords, useWrapping } from "./draw-utils.js"
 import { Layer } from "./layer.js"
-
-# IDs used in watch, follow, and getCenteredAgent
-turtleType = 1
-patchType = 2
-linkType = 3
-
-# Perspective constants:
-OBSERVE = 0
-RIDE    = 1
-FOLLOW  = 2
-WATCH   = 3
-
-# Returns the agent being watched, or null.
-getWatchedAgent = (model) ->
-  {observer: { perspective, targetagent }, turtles, links, patches} = model
-  if perspective isnt OBSERVE and targetagent? and targetagent[1] >= 0
-    [type, id] = targetagent
-    switch type
-      when turtleType then turtles[id]
-      when patchType then patches[id]
-      when linkType then links[id]
-  else
-    null
-
-getDimensions = (agent) ->
-  if agent.xcor?
-    [agent.xcor, agent.ycor, 2 * agent.size]
-  else if agent.pxcor?
-    [agent.pxcor, agent.pycor, 2]
-  else
-    [agent.midpointx, agent.midpointy, agent.size]
+import { getDimensions, getSpotlightAgent, WATCH } from "./perspective-utils.js"
 
 adjustSize = (size, worldShape) ->
   Math.max(size, worldShape.worldWidth / 16, worldShape.worldHeight / 16)
@@ -91,7 +61,7 @@ class SpotlightLayer extends Layer
     return
 
   blindlyDrawTo: (ctx) ->
-    watched = getWatchedAgent(@_latestModel)
+    watched = getSpotlightAgent(@_latestModel)
     if not watched? then return
     usePatchCoords(@_latestWorldShape, ctx, (ctx) =>
       [xcor, ycor, size] = getDimensions(watched)

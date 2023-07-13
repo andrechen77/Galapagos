@@ -72,7 +72,10 @@ class Layer
     @_latestModel = undefined
     return
 
+  # (Unit) -> WorldShape
   getWorldShape: -> @_latestWorldShape
+  # (Unit) -> AgentModel
+  getModel: -> @_latestModel
 
   # Given dimensions specifying (in patch coordinates) a rectangle, draws that rectangle from this
   # layer to the specified context, scaling to fit and accounting for wrapping. It is the

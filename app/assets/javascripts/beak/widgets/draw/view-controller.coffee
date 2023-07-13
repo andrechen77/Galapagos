@@ -6,6 +6,7 @@ import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
 import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
+import { getCenteredAgent, getDimensions } from "./perspective-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
@@ -303,8 +304,8 @@ class WindowView extends View
       clearCtx(@_visibleCtx) # since we avoided clearing the canvas till now
     return
 
-# A View that always displays the full NetLogo universe. The dimensions of the View are determined
-# by the dimensions of the universe.
+# A View that always displays the full NetLogo universe, except that it tracks agents if the `ride` or `follow` command
+# are used. The dimensions of the View are determined by the dimensions of the universe.
 class FullView extends View
   constructor: (container, sourceLayer, sharedMouseState, unregisterThisView) ->
     super(container, sourceLayer, sharedMouseState, unregisterThisView)
@@ -315,14 +316,23 @@ class FullView extends View
 
   repaint: ->
     super()
-    @_updateDimensions()
-    @_sourceLayer.drawFullTo(@_visibleCtx)
+    mightWrap = @_updateDimensions()
+    if mightWrap
+      @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
+    else
+      # We could just use `drawRectTo` in the exact same way, but that costs more.
+      # Ngl the performance difference is negligible so we could just use `drawRectTo` all the time.
+      @_sourceLayer.drawFullTo(@_visibleCtx)
     return
 
+  # Returns whether the view window has been shifted to center on a specific agent, and therefore whether wrapping
+  # should be accounted for.
+  # Unit -> Boolean
   _updateDimensions: ->
+    # Let's assume we want to see the full universe, without centering on an agent.
     {
       actualMinX: @_windowCornerX,
-      actualMinY: @_windowCornerY,
+      actualMaxY: @_windowCornerY,
       worldWidth: @_windowWidth,
       worldHeight: @_windowHeight,
       patchsize
@@ -330,6 +340,15 @@ class FullView extends View
     cleared = resizeCanvas(@_visibleCanvas, @_latestWorldShape, @_quality)
     if not cleared then clearCtx(@_visibleCtx)
     @_visibleCanvas.style.width = @_windowWidth * patchsize
-    return
+
+    # Now account for the possibility of having to center on an agent.
+    centeredAgent = getCenteredAgent(@_sourceLayer.getModel())
+    if centeredAgent?
+      [x, y, _] = getDimensions(centeredAgent)
+      @_windowCornerX = x - @_windowWidth / 2
+      @_windowCornerY = y + @_windowHeight / 2
+      true
+    else
+      false
 
 export default ViewController
