@@ -46,10 +46,23 @@ getDimensions = (agent) ->
   else
     [agent.midpointx, agent.midpointy, agent.size]
 
+# TODO Ideally we'd want to reuse the `getDimensions` function above to find the dimensions of
+# the agent, but since the agent argument that we have access to here is is taken directly from the model, while the
+# other `getDimensions` function was designed for agents of the duplicate AgentModel used in ViewController, the code
+# cannot be reused. When unification of the models happens, this should be revisited.
+getDimensionsDirect = (agent) ->
+  if agent.xcor?
+    [agent.xcor, agent.ycor, 2 * agent._size]
+  else if agent.pxcor?
+    [agent.pxcor, agent.pycor, 2]
+  else
+    [agent.getMidpointX(), agent.getMidpointY(), 2 * agent.getSize()]
+
 export {
   getSpotlightAgent,
   getCenteredAgent,
   getDimensions,
+  getDimensionsDirect,
   OBSERVE,
   RIDE,
   FOLLOW,

@@ -2,8 +2,21 @@ import RactiveInspectionWindow from "./inspection-window.js"
 
 RactiveInspectionPane = Ractive.extend({
   data: -> {
+    # Props
+
     watchedAgents: [] # Array[Agent]
     viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
+
+    # State
+
+    # (Turtle|Patch|Link|Observer) -> String
+    printProperties: (agent) ->
+      pairList = for varName in agent.varNames()
+        "#{varName}: #{agent.getVariable(varName)}"
+      pairList.join("<br/>")
+
+    # (Turtle|Patch|Link|Observer) -> String
+    getAgentName: (agent) -> agent.getName()
   }
 
   components: {
@@ -36,11 +49,10 @@ RactiveInspectionPane = Ractive.extend({
     """
     <div class='netlogo-tab-content'>
       watched agents: ===============<br/>
-      {{#each watchedAgents}}
+      {{#each watchedAgents as agent}}
         -----<br/>
-        watched agent here <br/>
-        id is {{id}}<br/>
-        coords are {{xcor}} and {{ycor}}<br/>
+        {{getAgentName(agent)}} <br/>
+        {{{printProperties(agent)}}}
         -----<br/>
       {{/each}}
       <br/>
@@ -49,7 +61,7 @@ RactiveInspectionPane = Ractive.extend({
 
       specific Agent: ===============
       {{#if watchedAgents.length > 0}}
-      <inspectionWindow viewController={{viewController}} agentType="turtle" agentRef={{watchedAgents.at(-1)}}/>
+      <inspectionWindow viewController={{viewController}} agentRef={{watchedAgents.at(-1)}}/>
       {{/if}}
     </div>
     """

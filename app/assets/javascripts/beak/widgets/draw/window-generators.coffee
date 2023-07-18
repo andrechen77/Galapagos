@@ -1,4 +1,5 @@
 import { extractWorldShape } from "./draw-utils.js"
+import { getDimensionsDirect } from "./perspective-utils.js"
 
 ###
 This file defines generators (more precisely, iterators) that are used to get the window that a
@@ -30,7 +31,7 @@ followAgentWithZoom = (agent, zoomRadius = null) -> return {
   agent,
   zoomRadius,
   next: ->
-    [x, y, size] = getDimensions(@agent) # note that for some reason the returned size is actually twice agent._size
+    [x, y, size] = getDimensionsDirect(@agent) # note that for some reason this is actually twice the agent size
     r = @zoomRadius ? size
     return {
       value: {
@@ -42,18 +43,6 @@ followAgentWithZoom = (agent, zoomRadius = null) -> return {
       done: false
     }
 }
-
-# TODO Ideally we'd want to reuse the `getDimensions` function in "./perspective-utils.coffee" to find the dimensions of
-# the agent, but since the agent argument that we have access to here is is taken directly from the model, while the
-# other `getDimensions` function was designed for agents of the duplicate AgentModel used in ViewController, the code
-# cannot be reused. When unification of the models happens, this should be revisited.
-getDimensions = (agent) ->
-  if agent.xcor?
-    [agent.xcor, agent.ycor, 2 * agent._size]
-  else if agent.pxcor?
-    [agent.pxcor, agent.pycor, 2]
-  else
-    [agent.midpointx, agent.midpointy, agent._size]
 
 export {
   followWholeUniverse,
