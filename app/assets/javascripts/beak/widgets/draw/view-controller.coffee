@@ -6,7 +6,6 @@ import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
 import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
-import { getCenteredAgent, getDimensions } from "./perspective-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
@@ -107,21 +106,11 @@ class ViewController
   # Returns a new WindowView that controls the specified container
   # The returned View must be destructed before it is dropped.
   # (Node, string, Iterator<Rectangle>) -> WindowView
-  getNewWindowView: (container, layerName, windowRectGen) ->
+  getNewView: (container, layerName, windowRectGen) ->
     layer = @_layerManager.getLayer(layerName)
     sharedMouseState = @_sharedMouseState
     @_registerView(layerName, (unregisterThisView) ->
-      new WindowView(container, layer, sharedMouseState, unregisterThisView, windowRectGen)
-    )
-
-  # Returns a new FullView that controls the specified container.
-  # The returned View must be destructed before it is dropped.
-  # (Node, string) -> FullView
-  getNewFullView: (container, layerName) ->
-    layer = @_layerManager.getLayer(layerName)
-    sharedMouseState = @_sharedMouseState
-    @_registerView(layerName, (unregisterThisView) ->
-      new FullView(container, layer, sharedMouseState, unregisterThisView)
+      new View(container, layer, sharedMouseState, windowRectGen, unregisterThisView)
     )
 
   # Using the passed in `createView` function, creates and registers a new View to this
@@ -148,19 +137,23 @@ class ViewController
       @_views[index] = view
       return view
 
-# Abstract class controlling each view into the NetLogo universe. Assumes that the canvas element
-# that is used has no padding. To instantiate, requires a `repaint` method that repaints the canvas
-# and updates `window...` variables to match the window that the view is looking at.
+# Each view into the NetLogo universe.
+# Assumes that the canvas element that is used has no padding.
+# Takes an iterator that returns Rectangles (see "./window-generators.coffee" for type info) to determine which part of
+# the universe to observe, as well as the size of the canvas.
 class View
-  # _windowRectGen: see "./window-generators.coffee" for type info; returns the
-  # dimensions (in patch coordinates) of the window that this view looks at.
-  # _sharedMouseState: see comment in Viewcontroller
-  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit) -> Unit
-  constructor: (@_container, @_sourceLayer, @_sharedMouseState, @_unregisterThisView) ->
-    @_windowCornerX = undefined # the top left corner of this view window in patch coordinates
+  # _sharedMouseState: see comment in ViewController
+  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, Iterator<Rectangle>, (Unit) -> Unit) -> Unit
+  constructor: (@_container, @_sourceLayer, @_sharedMouseState, @_windowRectGen, @_unregisterThisView) ->
+    # Track the dimensions of the window rectangle currently being displayed so that we know when the canvas
+    # dimensions need to be updated.
+    @_windowCornerX = undefined
     @_windowCornerY = undefined
-    @_windowWidth = undefined # the width and height of this view window in patch coordinates
+    @_windowWidth = undefined
     @_windowHeight = undefined
+
+    @_quality = 1
+
     @_latestWorldShape = undefined # tracked so that the `pixToPcor` methods can handle wrapping
 
     # N.B.: since the canvas's dimensions might often change, the canvas is always kept at its
@@ -228,11 +221,60 @@ class View
 
     return
 
+  # (number) -> Unit
+  setQuality: (@_quality) ->
+
   # Repaints the visible canvas, updating its dimensions. Overriding methods should call `super()`.
   # (Unit) -> Unit
   repaint: ->
     @_latestWorldShape = @_sourceLayer.getWorldShape()
+    @_updateDimensionsAndClear(@_windowRectGen.next().value)
+    @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
     return
+
+  # Updates this view's canvas dimensions, as well as the `_windowWidth` and `_windowHeight` properties to match the
+  # aspect ratio of the specified Rectangle, and clears the visible canvas.
+  # (Rectangle) -> { x: number, y: number, w: number, h: number }
+  # See "./window-generators.coffee" for type info on "Rectangle"
+  _updateDimensionsAndClear: ({ x: @_windowCornerX, y: @_windowCornerY, w, h, canvasHeight }) ->
+    # See if the height has changed.
+    if not h? or h is @_windowHeight
+      # The new rectangle has the same dimensions as the old.
+      @_setCanvasDimensionsAndClear(canvasHeight, false)
+      return
+
+    # Now we know the rectangle must specify a new height.
+    @_windowHeight = h
+
+    # See if the width has changed.
+    if not w? or w is @_windowWidth
+      # Since the rectangle did not specify a new width, we should calculate the width ourselves
+      # to maintain the aspect ratio. We use the canvas dimensions to calculate the aspect ratio since
+      # they haven't changed from the last frame, whereas `@_windowHeight` has.
+      @_windowWidth = h * @_visibleCanvas.width / @_visibleCanvas.height
+      @_setCanvasDimensionsAndClear(canvasHeight, false)
+      return
+
+    # Now we know the rectangle must specify a new width and the aspect ratio might change.
+    @_windowWidth = w
+    @_setCanvasDimensionsAndClear(canvasHeight, true)
+    return
+
+  # Ensures that the canvas is property sized to have the specified height while maintaining the aspect ratio specified
+  # by `@_windowWidth` and @_windowHeight`. `canvasHeight` can be optional, in which case it will keep the same height
+  # and maintain aspect ratio.
+  _setCanvasDimensionsAndClear: (canvasHeight, changedAspRatio) ->
+    if canvasHeight? and canvasHeight * @_quality isnt @_visibleCanvas.height
+      # The canvas height must change.
+      @_visibleCanvas.height = canvasHeight * @_quality
+      @_visibleCanvas.width = @_visibleCanvas.height * @_windowWidth / @_windowHeight
+      @_visibleCanvas.style.height = canvasHeight
+    else if changedAspRatio
+      # The canvas height did not change but the aspect ratio did.
+      @_visibleCanvas.width = @_visibleCanvas.height * @_windowWidth / @_windowHeight
+    else
+      # Neither the canvas height not the aspect ratio changed; just clear the canvas and be done with it.
+      clearCtx(@_visibleCtx)
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
@@ -263,115 +305,5 @@ class View
     @_container.replaceChildren()
     @_unregisterThisView()
     return
-
-# A View that takes an iterator to determine which part of the universe to display. The height of
-# the view is set by the `setCanvasHeight` method, but the aspect ratio is determined by the window
-# into the universe that this view looks at.
-class WindowView extends View
-  # _windowRectGen: see "./window-generators.coffee" for type info; returns the
-  # dimensions (in patch coordinates) of the window that this view looks at.
-  # _sharedMouseState: see comment in ViewController
-  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit, Iterator<Rectangle>) -> Unit
-  constructor: (container, sourceLayer, sharedMouseState, unregisterThisView, @_windowRectGen) ->
-    super(container, sourceLayer, sharedMouseState, unregisterThisView)
-    return
-
-  # (Unit) -> Unit
-  repaint: ->
-    super()
-    @_updateDimensions(@_windowRectGen.next().value)
-    @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
-    return
-
-  # Sets the height of the visible canvas, maintaining aspect ratio. The width will always respect
-  # the aspect ratio of the rectangles returned by the passed-in window generator.
-  # (number, number) -> Unit
-  setCanvasHeight: (canvasHeight, quality) ->
-    @_visibleCanvas.width = quality * canvasHeight * @_visibleCanvas.width / @_visibleCanvas.height
-    @_visibleCanvas.height = quality * canvasHeight
-    @_visibleCanvas.style.height = canvasHeight
-    return
-
-  # Takes the new windowRect object and changes this view's visible canvas dimensions to match
-  # the aspect ratio of the new window. Clears the canvas as a side effect. This function tries to
-  # avoid changing the canvas's dimensions when possible, as that is an expensive operation
-  # (https://stackoverflow.com/a/6722031)
-  # (Rectangle) -> Unit
-  # See "./window-generators.coffee" for type info on `windowRect`
-  _updateDimensions: (windowRect) ->
-    # The rectangle must always specify at least a new top-left corner.
-    { x: @_windowCornerX, y: @_windowCornerY, w: newWindowWidth, h: newWindowHeight } = windowRect
-
-    # See if the height has changed.
-    if not newWindowHeight? or newWindowHeight is @windowHeight
-      # The new rectangle has the same dimensions as the old, so there's no dimension fiddling to do.
-      # Just clear the canvas and be done with it.
-      clearCtx(@_visibleCtx)
-      return
-
-    # Now we know the rectangle must specify a new height.
-    @_windowHeight = newWindowHeight
-
-    # See if the width has changed.
-    if newWindowWidth? and newWindowWidth isnt @windowWidth
-      @_windowWidth = newWindowWidth
-      # The rectangle specified a new width, and therefore the aspect ratio might change.
-      @_visibleCanvas.width = @_visibleCanvas.height * newWindowWidth / newWindowHeight
-    else
-      # Since the rectangle did not specify a new width, we should calculate the width ourselves
-      # to maintain the aspect ratio.
-      @_windowWidth = newWindowHeight * @_visibleCanvas.width / @_visibleCanvas.height
-      clearCtx(@_visibleCtx) # since we avoided clearing the canvas till now
-    return
-
-# A View that always displays the full NetLogo universe, except that it tracks agents if the `ride` or `follow` command
-# are used. The dimensions of the View are determined by the dimensions of the universe.
-class FullView extends View
-  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, (Unit) -> Unit) -> Unit
-  constructor: (container, sourceLayer, sharedMouseState, unregisterThisView) ->
-    super(container, sourceLayer, sharedMouseState, unregisterThisView)
-    @_quality = 1
-    return
-
-  # (number) -> Unit
-  setQuality: (@_quality) ->
-
-  # (Unit) -> Unit
-  repaint: ->
-    super()
-    mightWrap = @_updateDimensions()
-    if mightWrap
-      @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)
-    else
-      # We could just use `drawRectTo` in the exact same way, but that costs more.
-      # Ngl the performance difference is negligible so we could just use `drawRectTo` all the time.
-      @_sourceLayer.drawFullTo(@_visibleCtx)
-    return
-
-  # Returns whether the view window has been shifted to center on a specific agent, and therefore whether wrapping
-  # should be accounted for.
-  # (Unit) -> Boolean
-  _updateDimensions: ->
-    # Let's assume we want to see the full universe, without centering on an agent.
-    {
-      actualMinX: @_windowCornerX,
-      actualMaxY: @_windowCornerY,
-      worldWidth: @_windowWidth,
-      worldHeight: @_windowHeight,
-      patchsize
-    } = @_latestWorldShape
-    cleared = resizeCanvas(@_visibleCanvas, @_latestWorldShape, @_quality)
-    if not cleared then clearCtx(@_visibleCtx)
-    @_visibleCanvas.style.width = @_windowWidth * patchsize
-
-    # Now account for the possibility of having to center on an agent.
-    centeredAgent = getCenteredAgent(@_sourceLayer.getModel())
-    if centeredAgent?
-      [x, y, _] = getDimensions(centeredAgent)
-      @_windowCornerX = x - @_windowWidth / 2
-      @_windowCornerY = y + @_windowHeight / 2
-      true
-    else
-      false
 
 export default ViewController

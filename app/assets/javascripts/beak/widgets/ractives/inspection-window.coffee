@@ -16,7 +16,7 @@ RactiveInspectionWindow = Ractive.extend({
       if @get('viewWindow')?
         @get('viewWindow').destructor()
       windowGenerator = followAgentWithZoom(@get('agentRef'), @get('zoomLevel'))
-      viewWindow = @get('viewController').getNewWindowView(
+      viewWindow = @get('viewController').getNewView(
         @find('.inspection-window-view-container'),
         'world',
         windowGenerator

@@ -6,7 +6,7 @@ import handleContextMenu from "./handle-context-menu.js"
 import controlEventTraffic from "./event-traffic-control.js"
 import genConfigs from "./config-shims.js"
 import ViewController from "./draw/view-controller.js"
-import { followWholeUniverse } from "./draw/window-generators.js"
+import { followObserver } from "./draw/window-generators.js"
 
 # (Element|String, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, String, BrowserCompiler) => WidgetController
@@ -50,7 +50,7 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getNewFullView(container.querySelector('.netlogo-view-container'), 'all')
+  mainView = viewController.getNewView(container.querySelector('.netlogo-view-container'), 'all', followObserver(viewController._model))
   mainView.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
   ractive.set('viewController', viewController)
 
