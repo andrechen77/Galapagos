@@ -138,7 +138,6 @@ class ViewController
       return view
 
 # Each view into the NetLogo universe.
-# Assumes that the canvas element that is used has no padding.
 # Takes an iterator that returns Rectangles (see "./window-generators.coffee" for type info) to determine which part of
 # the universe to observe, as well as the size of the canvas.
 class View
@@ -169,56 +168,69 @@ class View
     @_initTouchTracking()
     return
 
+  # Note: For proper mouse and touch tracking, the <canvas> element must have no padding or border. This is because the
+  # `offsetX` and `offsetY` properties plus the client bounding box, used in the mouse-tracking functions, account for
+  # padding and/or border, which we do not want.
+
+  # (number, number) -> Unit
+  _updateMouseLoc: (xPix, yPix) ->
+    xPcor = @xPixToPcor(xPix)
+    yPcor = @yPixToPcor(yPix)
+    if not xPcor? or not yPcor?
+      # Mouse is outside the world boundaries.
+      @_sharedMouseState.inside = false
+      # Leave the `.x` and `.y` properties untouched, so that they report the coordinates the last time the mouse was
+      # inside.
+    else
+      @_sharedMouseState.inside = true
+      @_sharedMouseState.x = xPcor
+      @_sharedMouseState.y = yPcor
+    # Leave the `.down` property untouched, since that doesn't care about whether the mouse is outside world
+    # boundaries, in parity with NetLogo Desktop behavior. (This might change, and IMO should)
+
   # Unit -> Unit
   _initMouseTracking: ->
     @_visibleCanvas.addEventListener('mousedown', => @_sharedMouseState.down = true)
-    document.addEventListener('mouseup', => @_sharedMouseState.down = false)
-
-    @_visibleCanvas.addEventListener('mouseenter', => @_sharedMouseState.inside = true)
+    @_visibleCanvas.addEventListener('mouseup', => @_sharedMouseState.down = false)
+    @_visibleCanvas.addEventListener('mousemove', (e) => @_updateMouseLoc(e.offsetX, e.offsetY))
     @_visibleCanvas.addEventListener('mouseleave', =>
       @_sharedMouseState.inside = false
       @_sharedMouseState.down = false
-    )
-
-    @_visibleCanvas.addEventListener('mousemove', (e) =>
-      @_sharedMouseState.x = @xPixToPcor(e.offsetX)
-      @_sharedMouseState.y = @yPixToPcor(e.offsetY)
     )
     return
 
   # Unit -> Unit
   _initTouchTracking: ->
     # event -> Unit
-    endTouch = (e) =>
+    endTouch = =>
       @_sharedMouseState.inside = false
       @_sharedMouseState.down   = false
       return
 
     # Touch -> Unit
     trackTouch = ({ clientX, clientY }) =>
-      { bottom, left, top, right } = @_visibleCanvas.getBoundingClientRect()
+      { left, top, right, bottom } = @_visibleCanvas.getBoundingClientRect()
       if (left <= clientX <= right) and (top <= clientY <= bottom)
-        @_sharedMouseState.inside = true
-        @_sharedMouseState.x = @xPixToPcor(clientX - left)
-        @_sharedMouseState.y = @yPixToPcor(clientY - top)
+        # equivalent to a "mousemove" event
+        @_updateMouseLoc(clientX - left, clientY - top)
       else
+        # equivalent to a "mouseleave" event
         @_sharedMouseState.inside = false
         @_sharedMouseState.down = false
       return
 
-    document.addEventListener('touchend',    endTouch)
-    document.addEventListener('touchcancel', endTouch)
+    @_visibleCanvas.addEventListener('touchend',    endTouch)
+    @_visibleCanvas.addEventListener('touchcancel', endTouch)
     @_visibleCanvas.addEventListener('touchmove', (e) =>
       e.preventDefault()
       trackTouch(e.changedTouches[0])
       return
     )
     @_visibleCanvas.addEventListener('touchstart', (e) =>
-      @mouseDown = true
+      @_sharedMouseState.down = true
       trackTouch(e.touches[0])
       return
     )
-
     return
 
   # (number) -> Unit
@@ -278,27 +290,32 @@ class View
 
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
-  # (number) -> number
+  # Return null if the point lies outside the moudel coordinates.
+  # (number) -> number | null
   xPixToPcor: (xPix) ->
-    { actualMinX, worldWidth, wrapX } = @_latestWorldShape
+    { actualMinX, actualMaxX, worldWidth, wrapX } = @_latestWorldShape
     # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
     # relative position to the window, ignoring possible wrapping.
     rawPcor = @_windowCornerX + xPix / @_visibleCanvas.clientWidth * @_windowWidth
     if wrapX
       # Account for wrapping in the world.
       (rawPcor - actualMinX) %% worldWidth + actualMinX
-    else
+    else if actualMinX <= rawPcor and rawPcor <= actualMaxX
       rawPcor
+    else
+      null
   yPixToPcor: (yPix) ->
-    { actualMinY, worldHeight, wrapY } = @_latestWorldShape
+    { actualMinY, actualMaxY, worldHeight, wrapY } = @_latestWorldShape
     # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
     # relative position to the window, ignoring possible wrapping.
     rawPcor = @_windowCornerY - yPix / @_visibleCanvas.clientHeight * @_windowHeight
     if wrapY
       # Account for wrapping in the world
       (rawPcor - actualMinY) %% worldHeight + actualMinY
-    else
+    else if actualMinY <= rawPcor and rawPcor <= actualMaxY
       rawPcor
+    else
+      null
 
   # (Unit) -> Unit
   destructor: ->
