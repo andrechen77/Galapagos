@@ -1,4 +1,5 @@
-import { usePatchCoords, drawLabel } from "./draw-utils.js"
+import { usePatchCoords } from "./draw-utils.js"
+import { drawLabel } from "./draw-shape.js"
 import { Layer } from "./layer.js"
 import { netlogoColorToRGB } from "/colors.js"
 

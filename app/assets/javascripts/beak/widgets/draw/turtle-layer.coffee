@@ -1,7 +1,7 @@
 import { Layer } from "./layer.js"
-import { ShapeDrawer } from "./draw-shape.js"
-import { usePatchCoords, drawTurtle } from "./draw-utils.js"
-import { LinkDrawer } from "./link-drawer.js"
+import { drawTurtle } from "./draw-shape.js"
+import { usePatchCoords } from "./draw-utils.js"
+import { drawLink } from "./link-drawer.js"
 
 # Yields each name in `breedNames`, except that `unbreededName` comes last if it exists.
 breedNameGen = (unbreededName, breedNames) ->
@@ -36,24 +36,31 @@ class TurtleLayer extends Layer
 
   blindlyDrawTo: (context) ->
     { world, turtles, links } = @_latestModel
-    turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, @_latestWorldShape.onePixel)
-    linkDrawer = new LinkDrawer(@_latestWorldShape, context, world.linkshapelist ? {}, @_fontSize, @_font)
     usePatchCoords(
       @_latestWorldShape,
       context,
       (context) =>
         for link from filteredByBreed('LINKS', links, world.linkbreeds ? [])
-          linkDrawer.draw(
+          drawLink(
+            world.linkshapelist
             link,
             turtles[link.end1],
             turtles[link.end2],
-            world.wrappingallowedinx,
-            world.wrappingallowediny,
-            context
+            @_latestWorldShape,
+            context,
+            @_fontSize,
+            @_font
           )
-        context.lineWidth = @_latestWorldShape.onePixel # TODO can be more elegant?
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
-          drawTurtle(turtleDrawer, @_latestWorldShape, context, turtle, false, @_fontSize, @_font)
+          drawTurtle(
+            @_latestWorldShape,
+            world.turtleshapelist,
+            context,
+            turtle,
+            false,
+            @_fontSize,
+            @_font
+          )
     )
     return
 

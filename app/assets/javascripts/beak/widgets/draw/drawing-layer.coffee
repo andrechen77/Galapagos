@@ -1,7 +1,7 @@
 import { Layer } from "./layer.js"
-import { ShapeDrawer } from "./draw-shape.js"
-import { LinkDrawer } from "./link-drawer.js"
-import { resizeCanvas, usePatchCoords, useCompositing, useImageSmoothing, drawTurtle } from "./draw-utils.js"
+import { drawTurtle } from "./draw-shape.js"
+import { drawLink } from "./link-drawer.js"
+import { resizeCanvas, usePatchCoords, useCompositing, useImageSmoothing } from "./draw-utils.js"
 
 rgbToCss = ([r, g, b]) -> "rgb(#{r}, #{g}, #{b})"
 
@@ -50,8 +50,6 @@ class DrawingLayer extends Layer
     super(worldShape, model)
     resizeCanvas(@_canvas, worldShape, @_quality)
     { world } = model
-    @_turtleDrawer = new ShapeDrawer(world.turtleshapelist ? {}, worldShape.onePixel)
-    @_linkDrawer = new LinkDrawer(worldShape, @_ctx, world.linkshapelist ? {}, @_fontSize, @_font)
     for event in model.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()
@@ -96,7 +94,15 @@ class DrawingLayer extends Layer
     mockTurtleObject = makeMockTurtleObject(turtleStamp)
     usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(turtleStamp.stampMode), ctx, (ctx) =>
-        drawTurtle(@_turtleDrawer, @_latestWorldShape, ctx, mockTurtleObject, true)
+        drawTurtle(
+          @_latestWorldShape,
+          @_latestModel.world.turtleshapelist,
+          ctx,
+          mockTurtleObject,
+          true,
+          @_fontSize,
+          @_font
+        )
       )
     )
     return
@@ -104,12 +110,14 @@ class DrawingLayer extends Layer
   _drawLinkStamp: (linkStamp) ->
     mockLinkObject = makeMockLinkObject(linkStamp)
     usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
-      useCompositing(@compositingOperation(linkStamp.stampMode), ctx, (ctx) =>
-        @_linkDrawer.draw(
+      useCompositing(compositingOperation(linkStamp.stampMode), ctx, (ctx) =>
+        drawLink(
+          @_latestModel.world.linkshapelist,
           mockLinkObject...,
-          @_latestWorldShape.wrapX,
-          @_latestWorldShape.wrapY,
+          @_latestWorldShape,
           ctx,
+          @_fontSize,
+          @_font,
           true
         )
       )
