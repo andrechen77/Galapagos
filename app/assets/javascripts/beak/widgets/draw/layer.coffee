@@ -33,7 +33,6 @@ class LayerManager
 
   addLayer: (layerName, layer) ->
     @_dependencies[layerName] = unique(getAllDependencies(layer))
-    @_dependencies[layerName].push(layer)
     @_layers[layerName] = layer
     return
 
