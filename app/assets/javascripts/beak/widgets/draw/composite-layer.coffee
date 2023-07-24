@@ -3,14 +3,14 @@ import { setImageSmoothing, resizeCanvas, clearCtx, drawRectTo, drawFullTo } fro
 
 # CompositeLayer forms its image by sequentially copying over the images from its source layers.
 class CompositeLayer extends Layer
-  constructor: (@_quality, @_sourceLayers) ->
+  constructor: (@_layerOptions, @_sourceLayers) ->
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
   drawRectTo: (ctx, x, y, w, h) ->
-    drawRectTo(@_canvas, ctx, x, y, w, h, @_latestWorldShape, @_quality)
+    drawRectTo(@_canvas, ctx, x, y, w, h, @_latestWorldShape, @_layerOptions.quality)
     return
 
   drawFullTo: (ctx) ->
@@ -23,7 +23,7 @@ class CompositeLayer extends Layer
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
-    cleared = resizeCanvas(@_canvas, worldShape, @_quality)
+    cleared = resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
     if not cleared then clearCtx(@_ctx)
     setImageSmoothing(@_ctx, false)
     for layer in @_sourceLayers

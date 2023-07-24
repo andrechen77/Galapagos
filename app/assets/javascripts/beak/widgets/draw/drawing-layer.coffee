@@ -36,7 +36,7 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  constructor: (@_quality, @_fontSize, @_font) ->
+  constructor: (@_layerOptions) ->
     super()
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
@@ -48,7 +48,7 @@ class DrawingLayer extends Layer
 
   repaint: (worldShape, model) ->
     super(worldShape, model)
-    resizeCanvas(@_canvas, worldShape, @_quality)
+    resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
     { world } = model
     for event in model.drawingEvents
       switch event.type
@@ -100,8 +100,8 @@ class DrawingLayer extends Layer
           ctx,
           mockTurtleObject,
           true,
-          @_fontSize,
-          @_font
+          @_layerOptions.fontSize,
+          @_layerOptions.font
         )
       )
     )
@@ -116,8 +116,8 @@ class DrawingLayer extends Layer
           mockLinkObject...,
           @_latestWorldShape,
           ctx,
-          @_fontSize,
-          @_font,
+          @_layerOptions.fontSize,
+          @_layerOptions.font,
           true
         )
       )
@@ -148,7 +148,7 @@ class DrawingLayer extends Layer
   # image has actually been drawn to this DrawingLayer.
   importImage: (base64, x, y) ->
     ctx = @_ctx
-    q = @_quality
+    q = @_layerOptions.quality
     image = new Image()
     new Promise((resolve) ->
       image.onload = ->

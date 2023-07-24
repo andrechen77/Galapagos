@@ -30,7 +30,7 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  constructor: (@_fontSize, @_font) ->
+  constructor: (@_layerOptions) ->
     super()
     return
 
@@ -48,8 +48,8 @@ class TurtleLayer extends Layer
             turtles[link.end2],
             @_latestWorldShape,
             context,
-            @_fontSize,
-            @_font
+            @_layerOptions.fontSize,
+            @_layerOptions.font
           )
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(
@@ -58,8 +58,8 @@ class TurtleLayer extends Layer
             context,
             turtle,
             false,
-            @_fontSize,
-            @_font
+            @_layerOptions.fontSize,
+            @_layerOptions.font
           )
     )
     return

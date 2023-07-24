@@ -1,5 +1,13 @@
 import { extractWorldShape, drawRectTo, drawFullTo } from "./draw-utils.js"
-{ unique } = tortoise_require('brazier/array')
+
+# I would use the `unique` method of brazier, but it falsely marks some objects as equivalent even if they are not
+# identical (and we care about identity).
+unique = (arr) ->
+  result = []
+  for element in arr
+    if not result.includes(element) # Uses `===` equality
+      result.push(element)
+  result
 
 getAllDependencies = (layer) ->
   result = unique(layer.getDirectDependencies().flatMap(getAllDependencies))

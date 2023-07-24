@@ -50,12 +50,16 @@ initializeUI = (containerArg, widgets, code, info,
 
   ractive.set('primaryView', viewModel)
   viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getNewView(container.querySelector('.netlogo-view-container'), 'all', followObserver(viewController._model))
+  mainView = viewController.getNewView(
+    container.querySelector('.netlogo-view-container'),
+    'all',
+    followObserver(viewController.getModel())
+  )
   mainView.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
   ractive.set('viewController', viewController)
 
-  # entwineDimensions(viewModel, viewController.model.world)
-  # entwine([[viewModel, "fontSize"], [viewController.view, "fontSize"]], viewModel.fontSize)
+  entwineDimensions(viewModel, viewController.getModel().world)
+  entwine([[viewModel, "fontSize"], [viewController.layerOptions, "fontSize"]], viewModel.fontSize)
 
   configs    = genConfigs(ractive, viewController, container, compiler)
   controller = new WidgetController(ractive, viewController, configs)
@@ -81,7 +85,7 @@ entwine = (objKeyPairs, value) ->
 
   return
 
-# (Widgets.View, ViewController.View) => Unit
+# (Widgets.View, AgentModel.World) => Unit
 entwineDimensions = (viewWidget, modelView) ->
 
   translations = {

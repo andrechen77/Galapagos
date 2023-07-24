@@ -12,15 +12,16 @@ AgentModel = tortoise_require('agentmodel')
 # Due to the requirement that "config-shims.coffee" be able to have some `importImage` method to
 # use, we're forced to expose the `importImage` function of the "drawing" layer, and return it
 # alongside the main result of this function (which is the LayerManager).
-# (number, string) -> LayerManager
-createLayerManager = (fontSize, font) ->
-  quality = Math.max(window.devicePixelRatio ? 2, 2)
-  turtles = new TurtleLayer(fontSize, font)
-  patches = new PatchLayer(fontSize, font)
-  drawing = new DrawingLayer(quality, fontSize, font)
-  world = new CompositeLayer(quality, [patches, drawing, turtles])
+# (LayerOptions) -> LayerManager
+# See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+# mutate.
+createLayerManager = (layerOptions) ->
+  turtles = new TurtleLayer(layerOptions)
+  patches = new PatchLayer(layerOptions)
+  drawing = new DrawingLayer(layerOptions)
+  world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
   spotlight = new SpotlightLayer()
-  all = new CompositeLayer(quality, [world, spotlight])
+  all = new CompositeLayer(layerOptions, [world, spotlight])
 
   layerManager = new LayerManager({
     'turtles': turtles,
@@ -37,12 +38,24 @@ createLayerManager = (fontSize, font) ->
   }
 
 class ViewController
+  ###
+  Some Layers might take a LayerOptions object that affects rendering options such as font size and font family.
+  Mutations to this object take effect on the next repaint.
+  LayerOptions: {
+    quality: number,
+    fontSize: number,
+    font: string
+  }
+  ###
+
   # (number) -> Unit
   constructor: (fontSize) ->
-    {
-      layerManager: @_layerManager
-      importImage
-    } = createLayerManager(fontSize, '"Lucida Grande", sans-serif')
+    @layerOptions = {
+      quality: Math.max(window.devicePixelRatio ? 2, 2),
+      fontSize,
+      font: '"Lucida Grande", sans-serif'
+    }
+    { layerManager: @_layerManager, importImage } = createLayerManager(@layerOptions)
     @importImage = (b64, x, y) =>
       importImage(b64, x, y)
       .then(=> @repaint())
@@ -80,6 +93,9 @@ class ViewController
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes
     return
+
+  # (Unit) -> AgentModel
+  getModel: -> @_model
 
   # (Unit) -> Unit
   repaint: ->
