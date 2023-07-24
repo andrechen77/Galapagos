@@ -9,6 +9,8 @@ class CompositeLayer extends Layer
     @_ctx = @_canvas.getContext('2d')
     return
 
+  getCanvas: -> @_canvas
+
   drawRectTo: (ctx, x, y, w, h) ->
     drawRectTo(@_canvas, ctx, x, y, w, h, @_latestWorldShape, @_layerOptions.quality)
     return

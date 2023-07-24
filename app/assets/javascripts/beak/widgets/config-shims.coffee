@@ -106,11 +106,9 @@ genImportExportConfig = (ractive, viewController, compiler) ->
     getOutput: ->
       ractive.findComponent('outputWidget')?.get('text') ? ractive.findComponent('console').get('output')
 
-    getViewBase64: ->
-      viewController.view.visibleCanvas.toDataURL("image/png")
+    getViewBase64: viewController.configShims.getViewBase64
 
-    getViewBlob: (callback) ->
-      viewController.view.visibleCanvas.toBlob(callback, "image/png")
+    getViewBlob: viewController.configShims.getViewBlob
 
     importFile: (path) -> (callback) ->
       importFile("any", ractive)(callback)
@@ -268,7 +266,7 @@ genConfigs = (ractive, viewController, container, compiler) ->
   , imageDataToBase64: synchroEncoder
   , dialog:            genDialogConfig(viewController, notify)
   , importExport:      genImportExportConfig(ractive, viewController, compiler)
-  , importImage:       viewController.importImage
+  , importImage:       viewController.configShims.importImage
   , inspection:        genInspectionConfig()
   , io:                genIOConfig(ractive)
   , mouse:             genMouseConfig(viewController)

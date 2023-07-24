@@ -9,9 +9,6 @@ import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
-# Due to the requirement that "config-shims.coffee" be able to have some `importImage` method to
-# use, we're forced to expose the `importImage` function of the "drawing" layer, and return it
-# alongside the main result of this function (which is the LayerManager).
 # (LayerOptions) -> LayerManager
 # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
 # mutate.
@@ -23,7 +20,7 @@ createLayerManager = (layerOptions) ->
   spotlight = new SpotlightLayer()
   all = new CompositeLayer(layerOptions, [world, spotlight])
 
-  layerManager = new LayerManager({
+  new LayerManager({
     'turtles': turtles,
     'patches': patches,
     'drawing': drawing,
@@ -31,11 +28,6 @@ createLayerManager = (layerOptions) ->
     'spotlight': spotlight,
     'all': all
   })
-
-  {
-    layerManager,
-    importImage: drawing.importImage.bind(drawing)
-  }
 
 class ViewController
   ###
@@ -55,10 +47,17 @@ class ViewController
       fontSize,
       font: '"Lucida Grande", sans-serif'
     }
-    { layerManager: @_layerManager, importImage } = createLayerManager(@layerOptions)
-    @importImage = (b64, x, y) =>
-      importImage(b64, x, y)
-      .then(=> @repaint())
+    @_layerManager = createLayerManager(@layerOptions)
+
+    repaint = => @repaint()
+    drawingLayer = @_layerManager.getLayer('drawing')
+    allLayer = @_layerManager.getLayer('all')
+    @configShims = {
+      importImage: (b64, x, y) -> drawingLayer.importImage(b64, x, y).then(repaint),
+      getViewBase64: -> allLayer.getCanvas().toDataURL("image/png"),
+      getViewBlob: (callback) -> allLayer.getCanvas().toBlob(callback, "image/png")
+    }
+
     @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
     @_model = undefined

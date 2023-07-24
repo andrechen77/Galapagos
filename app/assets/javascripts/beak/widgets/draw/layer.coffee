@@ -84,6 +84,12 @@ class Layer
   # (Unit) -> AgentModel
   getModel: -> @_latestModel
 
+  # Returns a <canvas> element with the contents of the current layer. This canvas should be considered read-only.
+  # This is a default implementation that works, but if it ends up being used, is probably a sign that the layer should
+  # be refactored to get its own internal canvas which can be directly used.
+  # (Unit) -> HTMLCanvasElement
+  getCanvas: -> convertLayerToCanvas(this, 2)
+
   # Given dimensions specifying (in patch coordinates) a rectangle, draws that rectangle from this
   # layer to the specified context, scaling to fit and accounting for wrapping. It is the
   # responsibility of the caller to ensure that the destination context has enough pixels to render
