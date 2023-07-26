@@ -1,13 +1,15 @@
 import { followAgentWithZoom } from '../draw/window-generators.js'
-import { getDimensionsDirect } from "../draw/perspective-utils.js"
+import { getDimensions } from "../draw/perspective-utils.js"
 
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
     # Props
-    agentRef: undefined, # Agent; a reference to the agent from the world
+    agent: undefined, # Agent; a reference to the actual agent from the engine
     viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
 
     # State
+    viewModelAgent: undefined, # Agent; but not the same type as `agent`; this is a reference to the equivalent agent
+    # from the ViewController's AgentModel. This should be kept in sync with the `agent` data.
     viewWindow: undefined # ViewWindow; a reference to the ViewWindow associated with the current agent
     windowGenerator: undefined # result of `followAgentWithZoom`; see "window-generators.coffee"
     zoomLevel: 0.7 # number
@@ -15,7 +17,7 @@ RactiveInspectionWindow = Ractive.extend({
     replaceView: ->
       if @get('viewWindow')?
         @get('viewWindow').destructor()
-      windowGenerator = followAgentWithZoom(@get('agentRef'), @get('zoomLevel'))
+      windowGenerator = followAgentWithZoom(@get('viewModelAgent'), @get('zoomLevel'))
       viewWindow = @get('viewController').getNewView(
         @find('.inspection-window-view-container'),
         'world',
@@ -27,7 +29,7 @@ RactiveInspectionWindow = Ractive.extend({
       return
     # (number) -> Unit
     zoomView: (zoomLevel) ->
-      [_, _, size] = getDimensionsDirect(@get('agentRef'))
+      [_, _, size] = getDimensions(@get('viewModelAgent'))
       maxRadius = Math.max(50, size * 10)
       # Simple linear function mapping zoomLevel to zoomRadius, where zoomLevel of 0 maps to maxRadius and
       # zoomLevel of 1 maps to the agent's size. Might want to revisit this.
@@ -41,6 +43,7 @@ RactiveInspectionWindow = Ractive.extend({
     # We want to run `updateView` and `zoomView` only after the instance has been rendered to the DOM, but Ractive
     # observers initialize before rendering. And for some reason, using the `defer` option does not work
     # (see Ractive API).
+    @set('viewModelAgent', @get('viewController').getEquivalentAgent(@get('agent')))
     @get('replaceView')()
 
   observe: {
@@ -48,9 +51,10 @@ RactiveInspectionWindow = Ractive.extend({
     # realizes that the agentRef has changed, the view is controlled by the ViewController,
     # so we need to interact with the ViewController to get a new view that reflects the
     # agent.
-    'agentRef': {
+    'agent': {
       handler: (newValue, oldValue) ->
         if oldValue is newValue then return # we only care about when the identity changes (see Ractive API)
+        @set('viewModelAgent', @get('viewController').getEquivalentAgent(newValue))
         @get('replaceView')()
       init: false # see `onrender`
     }

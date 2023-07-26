@@ -1,5 +1,5 @@
 import { extractWorldShape } from "./draw-utils.js"
-import { getDimensionsDirect, getDimensions, getCenteredAgent } from "./perspective-utils.js"
+import { getDimensions, getCenteredAgent } from "./perspective-utils.js"
 
 ###
 This file defines generators (more precisely, iterators) that are used to get the window that a
@@ -35,7 +35,7 @@ followAgentWithZoom = (agent, zoomRadius = null) -> return {
   agent,
   zoomRadius,
   next: ->
-    [x, y, size] = getDimensionsDirect(@agent) # note that for some reason this is actually twice the agent size
+    [x, y, size] = getDimensions(@agent) # note that for some reason this is actually twice the agent size
     r = @zoomRadius ? size
     return {
       value: {

@@ -61,7 +61,7 @@ RactiveInspectionPane = Ractive.extend({
 
       specific Agent: ===============
       {{#if watchedAgents.length > 0}}
-      <inspectionWindow viewController={{viewController}} agentRef={{watchedAgents.at(-1)}}/>
+      <inspectionWindow viewController={{viewController}} agent={{watchedAgents.at(-1)}}/>
       {{/if}}
     </div>
     """

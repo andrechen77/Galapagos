@@ -8,6 +8,9 @@ import { SpotlightLayer } from "./spotlight-layer.js"
 import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
+Turtle = tortoise_require('engine/core/turtle')
+Patch = tortoise_require('engine/core/patch')
+Link = tortoise_require('engine/core/link')
 
 # (LayerOptions) -> LayerManager
 # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
@@ -117,6 +120,16 @@ class ViewController
     @_applyUpdateToModel(modelUpdate)
     @repaint()
     return
+
+  # Really pointless signature, I know. Converts the actual agent object (such as one you'd obtain from using the
+  # `workspace` global variable) into the equivalent agent model used from this ViewController's AgentModel.
+  # (Agent) -> Agent
+  getEquivalentAgent: (agent) ->
+    switch
+      when agent instanceof Turtle then @_model.turtles[agent.id]
+      when agent instanceof Patch then @_model.patches[agent.id]
+      when agent instanceof Link then @_model.links[agent.id]
+      else throw new Error("agent is not a valid type")
 
   # Returns a new WindowView that controls the specified container
   # The returned View must be destructed before it is dropped.
