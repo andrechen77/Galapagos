@@ -219,6 +219,12 @@ listenerEvents = Object.freeze([
     ]
   },
   {
+    'name': 'quality-slider-changed',
+    'args': [
+      'quality' # Number
+    ]
+  },
+  {
     'name': 'command-center-toggled',
     'args': [
       'isOpen' # Boolean

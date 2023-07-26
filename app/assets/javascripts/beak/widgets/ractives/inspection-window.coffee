@@ -30,9 +30,10 @@ RactiveInspectionWindow = Ractive.extend({
     # (number) -> Unit
     zoomView: (zoomLevel) ->
       [_, _, size] = getDimensions(@get('viewModelAgent'))
+      size = size / 2
       maxRadius = Math.max(50, size * 10)
       # Simple linear function mapping zoomLevel to zoomRadius, where zoomLevel of 0 maps to maxRadius and
-      # zoomLevel of 1 maps to the agent's size. Might want to revisit this.
+      # zoomLevel of 1 maps to half the agent's size. Might want to revisit this.
       r = size + (size - maxRadius) * (zoomLevel - 1)
       @get('windowGenerator').zoomRadius = r
       @get('viewWindow').repaint()
