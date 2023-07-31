@@ -60,6 +60,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
   , watchedAgents:        [] # Array[Agent]
   , viewController:       undefined # ViewController
   , width:                0
+  , contextMenuOptions:   widgetCreationOptions
   }
 
   animateWithClass = (klass) ->
@@ -86,6 +87,11 @@ generateRactiveSkeleton = (container, widgets, code, info,
     el:       container,
     template: template,
     partials: partials,
+
+    # Required so that event propagation is properly stopped when events come from iterative sections. In particular,
+    # the `contextmenu` event should sometimes be caught and handled by the widgets, instead of bubbling up to this
+    # ractive instance.
+    delegate: false,
 
     components: {
 
@@ -253,7 +259,7 @@ template =
 
       <div style="position: relative; width: {{width}}px; height: {{height}}px"
            class="netlogo-widget-container{{#isEditing}} interface-unlocked{{/}}"
-           on-contextmenu="@this.fire('show-context-menu', { component: @this }, @event)"
+           on-contextmenu="show-context-menu"
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
@@ -321,5 +327,28 @@ partials = {
 
 }
 # coffeelint: enable=max_line_length
+
+genWidgetCreator = (name, widgetType, isEnabled = true, enabler = (-> false)) ->
+  { text: "Create #{name}", enabler, isEnabled
+  , action: (context, mouseX, mouseY) -> context.fire('create-widget', widgetType, mouseX, mouseY)
+  }
+
+alreadyHasA = (componentName) -> (ractive) ->
+  if ractive.parent?
+    alreadyHasA(componentName)(ractive.parent)
+  else
+    not ractive.findComponent(componentName)?
+
+widgetCreationOptions = [
+  ["Button",  "button"],
+  ["Chooser", "chooser"],
+  ["Input",   "inputBox"],
+  ["Note",    "textBox"],
+  ["Monitor", "monitor"],
+  ["Output",  "output", false, alreadyHasA('outputWidget')],
+  ["Plot",    "plot"],
+  ["Slider",  "slider"],
+  ["Switch",  "switch"],
+].map((args) -> genWidgetCreator(args...))
 
 export default generateRactiveSkeleton

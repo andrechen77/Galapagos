@@ -231,7 +231,7 @@ RactiveWidget = RactiveDraggableAndContextable.extend({
         style="{{dims}}"
         class="editor-overlay{{#isSelected}} selected{{/}}{{#widget.type === 'plot'}} plot-overlay{{/}}"
         on-click="@this.fire('hide-context-menu') && @this.fire('select-widget', @event)"
-        on-contextmenu="@this.fire('show-context-menu', @event)"
+        on-contextmenu="show-context-menu"
         on-dblclick="@this.fire('edit-widget')"
         on-dragstart="start-widget-drag"
         on-drag="drag-widget"

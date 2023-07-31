@@ -40,28 +40,17 @@ handleContextMenu =
 
     )
 
-    handleContextMenu =
-      (a, b, c) ->
+    handleContextMenu = (context) ->
+      component = context.component ? this
+      { pageX, pageY } = context.event
 
-        theEditFormIsntUp = @get("isEditing") and not @findAllComponents('editForm').some((form) -> form.get('visible'))
+      if @get("isEditing") and not @findAllComponents('editForm').some((form) -> form.get('visible'))
+        @fire('deselect-widgets')
+        @findComponent('contextMenu').fire('reveal-thineself', component, pageX, pageY)
+        false
+      else
+        true
 
-        if theEditFormIsntUp
-
-          [{ component }, { pageX, pageY }] =
-            if not c?
-              [a, b]
-            else
-              [b, c]
-
-          ractive.fire('deselect-widgets')
-          @findComponent('contextMenu').fire('reveal-thineself', component, pageX, pageY)
-
-          false
-
-        else
-          true
-
-    ractive.on(  'show-context-menu', handleContextMenu)
     ractive.on('*.show-context-menu', handleContextMenu)
     ractive.on('*.hide-context-menu', hideContextMenu)
 
