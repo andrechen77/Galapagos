@@ -77,9 +77,7 @@ InputEditForm = EditForm.extend({
 
 RactiveInput = RactiveValueWidget.extend({
 
-  data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  }
+  data: -> {}
 
   widgetType: "input"
 

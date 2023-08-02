@@ -122,8 +122,7 @@ SliderEditForm = EditForm.extend({
 RactiveSlider = RactiveValueWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , errorClass:         undefined # String
+    errorClass:         undefined # String
   , internalValue:      0         # Number
   }
 

@@ -85,8 +85,7 @@ LabelEditForm = EditForm.extend({
 RactiveLabel = RactiveWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , convertColor:       netlogoColorToCSS
+    convertColor:       netlogoColorToCSS
   }
 
   components: {

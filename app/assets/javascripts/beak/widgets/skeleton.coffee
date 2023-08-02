@@ -60,7 +60,6 @@ generateRactiveSkeleton = (container, widgets, code, info,
   , watchedAgents:        [] # Array[Agent]
   , viewController:       undefined # ViewController
   , width:                0
-  , contextMenuOptions:   widgetCreationOptions
   }
 
   animateWithClass = (klass) ->
@@ -146,6 +145,12 @@ generateRactiveSkeleton = (container, widgets, code, info,
         @get('workInProgressState') is 'enabled-with-reversion'
 
     },
+
+    getContextMenuOptions: (x, y) ->
+      if @get('isEditing')
+        widgetCreationOptions
+      else
+        []
 
     onrender: ->
       @on('setinspect', (context) ->

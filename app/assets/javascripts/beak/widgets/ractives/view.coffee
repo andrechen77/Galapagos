@@ -199,8 +199,7 @@ ViewEditForm = EditForm.extend({
 RactiveView = RactiveWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit]
-  , resizeDirs:         ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
+    resizeDirs:         ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
   , ticks:              undefined # String
   }
 
@@ -209,6 +208,12 @@ RactiveView = RactiveWidget.extend({
       { top, right, bottom, left } = VIEW_INNER_SPACING
       "padding: #{top}px #{right}px #{bottom}px #{left}px;"
   }
+
+  getContextMenuOptions: (x, y) ->
+    if @get('isEditing')
+      [@getStandardOptions().edit]
+    else
+      []
 
   components: {
     editForm: ViewEditForm
@@ -298,7 +303,7 @@ RactiveView = RactiveWidget.extend({
 
     view:
       """
-      <div id="{{id}}" class="netlogo-widget netlogo-view-container {{classes}}" style="{{dims}}{{viewDims}}"></div>
+      <div id="{{id}}" class="netlogo-widget netlogo-view-container {{classes}}" style="{{dims}}{{viewDims}}" on-contextmenu="show-context-menu"></div>
       """
 
   }

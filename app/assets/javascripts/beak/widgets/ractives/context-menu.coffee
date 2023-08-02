@@ -11,32 +11,32 @@ RactiveContextMenu = Ractive.extend({
   }
 
   on: {
-
     'ignore-click': ->
       false
-
-    'cover-thineself': ->
-      @set('visible', false)
-      @fire('unlock-selection')
-      return
-
-    'reveal-thineself': (_, component, x, y) ->
-      options = component?.get('contextMenuOptions') ? []
-      visible = options.length > 0
-      @set({
-        target: component,
-        options,
-        visible,
-        mouseX: x,
-        mouseY: y
-      })
-
-      if component instanceof RactiveWidget
-        @fire('lock-selection', component)
-
-      return
-
   }
+
+  unreveal: ->
+    @set('visible', false)
+    @fire('unlock-selection')
+    return
+
+  # Returns whether the context menu actually revealed itself, which will not happen if there are no options to display.
+  # (Ractive, number, number) -> boolean
+  reveal: (component, x, y) ->
+    options = component?.getContextMenuOptions(x, y) ? []
+    visible = options.length > 0
+    @set({
+      target: component,
+      options,
+      visible,
+      mouseX: x,
+      mouseY: y
+    })
+
+    if component instanceof RactiveWidget
+      @fire('lock-selection', component)
+
+    visible
 
   template:
     """

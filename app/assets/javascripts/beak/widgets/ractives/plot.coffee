@@ -411,8 +411,7 @@ PlotEditForm = EditForm.extend({
 RactivePlot = RactiveWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , menuIsOpen:     false
+    menuIsOpen:     false
   , resizeCallback: ((x, y) ->)
   }
 

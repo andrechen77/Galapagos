@@ -8,7 +8,7 @@ handleContextMenu =
                                 # See this ticket: https://bugzilla.mozilla.org/show_bug.cgi?id=184051
           contextMenu = ractive.findComponent('contextMenu')
           if contextMenu.get('visible')
-            contextMenu.fire('cover-thineself')
+            contextMenu.unreveal()
         return
 
     window.addEventListener('keyup'
@@ -44,12 +44,9 @@ handleContextMenu =
       component = context.component ? this
       { pageX, pageY } = context.event
 
-      if @get("isEditing") and not @findAllComponents('editForm').some((form) -> form.get('visible'))
-        @fire('deselect-widgets')
-        @findComponent('contextMenu').fire('reveal-thineself', component, pageX, pageY)
-        false
-      else
-        true
+      @fire('deselect-widgets')
+      menuOpened = @findComponent('contextMenu').reveal(component, pageX, pageY)
+      not menuOpened # keep propagating the event if the menu didn't open
 
     ractive.on('*.show-context-menu', handleContextMenu)
     ractive.on('*.hide-context-menu', hideContextMenu)

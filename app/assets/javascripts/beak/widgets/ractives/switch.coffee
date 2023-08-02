@@ -37,8 +37,7 @@ SwitchEditForm = EditForm.extend({
 RactiveSwitch = RactiveValueWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , resizeDirs:         ['left', 'right']
+    resizeDirs:         ['left', 'right']
   }
 
   widgetType: "switch"

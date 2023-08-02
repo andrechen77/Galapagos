@@ -97,8 +97,7 @@ ButtonEditForm = EditForm.extend({
 RactiveButton = RactiveWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , errorClass:         undefined # String
+    errorClass:         undefined # String
   , ticksStarted:       undefined # Boolean
   , isRunning:          false     # Boolean
   }

@@ -66,8 +66,7 @@ ChooserEditForm = EditForm.extend({
 RactiveChooser = RactiveValueWidget.extend({
 
   data: -> {
-    contextMenuOptions: [@standardOptions(this).edit, @standardOptions(this).delete]
-  , resizeDirs:         ['left', 'right']
+    resizeDirs:         ['left', 'right']
   }
 
   widgetType: "chooser"
