@@ -6,7 +6,6 @@ import handleContextMenu from "./handle-context-menu.js"
 import controlEventTraffic from "./event-traffic-control.js"
 import genConfigs from "./config-shims.js"
 import ViewController from "./draw/view-controller.js"
-import { followObserver } from "./draw/window-generators.js"
 
 # (Element|String, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, String, BrowserCompiler) => WidgetController
@@ -31,15 +30,17 @@ initializeUI = (containerArg, widgets, code, info,
   reportError = (time, source, exception, ...args) ->
     controller.reportError(time, source, exception, ...args)
 
+  viewController = new ViewController()
   ractive = generateRactiveSkeleton(
-      container
-    , widgets
-    , code
-    , info
-    , isReadOnly
-    , source
-    , workInProgressState
-    , (code) -> compiler.isReporter(code)
+    container,
+    widgets,
+    code,
+    info,
+    isReadOnly,
+    source,
+    workInProgressState,
+    (code) -> compiler.isReporter(code),
+    viewController
   )
 
   container.querySelector('.netlogo-model').focus({
@@ -47,16 +48,7 @@ initializeUI = (containerArg, widgets, code, info,
   })
 
   viewModel = widgets.find(({ type }) -> type is 'view')
-
   ractive.set('primaryView', viewModel)
-  viewController = new ViewController(viewModel.fontSize)
-  mainView = viewController.getNewView(
-    container.querySelector('.netlogo-view-container'),
-    'all',
-    followObserver(viewController.getModel())
-  )
-  mainView.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
-  ractive.set('viewController', viewController)
 
   entwineDimensions(viewModel, viewController.getModel().world)
   entwine([[viewModel, "fontSize"], [viewController.layerOptions, "fontSize"]], viewModel.fontSize)

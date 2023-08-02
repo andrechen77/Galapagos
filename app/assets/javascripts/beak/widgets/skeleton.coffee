@@ -22,9 +22,9 @@ import RactiveEditFormSpacer from "./ractives/subcomponent/spacer.js"
 import RactiveTickCounter from "./ractives/subcomponent/tick-counter.js"
 
 # (Element, Array[Widget], String, String,
-#   Boolean, NlogoSource, String, Boolean, String, (String) => Boolean) => Ractive
+#   Boolean, NlogoSource, String, Boolean, String, (String) => Boolean, ViewController) => Ractive
 generateRactiveSkeleton = (container, widgets, code, info,
-  isReadOnly, source, workInProgressState, checkIsReporter) ->
+  isReadOnly, source, workInProgressState, checkIsReporter, viewController) ->
 
   model = {
     checkIsReporter
@@ -58,7 +58,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
   , ticksStarted:         false
   , widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
   , watchedAgents:        [] # Array[Agent]
-  , viewController:       undefined # ViewController
+  , viewController:       viewController # ViewController
   , width:                0
   }
 
@@ -268,7 +268,7 @@ template =
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
-          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" /> {{/}}
+          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" /> {{/}}
           {{# type === 'textBox'  }} <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'switch'   }} <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'button'   }} <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} errorClass="{{>errorClass}}" ticksStarted="{{ticksStarted}}"/> {{/}}

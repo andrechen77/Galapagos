@@ -4,17 +4,19 @@ import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import RactiveEditFormFontSize from "./subcomponent/font-size.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
+import { followObserver } from "../draw/window-generators.js"
 
 RactiveEditFormCoordBoundInput = Ractive.extend({
 
   data: -> {
-    id:    undefined # String
-  , hint:  undefined # String
-  , label: undefined # String
-  , max:   undefined # Number
-  , min:   undefined # Number
-  , name:  undefined # String
-  , value: undefined # Number
+    id:         undefined, # String
+    hint:       undefined, # String
+    label:      undefined, # String
+    max:        undefined, # Number
+    min:        undefined, # Number
+    name:       undefined, # String
+    value:      undefined, # Number
+    viewWindow: undefined, # View
   }
 
   isolated: true
@@ -199,6 +201,7 @@ ViewEditForm = EditForm.extend({
 RactiveView = RactiveWidget.extend({
 
   data: -> {
+    viewController:     undefined # ViewController
     resizeDirs:         ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
   , ticks:              undefined # String
   }
@@ -217,6 +220,18 @@ RactiveView = RactiveWidget.extend({
 
   components: {
     editForm: ViewEditForm
+  }
+
+  on: {
+    render: ->
+      viewController = @get('viewController')
+      viewWindow = viewController.getNewView(
+        @find('.netlogo-view-container'),
+        'all',
+        followObserver(viewController.getModel())
+      )
+      viewWindow.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
+      @set({ viewWindow })
   }
 
   eventTriggers: ->

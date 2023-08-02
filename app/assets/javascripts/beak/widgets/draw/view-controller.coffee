@@ -43,11 +43,11 @@ class ViewController
   }
   ###
 
-  # (number) -> Unit
-  constructor: (fontSize) ->
+  # (Unit) -> Unit
+  constructor: ->
     @layerOptions = {
       quality: Math.max(window.devicePixelRatio ? 2, 2),
-      fontSize,
+      fontSize: 50, # some random number; can be set by the client
       font: '"Lucida Grande", sans-serif'
     }
     @_layerManager = createLayerManager(@layerOptions)
