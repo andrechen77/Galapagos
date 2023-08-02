@@ -1,16 +1,18 @@
 import { followAgentWithZoom } from '../draw/window-generators.js'
 import { getDimensions } from "../draw/perspective-utils.js"
+import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu-utils.js"
 
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
     # Props
     agent: undefined, # Agent; a reference to the actual agent from the engine
+    addToInspect: undefined, # (Agent) -> Unit
     viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
 
     # State
     viewModelAgent: undefined, # Agent; but not the same type as `agent`; this is a reference to the equivalent agent
     # from the ViewController's AgentModel. This should be kept in sync with the `agent` data.
-    viewWindow: undefined # ViewWindow; a reference to the ViewWindow associated with the current agent
+    viewWindow: undefined # View; a reference to the View associated with the current agent
     windowGenerator: undefined # result of `followAgentWithZoom`; see "window-generators.coffee"
     zoomLevel: 0.7 # number
     # (Unit) -> Unit
@@ -66,11 +68,24 @@ RactiveInspectionWindow = Ractive.extend({
     }
   }
 
+  getContextMenuOptions: (x, y) ->
+    viewWindow = @get('viewWindow')
+    { left, top, bottom, right } = viewWindow.getBoundingClientRect()
+    if left <= x <= right and top <= y <= bottom
+      getClickedAgents(world, viewWindow, x, y).map(agentToContextMenuOption(@get('addToInspect')))
+    else
+      # The cursor is not actually inside the bounding box of the canvas (probably on the border)
+      []
+
   template:
     """
     <div style="border: 1px solid black;">
       inspection window<br/>
-      <div class="inspection-window-view-container" style="border: 10px solid red; width: fit-content;"></div>
+      <div
+        class="inspection-window-view-container"
+        style="border: 10px solid red; width: fit-content;"
+        on-contextmenu="show-context-menu"
+      ></div>
       <input type="range" min=0 max=1 step=0.01 value="{{ zoomLevel }}"/>
       ZOOM LEVEL {{ zoomLevel }}
     </div>

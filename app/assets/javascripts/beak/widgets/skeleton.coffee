@@ -28,38 +28,39 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
   model = {
     checkIsReporter
-  , code
-  , consoleOutput:        ''
-  , exportForm:           false
-  , hasFocus:             false
-  , workInProgressState
-  , height:               0
-  , info
-  , isEditing:            false
-  , isHelpVisible:        false
-  , isOverlayUp:          false
-  , isReadOnly
-  , isResizerVisible:     true
-  , isStale:              false
-  , isVertical:           true
-  , lastCompiledCode:     code
-  , lastCompileFailed:    false
-  , lastDragX:            undefined
-  , lastDragY:            undefined
-  , modelTitle:           source.getModelTitle()
-  , outputWidgetOutput:   ''
-  , primaryView:          undefined
-  , someDialogIsOpen:     false
-  , someEditFormIsOpen:   false
-  , source
-  , quality:              Math.max(window.devicePixelRatio ? 2, 2)
-  , speed:                0.0
-  , ticks:                "" # Remember, ticks initialize to nothing, not 0
-  , ticksStarted:         false
-  , widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
-  , watchedAgents:        [] # Array[Agent]
-  , viewController:       viewController # ViewController
-  , width:                0
+    code
+    consoleOutput:        ''
+    exportForm:           false
+    hasFocus:             false
+    workInProgressState
+    height:               0
+    info
+    isEditing:            false
+    isHelpVisible:        false
+    isOverlayUp:          false
+    isReadOnly
+    isResizerVisible:     true
+    isStale:              false
+    isVertical:           true
+    lastCompiledCode:     code
+    lastCompileFailed:    false
+    lastDragX:            undefined
+    lastDragY:            undefined
+    modelTitle:           source.getModelTitle()
+    outputWidgetOutput:   ''
+    primaryView:          undefined
+    someDialogIsOpen:     false
+    someEditFormIsOpen:   false
+    source
+    quality:              Math.max(window.devicePixelRatio ? 2, 2)
+    speed:                0.0
+    ticks:                "" # Remember, ticks initialize to nothing, not 0
+    ticksStarted:         false
+    widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
+    inspectedAgents:      [] # Array[Agent]
+    addToInspect:         (agent) -> @push('inspectedAgents', agent) # (Agent) -> Unit
+    viewController:       viewController # ViewController
+    width:                0
   }
 
   animateWithClass = (klass) ->
@@ -152,17 +153,20 @@ generateRactiveSkeleton = (container, widgets, code, info,
       else
         []
 
-    onrender: ->
-      @on('setinspect', (context) ->
-        { type, agent } = context.event.detail
-        switch type
-          when 'add'
-            @push('watchedAgents', agent)
-          when 'remove'
-            @splice('watchedAgents', @get('watchedAgents').indexOf(agent), 1)
-          when 'clear'
-            @set('watchedAgents', [])
-      )
+    # ({ type: string, agent?: Agent}) -> Unit
+    reduceInspectedAgents: (action) ->
+      { type, agent } = action
+      switch type
+        when 'add'
+          @push('inspectedAgents', agent)
+        when 'remove'
+          @splice('inspectedAgents', @get('inspectedAgents').indexOf(agent), 1)
+        when 'clear'
+          @set('inspectedAgents', [])
+
+    on: {
+      'setinspect': (context) -> @reduceInspectedAgents(context.event.detail)
+    }
 
     observe: {
       'quality': (newQuality) ->
@@ -268,7 +272,7 @@ template =
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
-          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" /> {{/}}
+          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" addToInspect="{{addToInspect}}" /> {{/}}
           {{# type === 'textBox'  }} <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'switch'   }} <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'button'   }} <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} errorClass="{{>errorClass}}" ticksStarted="{{ticksStarted}}"/> {{/}}
@@ -287,7 +291,7 @@ template =
       <label class="netlogo-tab">
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
-      <inspection viewController={{viewController}} watchedAgents={{watchedAgents}}/>
+      <inspection viewController={{viewController}} addToInspect="{{addToInspect}}" inspectedAgents={{inspectedAgents}}/>
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>

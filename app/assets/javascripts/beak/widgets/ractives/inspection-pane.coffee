@@ -4,7 +4,8 @@ RactiveInspectionPane = Ractive.extend({
   data: -> {
     # Props
 
-    watchedAgents: [] # Array[Agent]
+    inspectedAgents: [] # Array[Agent]
+    addToInspect: undefined # (Agent) -> Unit
     viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
 
     # State
@@ -27,7 +28,7 @@ RactiveInspectionPane = Ractive.extend({
     run = (input) =>
       if input.trim().length > 0
         agentSetReporter = 'turtle-set' # TODO: make it reflect the actual type of agents
-        for turtle in @get('watchedAgents')
+        for turtle in @get('inspectedAgents')
           agentSetReporter = agentSetReporter.concat(" turtle #{turtle.id}")
         input = "ask (#{agentSetReporter}) [ #{input} ]"
         # TODO consider using `show` if the command is a reporter
@@ -49,7 +50,7 @@ RactiveInspectionPane = Ractive.extend({
     """
     <div class='netlogo-tab-content'>
       watched agents: ===============<br/>
-      {{#each watchedAgents as agent}}
+      {{#each inspectedAgents as agent}}
         -----<br/>
         {{getAgentName(agent)}} <br/>
         {{{printProperties(agent)}}}
@@ -60,8 +61,12 @@ RactiveInspectionPane = Ractive.extend({
       <div class="netlogo-command-center-editor" style="width: 400px; height: 25px"></div>
 
       specific Agent: ===============
-      {{#if watchedAgents.length > 0}}
-      <inspectionWindow viewController={{viewController}} agent={{watchedAgents.at(-1)}}/>
+      {{#if inspectedAgents.length > 0}}
+      <inspectionWindow
+        viewController={{viewController}}
+        agent={{inspectedAgents.at(-1)}}
+        addToInspect="{{addToInspect}}"
+      />
       {{/if}}
     </div>
     """

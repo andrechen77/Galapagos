@@ -196,6 +196,9 @@ class View
     @_initTouchTracking()
     return
 
+  # (Unit) -> DOMRect
+  getBoundingClientRect: -> @_visibleCanvas.getBoundingClientRect()
+
   # Note: For proper mouse and touch tracking, the <canvas> element must have no padding or border. This is because the
   # `offsetX` and `offsetY` properties plus the client bounding box, used in the mouse-tracking functions, account for
   # padding and/or border, which we do not want.

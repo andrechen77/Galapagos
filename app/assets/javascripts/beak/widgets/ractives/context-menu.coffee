@@ -3,7 +3,7 @@ import RactiveWidget from "./widget.js"
 RactiveContextMenu = Ractive.extend({
 
   data: -> {
-    options: undefined # ContextMenuOptions
+    options: undefined # [ContextMenuOption]
   , mouseX:          0 # Number
   , mouseY:          0 # Number
   , target:  undefined # Ractive

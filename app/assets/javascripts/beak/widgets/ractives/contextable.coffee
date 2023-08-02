@@ -1,6 +1,6 @@
 RactiveContextable = Ractive.extend({
 
-  # type ContextMenuOptions = [{ text: String, isEnabled: Boolean, action: () => Unit }]
+  # type ContextMenuOption = { text: String, isEnabled: Boolean, action: () => Unit }
 
   getStandardOptions: -> {
     delete: {
@@ -14,7 +14,7 @@ RactiveContextable = Ractive.extend({
   , edit: { text: "Edit", isEnabled: true, action: => @fire('edit-widget') }
   }
 
-  # (number, number) -> ContextMenuOptions
+  # (number, number) -> [ContextMenuOption]
   getContextMenuOptions: (x, y) ->
     isEditing = @get('isEditing') ? false # the Ractive must have the `isEditing` property set to true
     if isEditing
