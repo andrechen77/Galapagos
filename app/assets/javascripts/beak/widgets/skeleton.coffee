@@ -21,6 +21,26 @@ import RactiveContextMenu from "./ractives/context-menu.js"
 import RactiveEditFormSpacer from "./ractives/subcomponent/spacer.js"
 import RactiveTickCounter from "./ractives/subcomponent/tick-counter.js"
 
+Turtle = tortoise_require('engine/core/turtle')
+Patch = tortoise_require('engine/core/patch')
+Link = tortoise_require('engine/core/link')
+
+# type InspectedAgents = {
+#   turtles: Object<string, Array[Turtle]>,
+#   patches: Array[Patch],
+#   links: Object<string, Array[Link]>,
+# }
+# The `turtles` and `links` properties map breed names to lists of agents.
+
+# Given an agent, returns the keypath with respect to the skeleton ractive to the array where that agent would go if it
+# were inspected.
+# (Agent) -> string
+getKeypathFor = (agent) ->
+  'inspectedAgents.' + switch
+    when agent instanceof Turtle then "turtles.#{agent.getBreedName()}"
+    when agent instanceof Patch then 'patches'
+    when agent instanceof Link then "links.#{agent.getBreedName()}"
+
 # (Element, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, Boolean, String, (String) => Boolean, ViewController) => Ractive
 generateRactiveSkeleton = (container, widgets, code, info,
@@ -57,8 +77,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
     ticks:                "" # Remember, ticks initialize to nothing, not 0
     ticksStarted:         false
     widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
-    inspectedAgents:      [] # Array[Agent]
-    addToInspect:         (agent) -> @push('inspectedAgents', agent) # (Agent) -> Unit
+    inspectedAgents:      { turtles: {}, patches: [], links: {} } # InspectedAgents
     viewController:       viewController # ViewController
     width:                0
   }
@@ -158,11 +177,26 @@ generateRactiveSkeleton = (container, widgets, code, info,
       { type, agent } = action
       switch type
         when 'add'
-          @push('inspectedAgents', agent)
+          @addInspectedAgent(agent)
         when 'remove'
-          @splice('inspectedAgents', @get('inspectedAgents').indexOf(agent), 1)
+          @removeInspectedAgent(agent)
         when 'clear'
-          @set('inspectedAgents', [])
+          console.log() # TODO do nothing for now
+
+    # (Agent) -> Unit
+    addInspectedAgent: (agent) ->
+      @push(getKeypathFor(agent), agent)
+
+    # Returns whether the agent was successfully removed.
+    # (Agent) -> boolean
+    removeInspectedAgent: (agent) ->
+      keypath = getKeypathFor(agent)
+      index = @get(keypath)?.indexOf(agent) ? -1
+      if index isnt -1
+        @splice(keypath, index, 1)
+        true
+      else
+        false
 
     on: {
       'setinspect': (context) -> @reduceInspectedAgents(context.event.detail)
@@ -272,7 +306,7 @@ template =
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
-          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" addToInspect="{{addToInspect}}" /> {{/}}
+          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" addToInspect="{{@this.addInspectedAgent.bind(@this)}}" /> {{/}}
           {{# type === 'textBox'  }} <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'switch'   }} <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'button'   }} <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} errorClass="{{>errorClass}}" ticksStarted="{{ticksStarted}}"/> {{/}}
@@ -291,7 +325,7 @@ template =
       <label class="netlogo-tab">
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
-      <inspection viewController={{viewController}} addToInspect="{{addToInspect}}" inspectedAgents={{inspectedAgents}}/>
+      <inspection viewController={{viewController}} addToInspect="{{@this.addInspectedAgent.bind(@this)}}" inspectedAgents={{inspectedAgents}}/>
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>

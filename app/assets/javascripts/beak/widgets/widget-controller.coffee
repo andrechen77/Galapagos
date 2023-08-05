@@ -62,7 +62,11 @@ class WidgetController
       @ractive.set('ticks'       , '')
       @ractive.set('ticksStarted', false)
 
-    @ractive.update()
+    # Please only update what you need to in order to avoid unnecessary computations.
+    # Previously, this line dirty-checked *every* keypath, which caused the ractive to unnecessary update things that
+    # had no chance of changing. While 'widgetObj' was the only keypath I could think of that actually required this
+    # update, I might have missed some, so if there are bugs this might be the source. --Andre C. 2023-08-04
+    @ractive.update('widgetObj')
 
     return
 
