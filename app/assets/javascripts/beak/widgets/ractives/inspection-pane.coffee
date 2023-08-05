@@ -233,7 +233,7 @@ RactiveInspectionPane = Ractive.extend({
   openCategory: (categoryPath) ->
     @set('selection', { currentScreen: 'agents', selectedPath: categoryPath })
 
-  # Selects the specified category, entering the 'categories' screen if not already in it. If
+  # Selects the specified category, entering the 'categories' screen if not already in it.
   # 'replace' mode removes all other selected categories (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item). 'toggle' mode requires that the we already be in the 'categories'
   # screen. 'blank' mode deselects every category.
@@ -288,20 +288,22 @@ RactiveInspectionPane = Ractive.extend({
     'categoriesScreen': """
       categories screen<br/>
       {{#each getCategoryRows() as categoryRow}}
-        {{#each categoryRow as categoryPath}}
-          {{>categoryCard}}<br/>
-        {{/each}}
+        <div style="display: flex;">
+          {{#each categoryRow as categoryPath}}
+            {{>categoryCard}}<br/>
+          {{/each}}
+        </div>
       {{/each}}
     """
 
     'categoryCard': """
       {{#with calcCategoryPathDetails(this) }}
-        <div on-click="['clicked-category-card', path]" on-dblclick="['dblclicked-category-card', path]">
-          {{#if getDisplayAsSelected(getSelectionState(path))}}
-            [{{display}} ({{getAgentsInPath(path).length}})]
-          {{else}}
+        <div
+          style="min-width: 100px; {{#if getDisplayAsSelected(getSelectionState(path))}}background-color: lightblue;{{/if}}"
+          on-click="['clicked-category-card', path]"
+          on-dblclick="['dblclicked-category-card', path]"
+        >
             {{display}} ({{getAgentsInPath(path).length}})
-          {{/if}}
         </div>
       {{/with}}
     """
