@@ -1,3 +1,4 @@
+import RactiveMiniAgentCard from "./mini-agent-card.js"
 import RactiveInspectionWindow from "./inspection-window.js"
 
 { arrayEquals } = tortoise_require('brazier/equals')
@@ -11,27 +12,57 @@ calcPartialPaths = (categoryPath) ->
   for i in [0..categoryPath.length]
     categoryPath[0...i]
 
+# (CategoryPath) -> { path: CategoryPath, display: string }
+calcCategoryPathDetails = (categoryPath) -> {
+  path: categoryPath,
+  display: switch categoryPath.length
+    when 0 # We're at the root category. This theoretically should never happen.
+      'Agent'
+    when 1 # We're at one of the major agent types.
+      switch categoryPath[0]
+        when 'turtles' then 'Turtles'
+        when 'patches' then 'Patches'
+        when 'links' then 'Links'
+        else categoryPath[0] # This theoretically should never happen.
+    when 2 # We're at some agent breed.
+      world.breedManager.get(categoryPath[1]).singular
+    else # 3-deep category paths should theoretically never happen; there is no classification deeper than breed.
+      categoryPath.at(-1)
+}
+
 RactiveBreadcrumbs = Ractive.extend({
   data: -> {
     # Props
     path: undefined, # CategoryPath
     goToPath: undefined, # (CategoryPath) -> Unit
+    optionalLeaf: null # string | null
 
     # Consts
 
-    calcPartialPaths
+    calcPartialPaths,
+    calcCategoryPathDetails
   }
 
   template: """
     <div>
       {{#each calcPartialPaths(path).slice(1) as partialPath}}
         <span on-click="goToPath(partialPath)">
-          {{partialPath.at(-1)}}
+          {{calcCategoryPathDetails(partialPath).display}}
         </span>
-        {{#unless @index == path.length - 1}}/{{/unless}}
+        {{#unless @index == path.length - 1}}{{>separator}}{{/unless}}
       {{/each}}
+      {{#if optionalLeaf}}
+        {{>separator}}
+        {{optionalLeaf}}
+      {{/if}}
     </div>
   """
+
+  partials: {
+    'separator': """
+      <span>&nbsp/&nbsp</span>
+    """
+  }
 })
 
 # Given an object, returns an array of all the leaves in the object (viewing the object as a rooted tree). A value is
@@ -81,6 +112,22 @@ calcPathMatchMultiple = (selectedPaths, testPath) ->
       # when 'none', do nothing
   highestState
 
+# Toggles whether a test item is present in an array. If it is, returns an array with all instances of the item removed;
+# otherwise returns an array with the test item appended. Also returns whether a match was found.
+# (Array[T], T, (T) -> (T) -> boolean) -> [Array[T], boolean]
+togglePresence = (array, testItem, comparator) ->
+  checkEqualToTest = comparator(testItem)
+  matchFound = false
+  filtered = array.filter((item) ->
+    isEqual = checkEqualToTest(item)
+    if isEqual then matchFound = true
+    not isEqual
+  )
+  if not matchFound
+    # Since we're toggling and `testItem` wasn't already present, add it.
+    filtered.push(testItem)
+  [filtered, matchFound]
+
 RactiveInspectionPane = Ractive.extend({
   data: -> {
     # Props
@@ -105,12 +152,12 @@ RactiveInspectionPane = Ractive.extend({
       selectedPaths: Array[CategoryPath]
     } | {
       currentScreen: 'agents',
-      selectedPath: CategoryPath,
+      currentPath: CategoryPath,
       selectedAgents: Array[Agent]
     } | {
       currentScreen: 'details',
-      selectedPath: CategoryPath,
-      selectedAgent: Agent
+      currentPath: CategoryPath,
+      currentAgent: Agent
     }
     where CategoryPath: Array[string] e.g. ["turtles"], ["turtles", "TURTLEBREEDNAME"], ["patches"]
     ###
@@ -118,27 +165,16 @@ RactiveInspectionPane = Ractive.extend({
 
     # Consts
 
-    # (Turtle|Patch|Link|Observer) -> String
-    printProperties: (agent) ->
-      pairList = for varName in agent.varNames()
-        "#{varName}: #{agent.getVariable(varName)}"
-      pairList.join("<br/>")
-
-    # (Turtle|Patch|Link|Observer) -> String
-    getAgentName: (agent) -> agent.getName()
-
-    # Only makes sense if 'selection.currentScreen' is 'categories'.
-    # Returns "how selected" a specified category path is; see `calcPathMatchMultiple` for details.
-    # (CategoryPath) -> 'exact' | 'partial' | 'inherit' | 'none'
-    getSelectionState: (categoryPath) ->
-      calcPathMatchMultiple(@get('selection.selectedPaths'), categoryPath)
-
     # Returns whether to display a category as being "selected" based on its selection state.
     # ('exact' | 'partial' | 'inherit' | 'none') -> boolean
-    getDisplayAsSelected: (selectionState) ->
-      switch selectionState
+    getDisplayAsSelected: (categoryPath) ->
+      switch calcPathMatchMultiple(@get('selection.selectedPaths'), categoryPath)
         when 'exact', 'partial' then true
         else false
+
+    # Only makes sense if 'selection.currentScreen' is 'agents'.
+    # (Agent) -> boolean
+    getAgentSelectionState: (agent) -> @get('selection.selectedAgents').includes(agent)
 
     # (Array[string]) -> Array[Agent]
     getAgentsInPath: (path) ->
@@ -170,27 +206,12 @@ RactiveInspectionPane = Ractive.extend({
         # Return the path to these children.
         childrenKeys.map((key) -> path.concat([key]))
 
-    # (CategoryPath) -> { path: CategoryPath, display: string }
-    calcCategoryPathDetails: (categoryPath) -> {
-      path: categoryPath,
-      display: switch categoryPath.length
-        when 0 # We're at the root category. This theoretically should never happen.
-          'Agent'
-        when 1 # We're at one of the major agent types.
-          switch categoryPath[0]
-            when 'turtles' then 'Turtles'
-            when 'patches' then 'Patches'
-            when 'links' then 'Links'
-            else categoryPath[0] # This theoretically should never happen.
-        when 2 # We're at some agent breed.
-          world.breedManager.get(categoryPath[1]).singular
-        else # 3-deep category paths should theoretically never happen; there is no classification deeper than breed.
-          categoryPath.at(-1)
-    }
+    calcCategoryPathDetails
   }
 
   components: {
     breadcrumbs: RactiveBreadcrumbs,
+    miniAgentCard: RactiveMiniAgentCard,
     inspectionWindow: RactiveInspectionWindow
   }
 
@@ -225,13 +246,14 @@ RactiveInspectionPane = Ractive.extend({
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
         @openCategory(categoryPath)
+    'miniAgentCard.clicked-agent-card': (context, agent) ->
+      ctrl = context.event.ctrlKey
+      @selectAgent({ mode: (if ctrl then 'toggle' else 'replace'), agent })
+    'miniAgentCard.dblclicked-agent-card': (context, agent) ->
+      # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
+      if not context.event.ctrlKey
+        @openAgent(agent)
   }
-
-  # Precondition: 'selection.currentScreen' is 'categories'.
-  # Enters 'agent' screen mode, displaying the set of agents in the specified category.
-  # (CategoryPath) -> Unit
-  openCategory: (categoryPath) ->
-    @set('selection', { currentScreen: 'agents', selectedPath: categoryPath })
 
   # Selects the specified category, entering the 'categories' screen if not already in it.
   # 'replace' mode removes all other selected categories (single-clicking an item), while 'toggle' mode toggles whether
@@ -245,20 +267,35 @@ RactiveInspectionPane = Ractive.extend({
       when 'replace'
         [categoryPath]
       when 'toggle'
-        matchFound = false
-        filtered = @get('selection.selectedPaths').filter((path) ->
-          isEqual = arrayEquals(categoryPath)(path)
-          if isEqual then matchFound = true
-          not isEqual
-        )
-        if not matchFound
-          # Since we're toggling and `categoryPath` wasn't already selected, select it.
-          filtered.push(categoryPath)
-        filtered
+        togglePresence(@get('selection.selectedPaths'), categoryPath, arrayEquals)[0]
     @set('selection', {
       currentScreen: 'categories',
       selectedPaths
     })
+
+  # Enters 'agent' screen mode, displaying the set of agents in the specified category.
+  # (CategoryPath) -> Unit
+  openCategory: (categoryPath) ->
+    @set('selection', { currentScreen: 'agents', currentPath: categoryPath, selectedAgents: [] })
+
+  # Only makes sense if 'selection.currentScreen' is 'agents'.
+  # Selects the specified agent.
+  # 'replace' mode removes all other selected agents (single-clicking an item), while 'toggle' mode toggles whether
+  # the item is selected (ctrl-clicking an item).
+  # ({ mode: 'replace' | 'toggle', agent: Agent }) -> Unit
+  selectAgent: ({ mode, agent }) ->
+    selectedAgents = switch mode
+      when 'replace'
+        [agent]
+      when 'toggle'
+        togglePresence(@get('selection.selectedAgents'), agent, (a) -> (b) -> a is b)[0]
+    @set('selection.selectedAgents', selectedAgents)
+
+  # Precondition: 'selection.currentScreen' is 'agents' and `selection.currentPath` is contains the specified agent.
+  # Enters 'details' screen mode, displaying detailed information and a mini view of the specified agent.
+  # (Agent) -> Unit
+  openAgent: (agent) ->
+    @set('selection', { currentScreen: 'details', currentAgent: agent }, { deep: true })
 
   template: """
     <div class='netlogo-tab-content'>
@@ -299,7 +336,7 @@ RactiveInspectionPane = Ractive.extend({
     'categoryCard': """
       {{#with calcCategoryPathDetails(this) }}
         <div
-          style="min-width: 100px; {{#if getDisplayAsSelected(getSelectionState(path))}}background-color: lightblue;{{/if}}"
+          style="min-width: 100px; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
           on-click="['clicked-category-card', path]"
           on-dblclick="['dblclicked-category-card', path]"
         >
@@ -310,21 +347,24 @@ RactiveInspectionPane = Ractive.extend({
 
     'agentsScreen': """
       agents screen<br/>
-      <breadcrumbs path="{{selectedPath}}" goToPath="{{goToPath.bind(@this)}}"/>
-      {{#each getAgentsInPath(selectedPath) as agent}}
-        -----<br/>
-        {{getAgentName(agent)}} <br/>
-        {{{printProperties(agent)}}}
-        -----<br/>
-      {{/each}}
+      <breadcrumbs path="{{currentPath}}" goToPath="{{goToPath.bind(@this)}}"/>
+      <div style="display: flex; flex-wrap: wrap; width: 100%;">
+        {{#each getAgentsInPath(currentPath) as agent}}
+          <miniAgentCard agent={{agent}} selected={{getAgentSelectionState(agent)}}/>
+        {{/each}}
+      </div>
     """
 
     'detailsScreen': """
       details screen<br/>
-      <breadcrumbs path="{{selectedPath}}" goToPath="{{goToPath.bind(@this)}}"/>
+      <breadcrumbs
+        path="{{currentPath}}"
+        goToPath="{{goToPath.bind(@this)}}"
+        optionalLeaf="{{currentAgent.getName()}}"
+      />
       <inspectionWindow
         viewController={{viewController}}
-        agent={{inspectedAgents.at(-1)}}
+        agent={{currentAgent}}
         addToInspect="{{addToInspect}}"
       />
     """
