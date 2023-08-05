@@ -16,8 +16,8 @@ calcPartialPaths = (categoryPath) ->
 calcCategoryPathDetails = (categoryPath) -> {
   path: categoryPath,
   display: switch categoryPath.length
-    when 0 # We're at the root category. This theoretically should never happen.
-      'Agent'
+    when 0 # We're at the root category.
+      'Agents'
     when 1 # We're at one of the major agent types.
       switch categoryPath[0]
         when 'turtles' then 'Turtles'
@@ -45,11 +45,11 @@ RactiveBreadcrumbs = Ractive.extend({
 
   template: """
     <div>
-      {{#each calcPartialPaths(path).slice(1) as partialPath}}
+      {{#each calcPartialPaths(path) as partialPath}}
         <span on-click="goToPath(partialPath)">
           {{calcCategoryPathDetails(partialPath).display}}
         </span>
-        {{#unless @index == path.length - 1}}{{>separator}}{{/unless}}
+        {{#unless @index == path.length}}{{>separator}}{{/unless}}
       {{/each}}
       {{#if optionalLeaf}}
         {{>separator}}
@@ -141,13 +141,10 @@ RactiveInspectionPane = Ractive.extend({
     ###
     The `selection` describes the layout of the inspection pane.
     Possible values of the `currentScreen` property:
-     * 'blank': the inspection pane shows nothing but the drag-to-select tool.
      * 'categories': the inspection pane shows a navigation screen to select agents by their type/breed.
      * 'agents': the inspection pane shows a specific set of agents (selected from the categories screen)
      * 'details': the inspection pane shows a full window with details about a specific agent.
     type = {
-      currentScreen: 'blank'
-    } | {
       currentScreen: 'categories',
       selectedPaths: Array[CategoryPath]
     } | {
@@ -161,7 +158,7 @@ RactiveInspectionPane = Ractive.extend({
     }
     where CategoryPath: Array[string] e.g. ["turtles"], ["turtles", "TURTLEBREEDNAME"], ["patches"]
     ###
-    selection: { currentScreen: 'blank' }
+    selection: { currentScreen: 'categories', selectedPaths: [] }
 
     # Consts
 
@@ -258,12 +255,10 @@ RactiveInspectionPane = Ractive.extend({
   # Selects the specified category, entering the 'categories' screen if not already in it.
   # 'replace' mode removes all other selected categories (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item). 'toggle' mode requires that the we already be in the 'categories'
-  # screen. 'blank' mode deselects every category.
-  # ({ mode: 'replace' | 'toggle', categoryPath: CategoryPath } | { mode: 'blank' }) -> Unit
+  # screen.
+  # ({ mode: 'replace' | 'toggle', categoryPath: CategoryPath }) -> Unit
   selectCategory: ({ mode, categoryPath }) ->
     selectedPaths = switch mode
-      when 'blank'
-        []
       when 'replace'
         [categoryPath]
       when 'toggle'
@@ -300,9 +295,7 @@ RactiveInspectionPane = Ractive.extend({
   template: """
     <div class='netlogo-tab-content'>
       {{#with selection}}
-        {{#if currentScreen == 'blank' }}
-          {{>blankScreen}}
-        {{elseif currentScreen == 'categories'}}
+        {{#if currentScreen == 'categories'}}
           {{>categoriesScreen}}
         {{elseif currentScreen == 'agents'}}
           {{>agentsScreen}}
@@ -317,11 +310,6 @@ RactiveInspectionPane = Ractive.extend({
   """
 
   partials: {
-    'blankScreen': """
-      blank screen<br/>
-      <div on-click="@this.selectCategory({ mode: 'blank' })">click here to go to categories</div>
-    """
-
     'categoriesScreen': """
       categories screen<br/>
       {{#each getCategoryRows() as categoryRow}}
