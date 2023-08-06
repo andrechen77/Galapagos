@@ -155,6 +155,7 @@ RactiveInspectionPane = Ractive.extend({
     inspectedAgents: undefined # InspectedAgents; (see "../skeleton.coffee")
     addToInspect: undefined # (Agent) -> Unit
     viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
+    checkIsReporter: undefined # (string) -> boolean
 
     # State
 
@@ -243,10 +244,11 @@ RactiveInspectionPane = Ractive.extend({
     # This function should only be run when 'selection.currentScreen' is either 'agents' or 'details'.
     run = (input) =>
       if input.trim().length > 0
+        if @get('checkIsReporter')(input)
+          input = "show #{input}"
         agentSetReporter = @getTargetedAgentsReporter()
         input = "ask #{agentSetReporter} [ #{input} ]"
 
-        # TODO consider using `show` if the command is a reporter
         @fire('run', {}, 'console', input)
         @fire('command-center-run', input)
 
