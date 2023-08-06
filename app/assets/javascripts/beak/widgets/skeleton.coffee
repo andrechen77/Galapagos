@@ -41,6 +41,33 @@ getKeypathFor = (agent) ->
     when agent instanceof Patch then 'patches'
     when agent instanceof Link then "links.#{agent.getBreedName()}"
 
+# (any) -> boolean
+isAgent = (obj) -> obj instanceof Turtle or obj instanceof Patch or obj instanceof Link
+
+# Treating an object as the root of a tree, prunes certain nodes of the tree (deleting an element of an
+# array shifts the indices of the following elements, while deleting an element of an object simply removes the
+# key-value pair). The provided tester function should return true if the node should be kept as-is (stopping deeper
+# recursion), false if the node should be deleted, and null if the node should be recursively pruned. Returning null on
+# a non-traversable value (i.e. a primitive) causes it to be deleted.
+# (any, (any) -> boolean | null) -> Unit
+pruneTree = (obj, tester) ->
+  for key, value of obj
+    switch tester(value)
+      when false then delete obj[key]
+      when null
+        if not value? or typeof value isnt 'object'
+          delete obj[key]
+        else # we know it must be a traversible object at this point
+          pruneTree(value, tester)
+  if Array.isArray(obj)
+    i = 0
+    while i < obj.length
+      if Object.hasOwn(obj, i)
+        ++i
+      else
+        obj.splice(i, 1)
+  return
+
 # (Element, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, Boolean, String, (String) => Boolean, ViewController) => Ractive
 generateRactiveSkeleton = (container, widgets, code, info,
@@ -180,8 +207,8 @@ generateRactiveSkeleton = (container, widgets, code, info,
           @addInspectedAgent(agent)
         when 'remove'
           @removeInspectedAgent(agent)
-        when 'clear'
-          console.log() # TODO do nothing for now
+        when 'clear-dead'
+          @clearDeadInspectedAgents()
 
     # (Agent) -> Unit
     addInspectedAgent: (agent) ->
@@ -197,6 +224,14 @@ generateRactiveSkeleton = (container, widgets, code, info,
         true
       else
         false
+
+    # (Unit) -> Unit
+    clearDeadInspectedAgents: ->
+      pruneTree(
+        @get('inspectedAgents'),
+        (obj) -> if isAgent(obj) then not obj.isDead() else null
+      )
+      @update('inspectedAgents')
 
     on: {
       'setinspect': (context) -> @reduceInspectedAgents(context.event.detail)

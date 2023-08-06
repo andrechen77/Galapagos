@@ -141,7 +141,7 @@ genInspectionConfig = ->
   clearDead      = (->
     document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent(
       "setinspect",
-      { detail: { type: 'clear' } }
+      { detail: { type: 'clear-dead' } }
     ))
   )
   { inspect, stopInspecting, clearDead }
