@@ -278,6 +278,8 @@ RactiveInspectionPane = Ractive.extend({
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
         @openAgent(agent)
+    'world-might-change': (context) ->
+        @findAllComponents().forEach((component) -> component.fire(context.name, context))
   }
 
   # Selects the specified category, entering the 'categories' screen if not already in it.

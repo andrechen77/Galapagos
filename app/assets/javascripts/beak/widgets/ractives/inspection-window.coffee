@@ -5,16 +5,21 @@ import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
     # Props
+
     agent: undefined, # Agent; a reference to the actual agent from the engine
     addToInspect: undefined, # (Agent) -> Unit
     viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
 
     # State
+
     viewModelAgent: undefined, # Agent; but not the same type as `agent`; this is a reference to the equivalent agent
     # from the ViewController's AgentModel. This should be kept in sync with the `agent` data.
     viewWindow: undefined # View; a reference to the View associated with the current agent
     windowGenerator: undefined # result of `followAgentWithZoom`; see "window-generators.coffee"
     zoomLevel: 0.7 # number
+
+    # Consts
+
     # (Unit) -> Unit
     replaceView: ->
       if @get('viewWindow')?
@@ -29,6 +34,7 @@ RactiveInspectionWindow = Ractive.extend({
       # Repaints the view; we do this instead of calling repaint directly because this also accounts for zoom.
       @get('zoomView')(@get('zoomLevel'))
       return
+
     # (number) -> Unit
     zoomView: (zoomLevel) ->
       [_, _, size] = getDimensions(@get('viewModelAgent'))
@@ -40,6 +46,12 @@ RactiveInspectionWindow = Ractive.extend({
       @get('windowGenerator').zoomRadius = r
       @get('viewWindow').repaint()
       return
+
+    # (Turtle|Patch|Link|Observer) -> String
+    printProperties: (agent) ->
+      pairList = for varName in agent.varNames()
+        "#{varName}: #{agent.getVariable(varName)}"
+      pairList.join("<br/>")
   }
 
   onrender: ->
@@ -48,6 +60,11 @@ RactiveInspectionWindow = Ractive.extend({
     # (see Ractive API).
     @set('viewModelAgent', @get('viewController').getEquivalentAgent(@get('agent')))
     @get('replaceView')()
+
+  on: {
+    'world-might-change': ->
+      @update('agent')
+  }
 
   observe: {
     # While all other data about the agent is automatically updated once this Ractive
@@ -86,8 +103,11 @@ RactiveInspectionWindow = Ractive.extend({
         style="border: 10px solid red; width: fit-content;"
         on-contextmenu="show-context-menu"
       ></div>
-      <input type="range" min=0 max=1 step=0.01 value="{{ zoomLevel }}"/>
-      ZOOM LEVEL {{ zoomLevel }}
+      <div>
+        <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
+        ZOOM LEVEL {{zoomLevel}}
+      </div>
+      {{{printProperties(agent)}}}
     </div>
     """
 })

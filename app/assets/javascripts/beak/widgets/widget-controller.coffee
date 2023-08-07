@@ -67,6 +67,7 @@ class WidgetController
     # had no chance of changing. While 'widgetObj' was the only keypath I could think of that actually required this
     # update, I might have missed some, so if there are bugs this might be the source. --Andre C. 2023-08-04
     @ractive.update('widgetObj')
+    @ractive.fire('world-might-change')
 
     return
 

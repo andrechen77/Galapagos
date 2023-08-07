@@ -14,6 +14,11 @@ RactiveMiniAgentCard = Ractive.extend({
       pairList[1...6].join("<br/>")
   }
 
+  on: {
+    'world-might-change': ->
+      @update('agent')
+  }
+
   template: """
     <div
       style="border: 1px solid black; min-width: 300px; {{#selected}}background-color: lightblue;{{/}}"

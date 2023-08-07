@@ -235,6 +235,8 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     on: {
       'setinspect': (context) -> @reduceInspectedAgents(context.event.detail)
+      'world-might-change': (context) ->
+        @findAllComponents().forEach((component) -> component.fire(context.name, context))
     }
 
     observe: {
