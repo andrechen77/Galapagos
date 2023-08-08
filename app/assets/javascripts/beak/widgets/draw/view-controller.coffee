@@ -37,6 +37,7 @@ class ViewController
   constructor: ->
     @resetModel() # defines `@_model`
     @_latestUpdateSym = Symbol() # changed every time the model updates, so that the layers know when to update
+    @_latestWorldShape = undefined # cached so that if the model doesn't update, the layers don't have to recalculate
     @layerOptions = {
       quality: Math.max(window.devicePixelRatio ? 2, 2),
       fontSize: 50, # some random number; can be set by the client
@@ -71,16 +72,11 @@ class ViewController
 
   # (Unit) -> Unit
   _initLayers: (layerOptions) ->
-    getModelState = => {
-      updateSym: @_latestUpdateSym,
-      model: @_model,
-      worldShape: extractWorldShape(@_model.world)
-    }
-    turtles = new TurtleLayer(layerOptions, getModelState)
-    patches = new PatchLayer(layerOptions, getModelState)
-    drawing = new DrawingLayer(layerOptions, getModelState)
+    turtles = new TurtleLayer(layerOptions, @getModelState)
+    patches = new PatchLayer(layerOptions, @getModelState)
+    drawing = new DrawingLayer(layerOptions, @getModelState)
     world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
-    spotlight = new SpotlightLayer(getModelState)
+    spotlight = new SpotlightLayer(@getModelState)
     all = new CompositeLayer(layerOptions, [world, spotlight])
     @_layers = { turtles, patches, drawing, world, spotlight, all }
 
@@ -101,7 +97,11 @@ class ViewController
     return
 
   # (Unit) -> AgentModel
-  getModel: -> @_model
+  getModelState: => {
+    updateSym: @_latestUpdateSym,
+    model: @_model,
+    worldShape: @_latestWorldShape
+  }
 
   # (Unit) -> Unit
   repaint: ->
@@ -118,6 +118,7 @@ class ViewController
   # (Update|Array[Update]) => Unit
   update: (modelUpdate) ->
     @_latestUpdateSym = Symbol() # so that layers who depend on the model see the change and know to update themselves
+    @_latestWorldShape = extractWorldShape(@_model.world)
     @_applyUpdateToModel(modelUpdate)
     @repaint()
     @_model.drawingEvents = []

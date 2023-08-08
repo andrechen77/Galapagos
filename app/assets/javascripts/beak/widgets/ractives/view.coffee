@@ -236,7 +236,7 @@ RactiveView = RactiveWidget.extend({
       viewWindow = viewController.getNewView(
         @find('.netlogo-view-container'),
         'all',
-        followObserver(viewController.getModel())
+        followObserver(viewController.getModelState)
       )
       viewWindow.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
       @set({ viewWindow })

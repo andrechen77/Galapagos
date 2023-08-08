@@ -183,7 +183,7 @@ controlEventTraffic = (controller) ->
 
   # () => Unit
   resizeView = ->
-    { minpxcor, maxpxcor, minpycor, maxpycor, patchsize } = viewController.getModel().world
+    { minpxcor, maxpxcor, minpycor, maxpycor, patchsize } = viewController.getModelState().model.world
     setPatchSize(patchsize)
     world.resize(minpxcor, maxpxcor, minpycor, maxpycor)
     refreshDims()
@@ -217,7 +217,7 @@ controlEventTraffic = (controller) ->
 
   # () => Unit
   updateTopology = ->
-    { wrappingallowedinx: wrapX, wrappingallowediny: wrapY } = viewController.getModel().world
+    { wrappingallowedinx: wrapX, wrappingallowediny: wrapY } = viewController.getModelState().model.world
     world.changeTopology(wrapX, wrapY)
     return
 
