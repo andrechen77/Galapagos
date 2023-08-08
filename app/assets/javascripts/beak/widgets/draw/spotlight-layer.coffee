@@ -56,9 +56,16 @@ drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   return
 
 class SpotlightLayer extends Layer
-  constructor: ->
+  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+  # mutate.
+  # ((Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  constructor: (@_getModelState)->
     super()
+    @_latestWorldShape = undefined
+    @_latestModel = undefined
     return
+
+  getWorldShape: -> @_latestWorldShape
 
   blindlyDrawTo: (ctx) ->
     watched = getSpotlightAgent(@_latestModel)
@@ -76,8 +83,8 @@ class SpotlightLayer extends Layer
     )
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
+  repaint: ->
+    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
     return
 
   getDirectDependencies: -> []

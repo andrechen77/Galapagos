@@ -30,9 +30,16 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+  # mutate.
+  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  constructor: (@_layerOptions, @_getModelState) ->
     super()
+    @_latestWorldShape = undefined
+    @_latestModel = undefined
     return
+
+  getWorldShape: -> @_latestWorldShape
 
   blindlyDrawTo: (context) ->
     { world, turtles, links } = @_latestModel
@@ -62,6 +69,10 @@ class TurtleLayer extends Layer
             @_layerOptions.font
           )
     )
+    return
+
+  repaint: ->
+    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
     return
 
   getDirectDependencies: -> []

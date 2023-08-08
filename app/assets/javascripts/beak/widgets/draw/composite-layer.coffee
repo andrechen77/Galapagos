@@ -3,11 +3,17 @@ import { setImageSmoothing, resizeCanvas, clearCtx, drawRectTo, drawFullTo } fro
 
 # CompositeLayer forms its image by sequentially copying over the images from its source layers.
 class CompositeLayer extends Layer
+  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+  # mutate.
+  # (LayerOptions, Array[Layer]) -> Unit
   constructor: (@_layerOptions, @_sourceLayers) ->
     super()
+    @_latestWorldShape = undefined
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
+
+  getWorldShape: -> @_latestWorldShape
 
   getCanvas: -> @_canvas
 
@@ -23,9 +29,9 @@ class CompositeLayer extends Layer
     context.drawImage(@_canvas, 0, 0)
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
-    cleared = resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
+  repaint: ->
+    @_latestWorldShape = @_sourceLayers[0]?.getWorldShape()
+    cleared = resizeCanvas(@_canvas, @_latestWorldShape, @_layerOptions.quality)
     if not cleared then clearCtx(@_ctx)
     setImageSmoothing(@_ctx, false)
     for layer in @_sourceLayers

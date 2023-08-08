@@ -36,21 +36,27 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+  # mutate.
+  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  constructor: (@_layerOptions, @_getModelState) ->
     super()
+    @_latestWorldShape = undefined
+    @_latestModel = undefined
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
+
+  getWorldShape: -> @_latestWorldShape
 
   blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
-    resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
-    { world } = model
-    for event in model.drawingEvents
+  repaint: ->
+    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
+    resizeCanvas(@_canvas, @_latestWorldShape, @_layerOptions.quality)
+    for event in @_latestModel.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()
         when 'line' then @_drawLine(event)

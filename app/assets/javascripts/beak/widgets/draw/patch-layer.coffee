@@ -51,11 +51,18 @@ labelPatches = (ctx, worldShape, patches, fontSize, font) ->
 # canvas scaled. This is very, very fast. It also prevents weird lines between
 # patches.
 class PatchLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
+  # mutate.
+  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  constructor: (@_layerOptions, @_getModelState) ->
     super()
+    @_latestWorldShape = undefined
+    @_latestModel = undefined
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
+
+  getWorldShape: -> @_latestWorldShape
 
   blindlyDrawTo: (context) ->
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
@@ -63,12 +70,12 @@ class PatchLayer extends Layer
       labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_layerOptions.fontSize, @_layerOptions.font)
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
-    if model.world.patchesallblack
+  repaint: ->
+    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
+    if @_latestModel.world.patchesallblack
       clearPatches(@_ctx)
     else
-      colorPatches(@_ctx, worldShape, model.patches)
+      colorPatches(@_ctx, @_latestWorldShape, @_latestModel.patches)
     return
 
   getDirectDependencies: -> []

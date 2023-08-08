@@ -5,7 +5,7 @@ import { TurtleLayer } from "./turtle-layer.js"
 import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
-import { setImageSmoothing, resizeCanvas, clearCtx } from "./draw-utils.js"
+import { setImageSmoothing, resizeCanvas, clearCtx, extractWorldShape } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 Turtle = tortoise_require('engine/core/turtle')
@@ -15,12 +15,15 @@ Link = tortoise_require('engine/core/link')
 # (LayerOptions) -> LayerManager
 # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
 # mutate.
-createLayerManager = (layerOptions) ->
-  turtles = new TurtleLayer(layerOptions)
-  patches = new PatchLayer(layerOptions)
-  drawing = new DrawingLayer(layerOptions)
+createLayerManager = (model, layerOptions) ->
+  getModelState = ->
+    worldShape = extractWorldShape(model.world)
+    { model, worldShape }
+  turtles = new TurtleLayer(layerOptions, getModelState)
+  patches = new PatchLayer(layerOptions, getModelState)
+  drawing = new DrawingLayer(layerOptions, getModelState)
   world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
-  spotlight = new SpotlightLayer()
+  spotlight = new SpotlightLayer(getModelState)
   all = new CompositeLayer(layerOptions, [world, spotlight])
 
   new LayerManager({
@@ -45,12 +48,13 @@ class ViewController
 
   # (Unit) -> Unit
   constructor: ->
+    @resetModel() # defines `@_model`
     @layerOptions = {
       quality: Math.max(window.devicePixelRatio ? 2, 2),
       fontSize: 50, # some random number; can be set by the client
       font: '"Lucida Grande", sans-serif'
     }
-    @_layerManager = createLayerManager(@layerOptions)
+    @_layerManager = createLayerManager(@_model, @layerOptions)
 
     repaint = => @repaint()
     drawingLayer = @_layerManager.getLayer('drawing')
@@ -63,7 +67,6 @@ class ViewController
 
     @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
-    @_model = undefined
     # _sharedMouseState is an object shared by all Views plus the ViewController that any one of
     # them can update when they have more up-to-date information about the mouse. The `x` and `y`
     # properties should be kept at their last valid positions when the mouse leaves a view, and the
@@ -76,7 +79,6 @@ class ViewController
       x: 0,
       y: 0
     }
-    @resetModel()
     @repaint()
     return
 
@@ -102,9 +104,9 @@ class ViewController
   # (Unit) -> Unit
   repaint: ->
     @_layerManager.repaintLayers(
-      @_model,
       Object.keys(@_layerUseCount).filter((layerName) => @_layerUseCount[layerName] > 0)
     )
+    @_model.drawingEvents = []
     for view in @_views when view?
       view.repaint()
     return
