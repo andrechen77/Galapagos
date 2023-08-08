@@ -30,21 +30,20 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
-  # mutate.
-  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
+  # as well as `ModelState`.
+  # (LayerOptions, (Unit) -> ModelState) -> Unit
   constructor: (@_layerOptions, @_getModelState) ->
     super()
-    @_latestWorldShape = undefined
-    @_latestModel = undefined
+    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
     return
 
-  getWorldShape: -> @_latestWorldShape
+  getWorldShape: -> @_latestModelState.worldShape
 
   blindlyDrawTo: (context) ->
-    { world, turtles, links } = @_latestModel
+    { model: { world, turtles, links }, worldShape } = @_latestModelState
     usePatchCoords(
-      @_latestWorldShape,
+      worldShape,
       context,
       (context) =>
         for link from filteredByBreed('LINKS', links, world.linkbreeds ? [])
@@ -53,14 +52,14 @@ class TurtleLayer extends Layer
             link,
             turtles[link.end1],
             turtles[link.end2],
-            @_latestWorldShape,
+            worldShape,
             context,
             @_layerOptions.fontSize,
             @_layerOptions.font
           )
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(
-            @_latestWorldShape,
+            worldShape,
             world.turtleshapelist,
             context,
             turtle,
@@ -72,10 +71,9 @@ class TurtleLayer extends Layer
     return
 
   repaint: ->
-    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
-    return
-
-  getDirectDependencies: -> []
+    lastUpdateSym = @_latestModelState.updateSym
+    { updateSym } = @_latestModelState = @_getModelState()
+    lastUpdateSym isnt updateSym
 
 export {
   TurtleLayer

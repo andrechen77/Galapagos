@@ -51,34 +51,35 @@ labelPatches = (ctx, worldShape, patches, fontSize, font) ->
 # canvas scaled. This is very, very fast. It also prevents weird lines between
 # patches.
 class PatchLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
-  # mutate.
-  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
+  # as well as `ModelState`.
+  # (LayerOptions, (Unit) -> ModelState) -> Unit
   constructor: (@_layerOptions, @_getModelState) ->
     super()
-    @_latestWorldShape = undefined
-    @_latestModel = undefined
+    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
-  getWorldShape: -> @_latestWorldShape
+  getWorldShape: -> @_latestModelState.worldShape
 
   blindlyDrawTo: (context) ->
+    { model, worldShape } = @_latestModelState
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
-    if @_latestModel.world.patcheswithlabels
-      labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_layerOptions.fontSize, @_layerOptions.font)
+    if model.world.patcheswithlabels
+      labelPatches(context, worldShape, model.patches, @_layerOptions.fontSize, @_layerOptions.font)
     return
 
   repaint: ->
-    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
-    if @_latestModel.world.patchesallblack
+    lastUpdateSym = @_latestModelState.updateSym
+    { model, worldShape, updateSym } = @_latestModelState = @_getModelState()
+    if lastUpdateSym is updateSym then return false
+
+    if model.world.patchesallblack
       clearPatches(@_ctx)
     else
-      colorPatches(@_ctx, @_latestWorldShape, @_latestModel.patches)
-    return
-
-  getDirectDependencies: -> []
+      colorPatches(@_ctx, worldShape, model.patches)
+    true
 
 export {
   PatchLayer

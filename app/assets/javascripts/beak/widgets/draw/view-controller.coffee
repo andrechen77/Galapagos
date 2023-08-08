@@ -12,29 +12,6 @@ Turtle = tortoise_require('engine/core/turtle')
 Patch = tortoise_require('engine/core/patch')
 Link = tortoise_require('engine/core/link')
 
-# (LayerOptions) -> LayerManager
-# See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
-# mutate.
-createLayerManager = (model, layerOptions) ->
-  getModelState = ->
-    worldShape = extractWorldShape(model.world)
-    { model, worldShape }
-  turtles = new TurtleLayer(layerOptions, getModelState)
-  patches = new PatchLayer(layerOptions, getModelState)
-  drawing = new DrawingLayer(layerOptions, getModelState)
-  world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
-  spotlight = new SpotlightLayer(getModelState)
-  all = new CompositeLayer(layerOptions, [world, spotlight])
-
-  new LayerManager({
-    'turtles': turtles,
-    'patches': patches,
-    'drawing': drawing,
-    'world': world,
-    'spotlight': spotlight,
-    'all': all
-  })
-
 class ViewController
   ###
   Some Layers might take a LayerOptions object that affects rendering options such as font size and font family.
@@ -44,28 +21,38 @@ class ViewController
     fontSize: number,
     font: string
   }
+
+  Layers who depend on model state may be passed a ModelState object which includes a reference to the model, the world
+  shape calculated from the model, and a symbol that uniquely corresponds to a single state of the model between updates
+  (i.e. if `updateSym` is different from the last time you saw it, that means the model has changed from the last time
+  you saw it).
+  ModelState: {
+    updateSym: symbol,
+    model: AgentModel,
+    worldShape: WorldShape
+  }
   ###
 
   # (Unit) -> Unit
   constructor: ->
     @resetModel() # defines `@_model`
+    @_latestUpdateSym = Symbol() # changed every time the model updates, so that the layers know when to update
     @layerOptions = {
       quality: Math.max(window.devicePixelRatio ? 2, 2),
       fontSize: 50, # some random number; can be set by the client
       font: '"Lucida Grande", sans-serif'
     }
-    @_layerManager = createLayerManager(@_model, @layerOptions)
+    @_initLayers(@layerOptions) # sets up the `@_layers` object
 
     repaint = => @repaint()
-    drawingLayer = @_layerManager.getLayer('drawing')
-    allLayer = @_layerManager.getLayer('all')
+    drawingLayer = @_layers.drawing
+    allLayer = @_layers.all
     @configShims = {
       importImage: (b64, x, y) -> drawingLayer.importImage(b64, x, y).then(repaint),
       getViewBase64: -> allLayer.getCanvas().toDataURL("image/png"),
       getViewBlob: (callback) -> allLayer.getCanvas().toBlob(callback, "image/png")
     }
 
-    @_layerUseCount = {} # Stores how many views are using each layer.
     @_views = [] # Stores the views themselves; some values might be null for destructed views
     # _sharedMouseState is an object shared by all Views plus the ViewController that any one of
     # them can update when they have more up-to-date information about the mouse. The `x` and `y`
@@ -81,6 +68,21 @@ class ViewController
     }
     @repaint()
     return
+
+  # (Unit) -> Unit
+  _initLayers: (layerOptions) ->
+    getModelState = => {
+      updateSym: @_latestUpdateSym,
+      model: @_model,
+      worldShape: extractWorldShape(@_model.world)
+    }
+    turtles = new TurtleLayer(layerOptions, getModelState)
+    patches = new PatchLayer(layerOptions, getModelState)
+    drawing = new DrawingLayer(layerOptions, getModelState)
+    world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
+    spotlight = new SpotlightLayer(getModelState)
+    all = new CompositeLayer(layerOptions, [world, spotlight])
+    @_layers = { turtles, patches, drawing, world, spotlight, all }
 
   mouseInside: => @_sharedMouseState.inside # (Unit) -> boolean
   mouseXcor: => @_sharedMouseState.x # (Unit) -> number; patch coordinates
@@ -103,10 +105,6 @@ class ViewController
 
   # (Unit) -> Unit
   repaint: ->
-    @_layerManager.repaintLayers(
-      Object.keys(@_layerUseCount).filter((layerName) => @_layerUseCount[layerName] > 0)
-    )
-    @_model.drawingEvents = []
     for view in @_views when view?
       view.repaint()
     return
@@ -119,8 +117,10 @@ class ViewController
 
   # (Update|Array[Update]) => Unit
   update: (modelUpdate) ->
+    @_latestUpdateSym = Symbol() # so that layers who depend on the model see the change and know to update themselves
     @_applyUpdateToModel(modelUpdate)
     @repaint()
+    @_model.drawingEvents = []
     return
 
   # Really pointless signature, I know. Converts the actual agent object (such as one you'd obtain from using the
@@ -137,9 +137,9 @@ class ViewController
   # The returned View must be destructed before it is dropped.
   # (Node, string, Iterator<Rectangle>) -> WindowView
   getNewView: (container, layerName, windowRectGen) ->
-    layer = @_layerManager.getLayer(layerName)
+    layer = @_layers[layerName]
     sharedMouseState = @_sharedMouseState
-    @_registerView(layerName, (unregisterThisView) ->
+    @_registerView((unregisterThisView) ->
       new View(container, layer, sharedMouseState, windowRectGen, unregisterThisView)
     )
 
@@ -148,20 +148,16 @@ class ViewController
   # involved with creating the view, except for the View's unregister function, which it takes as
   # a parameter (because it's only during the registration process that the unregister function
   # can be determined).
-  # (string, ((Unit) -> Unit) -> View) -> View
-  _registerView: (layerName, createView) ->
-    if not @_layerUseCount[layerName]? then @_layerUseCount[layerName] = 0
-    ++@_layerUseCount[layerName]
-
+  # (((Unit) -> Unit) -> View) -> View
+  _registerView: (createView) ->
     # find the first unused index to put this view
     index = @_views.findIndex((element) -> not element?)
     if index is -1 then index = @_views.length
     # Create a new scope so that variables are protected in case someone decides to create
     # like-named variables in a higher scope, thus causing CoffeeScript to destroy this scope.
     # CoffeeScript issues ;-; --Andre C.
-    return do (layerName, index) =>
+    return do (index) =>
       unregisterThisView = =>
-        --@_layerUseCount[layerName]
         @_views[index] = null
       view = createView(unregisterThisView)
       @_views[index] = view
@@ -272,6 +268,9 @@ class View
   # Repaints the visible canvas, updating its dimensions. Overriding methods should call `super()`.
   # (Unit) -> Unit
   repaint: ->
+    # Just because the source layer didn't change since the last time *it* was repainted, doesn't mean that it hasn't
+    # changed since the last time *this view* was repainted, so don't short circuit even if `repaint` returns false.
+    @_sourceLayer.repaint()
     @_latestWorldShape = @_sourceLayer.getWorldShape()
     @_updateDimensionsAndClear(@_windowRectGen.next().value)
     @_sourceLayer.drawRectTo(@_visibleCtx, @_windowCornerX, @_windowCornerY, @_windowWidth, @_windowHeight)

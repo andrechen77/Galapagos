@@ -56,38 +56,37 @@ drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   return
 
 class SpotlightLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
-  # mutate.
-  # ((Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
+  # as well as `ModelState`.
+  # (LayerOptions, (Unit) -> ModelState) -> Unit
   constructor: (@_getModelState)->
     super()
-    @_latestWorldShape = undefined
-    @_latestModel = undefined
+    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
     return
 
-  getWorldShape: -> @_latestWorldShape
+  getWorldShape: -> @_latestModelState.worldShape
 
   blindlyDrawTo: (ctx) ->
-    watched = getSpotlightAgent(@_latestModel)
+    { worldShape, model } = @_latestModelState
+    watched = getSpotlightAgent(model)
     if not watched? then return
-    usePatchCoords(@_latestWorldShape, ctx, (ctx) =>
+    usePatchCoords(worldShape, ctx, (ctx) =>
       [xcor, ycor, size] = getDimensions(watched)
       drawSpotlight(
         ctx,
-        @_latestWorldShape,
+        worldShape,
         xcor,
         ycor,
-        adjustSize(size, @_latestWorldShape),
-        @_latestModel.observer.perspective is WATCH
+        adjustSize(size, worldShape),
+        model.observer.perspective is WATCH
       )
     )
     return
 
   repaint: ->
-    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
-    return
-
-  getDirectDependencies: -> []
+    lastUpdateSym = @_latestModelState.updateSym
+    { updateSym } = @_latestModelState = @_getModelState()
+    lastUpdateSym isnt updateSym
 
 export {
   SpotlightLayer

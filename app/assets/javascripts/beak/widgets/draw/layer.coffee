@@ -1,61 +1,5 @@
 import { drawRectTo, drawFullTo } from "./draw-utils.js"
 
-# I would use the `unique` method of brazier, but it falsely marks some objects as equivalent even if they are not
-# identical (and we care about identity).
-unique = (arr) ->
-  result = []
-  for element in arr
-    if not result.includes(element) # Uses `===` equality
-      result.push(element)
-  result
-
-getAllDependencies = (layer) ->
-  result = unique(layer.getDirectDependencies().flatMap(getAllDependencies))
-  result.push(layer)
-  result
-
-###
-LayerManager owns all the layers
-
-Layers can have dependencies on other layers (but the layers being depended on don't know that)
-
-Client requests the LayerManager update some Layers, given the state of some agent model.
-LayerManager goes through each of the Layers and tells them to update in the correct order.
-###
-class LayerManager
-  # `layers` is an object mapping each layer name to its layer object. There must not be circular
-  # dependencies or dependencies outside this LayerManager.
-  constructor: (layers = {}) ->
-    @_layers = {}
-    # `_dependencies` (Map<String, Array[Layer]>) is an object mapping each layer name to a sequence
-    # of layers that must update before that layer can be correctly updated. Always includes the
-    # layer itself as the final element ("to update layer A, one must first update layer A")
-    @_dependencies = {}
-    for layerName, layer of layers
-      @addLayer(layerName, layer)
-    return
-
-  # Adds the specified layer object to this LayerManager under the specified name.
-  # Must not create circular dependencies, or dependencies on layers outside this manager.
-  # (String, Layer, Array[String]) -> Unit
-
-  addLayer: (layerName, layer) ->
-    @_dependencies[layerName] = unique(getAllDependencies(layer))
-    @_layers[layerName] = layer
-    return
-
-  getLayer: (layerName) -> @_layers[layerName]
-
-  # Updates the specified layers with the specified models (may also update their dependencies)
-  # Unfortunately, due to the design of the model, this will mutate the model:
-  # - resets `model.drawingEvents`
-  # Array[String]-> Unit
-  repaintLayers: (layerNames) ->
-    layersToRepaint = unique(layerNames.flatMap((layerName) => @_dependencies[layerName]))
-    for layer in layersToRepaint
-      layer.repaint()
-    return
-
 # Returns a canvas with the current state of the layer like a freeze frame.
 convertLayerToCanvas = (layer, quality) ->
   { worldWidth, worldHeight, patchsize } = layer.getWorldShape()
@@ -109,17 +53,18 @@ class Layer
   # context is correctly sized to hold the whole image from this layer.
   blindlyDrawTo: (context) ->
 
-  # Updates the current layer, ensuring that all its dependencies are up-to-date. Doesn't necessarily
+  # Updates the current layer, ensuring that all its dependencies are up-to-date. Returns whether any change was
+  # actually made to this layer (which dependent layers might want be interested in). Doesn't necessarily
   # update an internal canvas, but it must be enough for the `drawTo` method to accurately
   # draw this layer to another. Does not modify its arguments. Must update @_latestWorldShape to a valid value.
   # Rendering is often split between between this method and the `drawTo` method, depending on what
   # makes most sense for the layer to store internally.
-  repaint: ->
+  # (Unit) -> boolean
+  repaint: -> false
 
   # Returns an array of all this layer's direct dependencies
   getDirectDependencies: -> []
 
 export {
-  LayerManager,
   Layer
 }

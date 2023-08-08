@@ -30,15 +30,18 @@ class CompositeLayer extends Layer
     return
 
   repaint: ->
-    @_latestWorldShape = @_sourceLayers[0]?.getWorldShape()
+    changed = false
+    for layer in @_sourceLayers
+      if layer.repaint() then changed = true
+    if not changed then return false
+
+    @_latestWorldShape = @_sourceLayers[0].getWorldShape()
     cleared = resizeCanvas(@_canvas, @_latestWorldShape, @_layerOptions.quality)
     if not cleared then clearCtx(@_ctx)
     setImageSmoothing(@_ctx, false)
     for layer in @_sourceLayers
       layer.blindlyDrawTo(@_ctx)
-    return
-
-  getDirectDependencies: -> @_sourceLayers
+    true
 
 export {
   CompositeLayer

@@ -36,27 +36,29 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions`. This object is meant to be shared and may
-  # mutate.
-  # (LayerOptions, (Unit) -> { model: AgentModel, worldShape: WorldShape }) -> Unit
+  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
+  # as well as `ModelState`.
+  # (LayerOptions, (Unit) -> ModelState) -> Unit
   constructor: (@_layerOptions, @_getModelState) ->
     super()
-    @_latestWorldShape = undefined
-    @_latestModel = undefined
+    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
-  getWorldShape: -> @_latestWorldShape
+  getWorldShape: -> @_latestModelState.worldShape
 
   blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
     return
 
   repaint: ->
-    { model: @_latestModel, worldShape: @_latestWorldShape } = @_getModelState()
-    resizeCanvas(@_canvas, @_latestWorldShape, @_layerOptions.quality)
-    for event in @_latestModel.drawingEvents
+    lastUpdateSym = @_latestModelState.updateSym
+    { model, worldShape, updateSym } = @_latestModelState = @_getModelState()
+    if lastUpdateSym is updateSym then return false
+
+    resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
+    for event in model.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()
         when 'line' then @_drawLine(event)
@@ -65,11 +67,9 @@ class DrawingLayer extends Layer
             when 'turtle' then @_drawTurtleStamp(event.stamp)
             when 'link' then @_drawLinkStamp(event.stamp)
         when 'import-drawing' then @_importDrawing(event.imageBase64)
-    # For those who still remember, `model.drawingEvents` is now reset by the LayerManager after
+    # For those who still remember, `model.drawingEvents` is now reset by the ViewController after
     # every layer has finished repainting.
-    return
-
-  getDirectDependencies: -> []
+    true
 
   _clearDrawing: ->
     @_ctx.clearRect(0, 0, @_canvas.width, @_canvas.height)
@@ -78,11 +78,12 @@ class DrawingLayer extends Layer
   _drawLine: ({ rgb, size, penMode, fromX, fromY, toX, toY }) ->
     if penMode is 'up' then return
 
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    { worldShape } = @_latestModelState
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       ctx.save()
 
       ctx.strokeStyle = rgbToCss(rgb)
-      ctx.lineWidth   = size * @_latestWorldShape.onePixel
+      ctx.lineWidth   = size * worldShape.onePixel
       ctx.lineCap     = 'round'
 
       ctx.beginPath()
@@ -97,12 +98,13 @@ class DrawingLayer extends Layer
     return
 
   _drawTurtleStamp: (turtleStamp) ->
+    { worldShape, model } = @_latestModelState
     mockTurtleObject = makeMockTurtleObject(turtleStamp)
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(turtleStamp.stampMode), ctx, (ctx) =>
         drawTurtle(
-          @_latestWorldShape,
-          @_latestModel.world.turtleshapelist,
+          worldShape,
+          model.world.turtleshapelist,
           ctx,
           mockTurtleObject,
           true,
@@ -114,13 +116,14 @@ class DrawingLayer extends Layer
     return
 
   _drawLinkStamp: (linkStamp) ->
+    { worldShape, model } = @_latestModelState
     mockLinkObject = makeMockLinkObject(linkStamp)
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(linkStamp.stampMode), ctx, (ctx) =>
         drawLink(
-          @_latestModel.world.linkshapelist,
+          model.world.linkshapelist,
           mockLinkObject...,
-          @_latestWorldShape,
+          worldShape,
           ctx,
           @_layerOptions.fontSize,
           @_layerOptions.font,
