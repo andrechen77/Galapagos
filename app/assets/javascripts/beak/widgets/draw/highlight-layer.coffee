@@ -17,8 +17,8 @@ turnTransparent = do ->
     { r, g, b } = match.groups
     "rgb(#{r}, #{g}, #{b}, 0)"
 
+# Modifies canvas state.
 drawGlow = (ctx, x, y, r, color) ->
-  ctx.save()
   grad = ctx.createRadialGradient(x, y, 0, x, y, r)
   grad.addColorStop(0, color)
   grad.addColorStop(1, turnTransparent(color) ? 'transparent')
@@ -26,7 +26,6 @@ drawGlow = (ctx, x, y, r, color) ->
   ctx.beginPath()
   ctx.arc(x, y, r, 0, 2 * Math.PI)
   ctx.fill()
-  ctx.restore()
 
 class HighlightLayer extends Layer
   # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
@@ -53,7 +52,7 @@ class HighlightLayer extends Layer
             when 'turtle'
               drawGlow(ctx, agent.xcor, agent.ycor, agent.size, netlogoColorToCSS(agent.color))
             when 'patch'
-              console.log("highlighting patch #{agent.pxcor} #{agent.pycor}")
+              ctx
             when 'link'
               console.log("highlighting #{agent.getName()}")
         return
