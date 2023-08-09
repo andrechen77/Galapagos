@@ -179,7 +179,7 @@ RactiveInspectionPane = Ractive.extend({
     }
     where CategoryPath: Array[string] e.g. ["turtles"], ["turtles", "TURTLEBREEDNAME"], ["patches"]
     ###
-    selection: { currentScreen: 'categories', selectedPaths: [] }
+    selection: { currentScreen: 'categories', selectedPaths: [[]] }
 
     # Consts
 
@@ -232,6 +232,29 @@ RactiveInspectionPane = Ractive.extend({
         childrenKeys.map((key) -> path.concat([key]))
 
     calcCategoryPathDetails
+  }
+
+  computed: {
+    targetedAgents: ->
+      selection = @get('selection')
+      switch selection.currentScreen
+        when 'categories'
+          selection.selectedPaths.flatMap(@get('getAgentsInPath'))
+        when 'agents'
+          inspected = @get('getAgentsInPath')(selection.currentPath)
+          selected = selection.selectedAgents
+          # For the second branch, we use `inspected` with `selected` as a filter instead of just `selected` directly
+          # because agents that stopped being inspected can still show up as selected if the user doesn't
+          # deselect them before `stop-inspecting` them. If/when this is no longer the case, we can iterate over
+          # `selected` directly.
+          if selected.length is 0 then inspected else inspected.filter((agent) -> selected.includes(agent))
+        when 'details'
+          [selection.currentAgent]
+  }
+
+  observe: {
+    targetedAgents: (newValue) ->
+      @get('viewController').setHighlightedAgents(newValue)
   }
 
   components: {
@@ -292,7 +315,9 @@ RactiveInspectionPane = Ractive.extend({
       when 'replace'
         [categoryPath]
       when 'toggle'
-        togglePresence(@get('selection.selectedPaths'), categoryPath, arrayEquals)[0]
+        paths = togglePresence(@get('selection.selectedPaths'), categoryPath, arrayEquals)[0]
+        if paths.length is 0 then paths.push([])
+        paths
     @set('selection', {
       currentScreen: 'categories',
       selectedPaths
@@ -337,21 +362,7 @@ RactiveInspectionPane = Ractive.extend({
       when 'links' then getLinkSetReporter
       else throw new Error("Couldn't turn the current path into a valid agent set reporter.") # should never happen
 
-    targetedAgents = switch @get('selection.currentScreen')
-      when 'agents'
-        inspected = @get('getAgentsInPath')(currentPath)
-        selected = @get('selection.selectedAgents')
-        # For the second branch, we use `inspected` with `selected` as a filter instead of just `selected` directly
-        # because agents that stopped being inspected can still show up as selected if the user doesn't
-        # deselect them before `stop-inspecting` them. If/when this is no longer the case, we can iterate over
-        # `selected` directly.
-        if selected.length is 0 then inspected else inspected.filter((agent) -> selected.includes(agent))
-      when 'details'
-        [@get('selection.currentAgent')]
-      else # should never happen
-        throw new Error("Can't get targeted agents when the screen is not in 'agents' or 'details' mode.")
-
-    getAgentSetReporter(targetedAgents)
+    getAgentSetReporter(@get('targetedAgents'))
 
 
   template: """

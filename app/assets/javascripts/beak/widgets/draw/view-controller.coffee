@@ -1,16 +1,13 @@
 import defaultShapes from "/default-shapes.js"
-import { LayerManager } from "./layer.js"
 import { CompositeLayer } from "./composite-layer.js"
 import { TurtleLayer } from "./turtle-layer.js"
 import { PatchLayer } from "./patch-layer.js"
 import { DrawingLayer } from "./drawing-layer.js"
 import { SpotlightLayer } from "./spotlight-layer.js"
-import { setImageSmoothing, resizeCanvas, clearCtx, extractWorldShape } from "./draw-utils.js"
+import { HighlightLayer } from "./highlight-layer.js"
+import { setImageSmoothing, clearCtx, extractWorldShape } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
-Turtle = tortoise_require('engine/core/turtle')
-Patch = tortoise_require('engine/core/patch')
-Link = tortoise_require('engine/core/link')
 
 class ViewController
   ###
@@ -29,7 +26,8 @@ class ViewController
   ModelState: {
     updateSym: symbol,
     model: AgentModel,
-    worldShape: WorldShape
+    worldShape: WorldShape,
+    highlightedAgents: Array[Agent] # the actual Agent object, not the AgentModel analogue
   }
   ###
 
@@ -38,6 +36,8 @@ class ViewController
     @resetModel() # defines `@_model`
     @_latestUpdateSym = Symbol() # changed every time the model updates, so that the layers know when to update
     @_latestWorldShape = undefined # cached so that if the model doesn't update, the layers don't have to recalculate
+    @_highlightedAgents = []
+
     @layerOptions = {
       quality: Math.max(window.devicePixelRatio ? 2, 2),
       fontSize: 50, # some random number; can be set by the client
@@ -77,8 +77,9 @@ class ViewController
     drawing = new DrawingLayer(layerOptions, @getModelState)
     world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
     spotlight = new SpotlightLayer(@getModelState)
-    all = new CompositeLayer(layerOptions, [world, spotlight])
-    @_layers = { turtles, patches, drawing, world, spotlight, all }
+    highlight = new HighlightLayer(@getModelState)
+    all = new CompositeLayer(layerOptions, [world, spotlight, highlight])
+    @_layers = { turtles, patches, drawing, world, spotlight, highlight, all }
 
   mouseInside: => @_sharedMouseState.inside # (Unit) -> boolean
   mouseXcor: => @_sharedMouseState.x # (Unit) -> number; patch coordinates
@@ -100,7 +101,8 @@ class ViewController
   getModelState: => {
     updateSym: @_latestUpdateSym,
     model: @_model,
-    worldShape: @_latestWorldShape
+    worldShape: @_latestWorldShape,
+    highlightedAgents: @_highlightedAgents
   }
 
   # (Unit) -> Unit
@@ -124,15 +126,12 @@ class ViewController
     @_model.drawingEvents = []
     return
 
-  # Really pointless signature, I know. Converts the actual agent object (such as one you'd obtain from using the
-  # `workspace` global variable) into the equivalent agent model used from this ViewController's AgentModel.
-  # (Agent) -> Agent
-  getEquivalentAgent: (agent) ->
-    switch
-      when agent instanceof Turtle then @_model.turtles[agent.id]
-      when agent instanceof Patch then @_model.patches[agent.id]
-      when agent instanceof Link then @_model.links[agent.id]
-      else throw new Error("agent is not a valid type")
+  # (Array[Agent]) -> Unit
+  # where `Agent` is the actual agent object as opposed to the `AgentModel` analogue
+  setHighlightedAgents: (@_highlightedAgents) ->
+    @_latestUpdateSym = Symbol() # so that layers who depend on the model will see the change
+    @repaint()
+    return
 
   # Returns a new WindowView that controls the specified container
   # The returned View must be destructed before it is dropped.

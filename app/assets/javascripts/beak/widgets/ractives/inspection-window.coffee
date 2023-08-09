@@ -1,6 +1,7 @@
 import { followAgentWithZoom } from '../draw/window-generators.js'
 import { getDimensions } from "../draw/perspective-utils.js"
 import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu-utils.js"
+import { getEquivalentAgent } from "../draw/agent-conversion.js"
 
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
@@ -58,7 +59,7 @@ RactiveInspectionWindow = Ractive.extend({
     # We want to run `updateView` and `zoomView` only after the instance has been rendered to the DOM, but Ractive
     # observers initialize before rendering. And for some reason, using the `defer` option does not work
     # (see Ractive API).
-    @set('viewModelAgent', @get('viewController').getEquivalentAgent(@get('agent')))
+    @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModelState().model)(@get('agent'))[0])
     @get('replaceView')()
 
   on: {
@@ -74,7 +75,7 @@ RactiveInspectionWindow = Ractive.extend({
     'agent': {
       handler: (newValue, oldValue) ->
         if oldValue is newValue then return # we only care about when the identity changes (see Ractive API)
-        @set('viewModelAgent', @get('viewController').getEquivalentAgent(newValue))
+        @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModelState().model)(newValue)[0])
         @get('replaceView')()
       init: false # see `onrender`
     }
