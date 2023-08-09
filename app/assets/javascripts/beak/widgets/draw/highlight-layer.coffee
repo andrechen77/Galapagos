@@ -3,11 +3,25 @@ import { usePatchCoords } from "./draw-utils.js"
 import { netlogoColorToCSS } from "/colors.js"
 import { getEquivalentAgent } from "./agent-conversion.js"
 
+# Turns a string representing a valid CSS color into the same color, but with 0 alpha. If the string is not an
+# `RGBColorString`, then null is returned.
+# (string) -> RGBColorString | null
+# where `RGBColorString` is just a string of the form "rgb(RED, GREEN, BLUE[, ALPHA])" representing a valid CSS color
+turnTransparent = do ->
+  regex = /^rgb\((?<r>\d+), (?<g>\d+), (?<b>\d+)(?:, \d+)?\)$/
+  (colorString) ->
+    match = colorString.match(regex)
+    if not match?
+      console.error("Color string `%s` failed to match regex. Might want to look into that.", colorString)
+      return null
+    { r, g, b } = match.groups
+    "rgb(#{r}, #{g}, #{b}, 0)"
+
 drawGlow = (ctx, x, y, r, color) ->
   ctx.save()
   grad = ctx.createRadialGradient(x, y, 0, x, y, r)
   grad.addColorStop(0, color)
-  grad.addColorStop(1, 'rgb(0, 0, 0, 0)')
+  grad.addColorStop(1, turnTransparent(color) ? 'transparent')
   ctx.fillStyle = grad
   ctx.beginPath()
   ctx.arc(x, y, r, 0, 2 * Math.PI)
