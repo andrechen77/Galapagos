@@ -6,9 +6,9 @@ import { getEquivalentAgent } from "./agent-conversion.js"
 # Turns a string representing a valid CSS color into the same color, but with 0 alpha. If the string is not an
 # `RGBColorString`, then null is returned.
 # (string) -> RGBColorString | null
-# where `RGBColorString` is just a string of the form "rgb(RED, GREEN, BLUE[, ALPHA])" representing a valid CSS color
+# where `RGBColorString` is just a string of the form "rgb[a](RED, GREEN, BLUE[, ALPHA])" representing a valid CSS color
 turnTransparent = do ->
-  regex = /^rgb\((?<r>\d+), (?<g>\d+), (?<b>\d+)(?:, \d+)?\)$/
+  regex = /^rgba?\((?<r>\d+), (?<g>\d+), (?<b>\d+)(?:, .*)?\)$/
   (colorString) ->
     match = colorString.match(regex)
     if not match?
