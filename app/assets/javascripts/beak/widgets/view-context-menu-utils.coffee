@@ -28,12 +28,12 @@ getClickedAgents = (world, view, xPix, yPix) ->
 
   agentList
 
-# ((Agent) -> Unit) -> (Agent) -> ContextMenuOption
+# ((SetInspectAction) -> Unit) -> (Agent) -> ContextMenuOption
 # see "./ractives/contextable.coffee"
-agentToContextMenuOption = (inspectFn) -> (agent) -> {
+agentToContextMenuOption = (setInspect) -> (agent) -> {
   text: "inspect #{agent.getName()}"
   isEnabled: true,
-  action: -> inspectFn(agent)
+  action: -> setInspect({ type: 'add-focus', agent })
 }
 
 export {

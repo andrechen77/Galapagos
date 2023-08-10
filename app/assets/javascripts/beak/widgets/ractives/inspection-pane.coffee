@@ -2,6 +2,9 @@ import RactiveMiniAgentCard from "./mini-agent-card.js"
 import RactiveInspectionWindow from "./inspection-window.js"
 
 { arrayEquals } = tortoise_require('brazier/equals')
+Turtle = tortoise_require('engine/core/turtle')
+Patch = tortoise_require('engine/core/patch')
+Link = tortoise_require('engine/core/link')
 
 # CategoryPath: Array[string] e.g. ["turtles"], ["turtles", "TURTLEBREEDNAME"], ["patches"]
 
@@ -148,16 +151,71 @@ getLinkSetReporter = getAgentSetReporterCreator(
   (link) -> "#{link.getBreedNameSingular()} #{link.end1.id} #{link.end2.id}"
 )
 
+# Given an agent, returns the keypath with respect to the skeleton ractive to the array where that agent would go if it
+# were inspected.
+# (Agent) -> string
+getKeypathFor = (agent) ->
+  switch
+    when agent instanceof Turtle then ['turtles', agent.getBreedName()]
+    when agent instanceof Patch then ['patches']
+    when agent instanceof Link then ['links', agent.getBreedName()]
+
+# Given an object and a array of keys, recursively accesses the object using those keys and returns the result.
+# Consumes the array of keys up until continuing traversal is impossible. If a value along the path is undefined, and
+# the default value is set, the value there will be set to the default value and then immediately returned.
+# (any) -> any
+traverseKeypath = (obj, keypath, defaultValue = undefined) ->
+  x = obj
+  while key = keypath.shift()
+    if not x[key]? and defaultValue?
+      x[key] = defaultValue
+      return x[key]
+    x = x[key]
+  x
+
+# (any) -> boolean
+isAgent = (obj) -> obj instanceof Turtle or obj instanceof Patch or obj instanceof Link
+
+# Treating an object as the root of a tree, prunes certain nodes of the tree (deleting an element of an
+# array shifts the indices of the following elements, while deleting an element of an object simply removes the
+# key-value pair). The provided tester function should return true if the node should be kept as-is (stopping deeper
+# recursion), false if the node should be deleted, and null if the node should be recursively pruned. Returning null on
+# a non-traversable value (i.e. a primitive) causes it to be deleted.
+# (any, (any) -> boolean | null) -> Unit
+pruneTree = (obj, tester) ->
+  for key, value of obj
+    switch tester(value)
+      when false then delete obj[key]
+      when null
+        if not value? or typeof value isnt 'object'
+          delete obj[key]
+        else # we know it must be a traversible object at this point
+          pruneTree(value, tester)
+  if Array.isArray(obj)
+    i = 0
+    while i < obj.length
+      if Object.hasOwn(obj, i)
+        ++i
+      else
+        obj.splice(i, 1)
+  return
+
 RactiveInspectionPane = Ractive.extend({
   data: -> {
     # Props
 
-    inspectedAgents: undefined # InspectedAgents; (see "../skeleton.coffee")
-    addToInspect: undefined # (Agent) -> Unit
     viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
     checkIsReporter: undefined # (string) -> boolean
 
     # State
+
+    # type InspectedAgents = {
+    #   turtles: Object<string, Array[Turtle]>,
+    #   patches: Array[Patch],
+    #   links: Object<string, Array[Link]>,
+    # }
+    # The `turtles` and `links` properties map breed names to lists of agents.
+    inspectedAgents: { 'turtles': {}, 'patches': [], 'links': {} } # InspectedAgents
 
     ###
     The `selection` describes the layout of the inspection pane.
@@ -282,6 +340,41 @@ RactiveInspectionPane = Ractive.extend({
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
   }
 
+  ### type SetInspectAction =
+    { action: 'add-focus', agent: Agent }
+    | { action: 'add' | 'remove', agents: Array[Agent] }
+    | { action: 'clear-dead' }
+  ###
+  # (SetInspectAction) -> Unit
+  setInspect: (action) ->
+    switch action.type
+      when 'add-focus'
+        { agent } = action
+        keypath = getKeypathFor(agent)
+        @push("inspectedAgents.#{keypath.join('.')}", agent)
+        @openCategory(keypath)
+        @openAgent(agent)
+      when 'add'
+        inspectedAgents = @get('inspectedAgents')
+        for agent in action.agents
+          traverseKeypath(inspectedAgents, getKeypathFor(agent), []).push(agent)
+        @update('inspectedAgents')
+      when 'remove'
+        inspectedAgents = @get('inspectedAgents')
+        for agent in action.agent
+          keypath = getKeypathFor(agent)
+          arr = traverseKeypath(inspectedAgents, keypath, [])
+          index = arr.indexOf(agent) ? -1
+          if index isnt -1
+            arr.splice(index, 1)
+        @update('inspectedAgents')
+      when 'clear-dead'
+        pruneTree(
+          @get('inspectedAgents'),
+          (obj) -> if isAgent(obj) then not obj.isDead() else null
+        )
+        @update('inspectedAgents')
+
   # Selects the specified category, entering the 'categories' screen if not already in it.
   # 'replace' mode removes all other selected categories (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item). 'toggle' mode requires that the we already be in the 'categories'
@@ -298,7 +391,7 @@ RactiveInspectionPane = Ractive.extend({
       selectedPaths
     })
 
-  # Enters 'agent' screen mode, displaying the set of agents in the specified category.
+  # Enters 'agents' screen mode, displaying the set of agents in the specified category.
   # (CategoryPath) -> Unit
   openCategory: (categoryPath) ->
     @set('selection', { currentScreen: 'agents', currentPath: categoryPath, selectedAgents: [] })
@@ -416,7 +509,7 @@ RactiveInspectionPane = Ractive.extend({
       <inspectionWindow
         viewController={{viewController}}
         agent={{currentAgent}}
-        addToInspect="{{addToInspect}}"
+        setInspect="{{@this.setInspect.bind(@this)}}"
       />
     """
   }

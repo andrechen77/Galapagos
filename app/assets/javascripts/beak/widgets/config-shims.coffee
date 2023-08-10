@@ -124,26 +124,11 @@ genImportExportConfig = (ractive, viewController, compiler) ->
 
   }
 
-# () => InspectionConfig
-genInspectionConfig = ->
-  inspect        = ((agent) ->
-    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent(
-      "setinspect",
-      { detail: { type: 'add', agent } }
-    ))
-  )
-  stopInspecting = ((agent) ->
-    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent(
-      "setinspect",
-      { detail: { type: 'remove', agent } }
-    ))
-  )
-  clearDead      = (->
-    document.getElementById("skeleton-handle").dispatchEvent(new CustomEvent(
-      "setinspect",
-      { detail: { type: 'clear-dead' } }
-    ))
-  )
+# (Ractive) => InspectionConfig
+genInspectionConfig = (ractive) ->
+  inspect = (agent) -> ractive.setInspect({ type: 'add', agents: [agent] })
+  stopInspecting = (agent) -> ractive.setInspect({ type: 'remove', agents: [agent] })
+  clearDead = -> ractive.setInspect({ type: 'clear-dead' })
   { inspect, stopInspecting, clearDead }
 
 # (Ractive) => IOConfig
@@ -267,7 +252,7 @@ genConfigs = (ractive, viewController, container, compiler) ->
   , dialog:            genDialogConfig(viewController, notify)
   , importExport:      genImportExportConfig(ractive, viewController, compiler)
   , importImage:       viewController.configShims.importImage
-  , inspection:        genInspectionConfig()
+  , inspection:        genInspectionConfig(ractive)
   , io:                genIOConfig(ractive)
   , mouse:             genMouseConfig(viewController)
   , output:            genOutputConfig(ractive, appendToConsole)

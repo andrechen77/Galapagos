@@ -21,53 +21,6 @@ import RactiveContextMenu from "./ractives/context-menu.js"
 import RactiveEditFormSpacer from "./ractives/subcomponent/spacer.js"
 import RactiveTickCounter from "./ractives/subcomponent/tick-counter.js"
 
-Turtle = tortoise_require('engine/core/turtle')
-Patch = tortoise_require('engine/core/patch')
-Link = tortoise_require('engine/core/link')
-
-# type InspectedAgents = {
-#   turtles: Object<string, Array[Turtle]>,
-#   patches: Array[Patch],
-#   links: Object<string, Array[Link]>,
-# }
-# The `turtles` and `links` properties map breed names to lists of agents.
-
-# Given an agent, returns the keypath with respect to the skeleton ractive to the array where that agent would go if it
-# were inspected.
-# (Agent) -> string
-getKeypathFor = (agent) ->
-  'inspectedAgents.' + switch
-    when agent instanceof Turtle then "turtles.#{agent.getBreedName()}"
-    when agent instanceof Patch then 'patches'
-    when agent instanceof Link then "links.#{agent.getBreedName()}"
-
-# (any) -> boolean
-isAgent = (obj) -> obj instanceof Turtle or obj instanceof Patch or obj instanceof Link
-
-# Treating an object as the root of a tree, prunes certain nodes of the tree (deleting an element of an
-# array shifts the indices of the following elements, while deleting an element of an object simply removes the
-# key-value pair). The provided tester function should return true if the node should be kept as-is (stopping deeper
-# recursion), false if the node should be deleted, and null if the node should be recursively pruned. Returning null on
-# a non-traversable value (i.e. a primitive) causes it to be deleted.
-# (any, (any) -> boolean | null) -> Unit
-pruneTree = (obj, tester) ->
-  for key, value of obj
-    switch tester(value)
-      when false then delete obj[key]
-      when null
-        if not value? or typeof value isnt 'object'
-          delete obj[key]
-        else # we know it must be a traversible object at this point
-          pruneTree(value, tester)
-  if Array.isArray(obj)
-    i = 0
-    while i < obj.length
-      if Object.hasOwn(obj, i)
-        ++i
-      else
-        obj.splice(i, 1)
-  return
-
 # (Element, Array[Widget], String, String,
 #   Boolean, NlogoSource, String, Boolean, String, (String) => Boolean, ViewController) => Ractive
 generateRactiveSkeleton = (container, widgets, code, info,
@@ -104,7 +57,6 @@ generateRactiveSkeleton = (container, widgets, code, info,
     ticks:                "" # Remember, ticks initialize to nothing, not 0
     ticksStarted:         false
     widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
-    inspectedAgents:      { turtles: {}, patches: [], links: {} } # InspectedAgents
     viewController:       viewController # ViewController
     width:                0
   }
@@ -199,42 +151,10 @@ generateRactiveSkeleton = (container, widgets, code, info,
       else
         []
 
-    # ({ type: string, agent?: Agent}) -> Unit
-    reduceInspectedAgents: (action) ->
-      { type, agent } = action
-      switch type
-        when 'add'
-          @addInspectedAgent(agent)
-        when 'remove'
-          @removeInspectedAgent(agent)
-        when 'clear-dead'
-          @clearDeadInspectedAgents()
-
-    # (Agent) -> Unit
-    addInspectedAgent: (agent) ->
-      @push(getKeypathFor(agent), agent)
-
-    # Returns whether the agent was successfully removed.
-    # (Agent) -> boolean
-    removeInspectedAgent: (agent) ->
-      keypath = getKeypathFor(agent)
-      index = @get(keypath)?.indexOf(agent) ? -1
-      if index isnt -1
-        @splice(keypath, index, 1)
-        true
-      else
-        false
-
-    # (Unit) -> Unit
-    clearDeadInspectedAgents: ->
-      pruneTree(
-        @get('inspectedAgents'),
-        (obj) -> if isAgent(obj) then not obj.isDead() else null
-      )
-      @update('inspectedAgents')
+    # (SetInspectAction) -> Unit
+    setInspect: (action) -> @findComponent('inspection').setInspect(action)
 
     on: {
-      'setinspect': (context) -> @reduceInspectedAgents(context.event.detail)
       'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
     }
@@ -257,8 +177,6 @@ template =
     isSessionLoopRunning={{isSessionLoopRunning}}
     sourceType={{source.type}}
     />
-
-  <div id="skeleton-handle" on-setinspect="setinspect"></div>
 
   <div class="netlogo-model netlogo-display-{{# isVertical }}vertical{{ else }}horizontal{{/}}" style="min-width: {{width}}px;"
        tabindex="1" on-keydown="@this.fire('check-action-keys', @event)"
@@ -343,7 +261,7 @@ template =
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
-          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" addToInspect="{{@this.addInspectedAgent.bind(@this)}}" /> {{/}}
+          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" setInspect="{{@this.setInspect.bind(@this)}}" /> {{/}}
           {{# type === 'textBox'  }} <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'switch'   }} <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
           {{# type === 'button'   }} <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} errorClass="{{>errorClass}}" ticksStarted="{{ticksStarted}}"/> {{/}}
@@ -364,8 +282,6 @@ template =
       </label>
       <inspection
         viewController={{viewController}}
-        addToInspect="{{@this.addInspectedAgent.bind(@this)}}"
-        inspectedAgents={{inspectedAgents}}
         checkIsReporter={{checkIsReporter}}
       />
       {{# !isReadOnly }}

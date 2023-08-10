@@ -202,7 +202,7 @@ ViewEditForm = EditForm.extend({
 RactiveView = RactiveWidget.extend({
 
   data: -> {
-    addToInspect:       undefined # (Agent) -> Unit
+    setInspect:       undefined # (SetInspectAction) -> Unit
     viewController:     undefined # ViewController
     resizeDirs:         ['topLeft', 'topRight', 'bottomLeft', 'bottomRight']
     ticks:              undefined # String
@@ -221,7 +221,7 @@ RactiveView = RactiveWidget.extend({
       viewWindow = @get('viewWindow')
       { left, top, bottom, right } = viewWindow.getBoundingClientRect()
       if left <= x <= right and top <= y <= bottom
-        getClickedAgents(world, viewWindow, x, y).map(agentToContextMenuOption(@get('addToInspect')))
+        getClickedAgents(world, viewWindow, x, y).map(agentToContextMenuOption(@get('setInspect')))
       else
         # The cursor is not actually inside the bounding box of the canvas (probably on the border)
         []
