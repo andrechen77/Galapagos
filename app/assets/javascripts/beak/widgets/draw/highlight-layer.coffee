@@ -27,6 +27,12 @@ drawGlow = (ctx, x, y, r, color) ->
   ctx.arc(x, y, r, 0, 2 * Math.PI)
   ctx.fill()
 
+# Modifies canvas state
+outlineUnitSquare = (ctx, x, y, onePixel) ->
+  ctx.lineWidth = onePixel
+  ctx.strokeStyle = 'white'
+  ctx.strokeRect(x - 0.5, y - 0.5, 1, 1)
+
 class HighlightLayer extends Layer
   # (-> { model: ModelObj }) -> Unit
   # see "./layer.coffee" for type info
@@ -52,7 +58,7 @@ class HighlightLayer extends Layer
             when 'turtle'
               drawGlow(ctx, agent.xcor, agent.ycor, agent.size, netlogoColorToCSS(agent.color))
             when 'patch'
-              ctx
+              outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
             when 'link'
               console.log("highlighting #{agent.getName()}")
         return
