@@ -25,7 +25,7 @@ calcCategoryPathDetails = (categoryPath) -> {
         when 'links' then 'Links'
         else categoryPath[0] # This theoretically should never happen.
     when 2 # We're at some agent breed.
-      world.breedManager.get(categoryPath[1]).singular
+      world.breedManager.get(categoryPath[1]).name
     else # 3-deep category paths should theoretically never happen; there is no classification deeper than breed.
       categoryPath.at(-1)
 }
@@ -387,7 +387,7 @@ RactiveInspectionPane = Ractive.extend({
     'categoryCard': """
       {{#with calcCategoryPathDetails(this) }}
         <div
-          style="min-width: 100px; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
+          style="min-width: 150px; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
           on-click="['clicked-category-card', path]"
           on-dblclick="['dblclicked-category-card', path]"
         >
