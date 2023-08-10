@@ -59,7 +59,7 @@ RactiveInspectionWindow = Ractive.extend({
     # We want to run `updateView` and `zoomView` only after the instance has been rendered to the DOM, but Ractive
     # observers initialize before rendering. And for some reason, using the `defer` option does not work
     # (see Ractive API).
-    @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModelState().model)(@get('agent'))[0])
+    @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModel())(@get('agent'))[0])
     @get('replaceView')()
 
   on: {
@@ -75,7 +75,7 @@ RactiveInspectionWindow = Ractive.extend({
     'agent': {
       handler: (newValue, oldValue) ->
         if oldValue is newValue then return # we only care about when the identity changes (see Ractive API)
-        @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModelState().model)(newValue)[0])
+        @set('viewModelAgent', getEquivalentAgent(@get('viewController').getModel())(newValue)[0])
         @get('replaceView')()
       init: false # see `onrender`
     }

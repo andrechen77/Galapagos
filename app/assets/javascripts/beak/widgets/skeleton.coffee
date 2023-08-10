@@ -241,9 +241,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     observe: {
       'quality': (newQuality) ->
-        viewController = @get('viewController')
-        viewController.layerOptions.quality = newQuality
-        viewController.repaint()
+        @get('viewController').setQuality(newQuality)
     }
 
     data: -> model

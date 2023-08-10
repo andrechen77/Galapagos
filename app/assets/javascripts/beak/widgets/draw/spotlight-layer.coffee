@@ -1,5 +1,5 @@
 import { usePatchCoords, useWrapping } from "./draw-utils.js"
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { getDimensions, getSpotlightAgent, WATCH } from "./perspective-utils.js"
 
 adjustSize = (size, worldShape) ->
@@ -56,18 +56,19 @@ drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   return
 
 class SpotlightLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
-  # as well as `ModelState`.
-  # (LayerOptions, (Unit) -> ModelState) -> Unit
-  constructor: (@_getModelState)->
+  # (-> { model: ModelObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo)->
     super()
-    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
+    @_latestDepInfo = {
+      model: undefined
+    }
     return
 
-  getWorldShape: -> @_latestModelState.worldShape
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (ctx) ->
-    { worldShape, model } = @_latestModelState
+    { worldShape, model } = @_latestDepInfo.model
     watched = getSpotlightAgent(model)
     if not watched? then return
     usePatchCoords(worldShape, ctx, (ctx) =>
@@ -84,9 +85,7 @@ class SpotlightLayer extends Layer
     return
 
   repaint: ->
-    lastUpdateSym = @_latestModelState.updateSym
-    { updateSym } = @_latestModelState = @_getModelState()
-    lastUpdateSym isnt updateSym
+    mergeInfo(@_latestDepInfo, @_getDepInfo())
 
 export {
   SpotlightLayer

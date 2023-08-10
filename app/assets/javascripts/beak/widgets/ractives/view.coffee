@@ -236,10 +236,17 @@ RactiveView = RactiveWidget.extend({
       viewWindow = viewController.getNewView(
         @find('.netlogo-view-container'),
         'all',
-        followObserver(viewController.getModelState)
+        followObserver(viewController.getModel, viewController.getWorldShape)
       )
       viewWindow.setQuality(Math.max(window.devicePixelRatio ? 2, 2))
       @set({ viewWindow })
+      viewController.setFont(undefined, @get('widget').fontSize, true)
+      return
+
+    '*.update-widget-value': (_, newValues, __) ->
+      if newValues.fontSize?
+        @get('viewController').setFont(undefined, newValues.fontSize)
+      return
   }
 
   eventTriggers: ->

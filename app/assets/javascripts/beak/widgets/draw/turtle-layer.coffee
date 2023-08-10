@@ -1,4 +1,4 @@
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { drawTurtle } from "./draw-shape.js"
 import { usePatchCoords } from "./draw-utils.js"
 import { drawLink } from "./link-drawer.js"
@@ -30,18 +30,23 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
-  # as well as `ModelState`.
-  # (LayerOptions, (Unit) -> ModelState) -> Unit
-  constructor: (@_layerOptions, @_getModelState) ->
+  # (-> { model: ModelObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
-    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
+    @_latestDepInfo = {
+      model: undefined,
+      font: undefined
+    }
     return
 
-  getWorldShape: -> @_latestModelState.worldShape
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (context) ->
-    { model: { world, turtles, links }, worldShape } = @_latestModelState
+    {
+      model: { model: { world, turtles, links }, worldShape },
+      font: { fontFamily, fontSize }
+    } = @_latestDepInfo
     usePatchCoords(
       worldShape,
       context,
@@ -54,8 +59,8 @@ class TurtleLayer extends Layer
             turtles[link.end2],
             worldShape,
             context,
-            @_layerOptions.fontSize,
-            @_layerOptions.font
+            fontSize,
+            fontFamily
           )
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(
@@ -64,16 +69,14 @@ class TurtleLayer extends Layer
             context,
             turtle,
             false,
-            @_layerOptions.fontSize,
-            @_layerOptions.font
+            fontSize,
+            fontFamily
           )
     )
     return
 
   repaint: ->
-    lastUpdateSym = @_latestModelState.updateSym
-    { updateSym } = @_latestModelState = @_getModelState()
-    lastUpdateSym isnt updateSym
+    mergeInfo(@_latestDepInfo, @_getDepInfo())
 
 export {
   TurtleLayer

@@ -50,8 +50,7 @@ initializeUI = (containerArg, widgets, code, info,
   viewModel = widgets.find(({ type }) -> type is 'view')
   ractive.set('primaryView', viewModel)
 
-  entwineDimensions(viewModel, viewController.getModelState().model.world)
-  entwine([[viewModel, "fontSize"], [viewController.layerOptions, "fontSize"]], viewModel.fontSize)
+  entwineDimensions(viewModel, viewController.getModel().world)
 
   configs    = genConfigs(ractive, viewController, container, compiler)
   controller = new WidgetController(ractive, viewController, configs)

@@ -11,6 +11,27 @@ convertLayerToCanvas = (layer, quality) ->
 
 ###
 Interface for parts of the full view universe.
+
+The layer dependency system:
+To avoid unnecessary repainting work when no data that the layer depends on has changed, layers will generally follow
+the following protocol. All the information that the layer needs will come from a function given to the layer during
+construction; this function will return objects wrapping that information. If a function returns identical objects
+then it is presumed that there was no change to that information since the last invocation; returning new objects
+means that there might have been a change in that object's data.
+
+Some object types currently in use:
+- ModelObj: {
+  model: AgentModel,
+  worldShape: WorldShape, # see "./draw-utils.coffee"
+  highlightedAgents: Array[Agent] # the actual agent objs
+}
+- QualityObj: {
+  quality: number
+}
+- FontObj: {
+  fontFamily: string,
+  fontSize: number
+}
 ###
 class Layer
   constructor: ->
@@ -65,6 +86,16 @@ class Layer
   # Returns an array of all this layer's direct dependencies
   getDirectDependencies: -> []
 
+# For each property in `oldInfo`, replaces that property with the corresponding property in `newInfo`. Returns whether
+# the *identity* of one of the property values changed (using `===` equality).
+mergeInfo = (oldInfo, newInfo) ->
+  changed = false
+  for key of oldInfo
+    if oldInfo[key] isnt newInfo[key] then changed = true
+    oldInfo[key] = newInfo[key]
+  changed
+
 export {
-  Layer
+  Layer,
+  mergeInfo
 }

@@ -1,6 +1,6 @@
 import { usePatchCoords } from "./draw-utils.js"
 import { drawLabel } from "./draw-shape.js"
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { netlogoColorToRGB } from "/colors.js"
 
 clearPatches = (ctx) ->
@@ -51,29 +51,30 @@ labelPatches = (ctx, worldShape, patches, fontSize, font) ->
 # canvas scaled. This is very, very fast. It also prevents weird lines between
 # patches.
 class PatchLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
-  # as well as `ModelState`.
-  # (LayerOptions, (Unit) -> ModelState) -> Unit
-  constructor: (@_layerOptions, @_getModelState) ->
+  # (-> { model: ModelObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
-    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
+    @_latestDepInfo = {
+      model: undefined,
+      font: undefined
+    }
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
-  getWorldShape: -> @_latestModelState.worldShape
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (context) ->
-    { model, worldShape } = @_latestModelState
+    { model: { model, worldShape }, font: { fontFamily, fontSize }} = @_latestDepInfo
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
     if model.world.patcheswithlabels
-      labelPatches(context, worldShape, model.patches, @_layerOptions.fontSize, @_layerOptions.font)
+      labelPatches(context, worldShape, model.patches, fontSize, fontFamily)
     return
 
   repaint: ->
-    lastUpdateSym = @_latestModelState.updateSym
-    { model, worldShape, updateSym } = @_latestModelState = @_getModelState()
-    if lastUpdateSym is updateSym then return false
+    if not mergeInfo(@_latestDepInfo, @_getDepInfo()) then return false
+    { model, worldShape } = @_latestDepInfo.model
 
     if model.world.patchesallblack
       clearPatches(@_ctx)

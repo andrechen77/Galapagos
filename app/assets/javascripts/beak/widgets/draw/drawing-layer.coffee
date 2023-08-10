@@ -1,4 +1,4 @@
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { drawTurtle } from "./draw-shape.js"
 import { drawLink } from "./link-drawer.js"
 import { resizeCanvas, usePatchCoords, useCompositing, useImageSmoothing } from "./draw-utils.js"
@@ -36,28 +36,30 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
-  # as well as `ModelState`.
-  # (LayerOptions, (Unit) -> ModelState) -> Unit
-  constructor: (@_layerOptions, @_getModelState) ->
+  # (-> { model: ModelObj, quality: QualityObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
-    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
+    @_latestDepInfo = {
+      model: undefined,
+      quality: undefined,
+      font: undefined
+    }
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
-  getWorldShape: -> @_latestModelState.worldShape
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
     return
 
   repaint: ->
-    lastUpdateSym = @_latestModelState.updateSym
-    { model, worldShape, updateSym } = @_latestModelState = @_getModelState()
-    if lastUpdateSym is updateSym then return false
+    if not mergeInfo(@_latestDepInfo, @_getDepInfo()) then return false
 
-    resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
+    { model: { model, worldShape }, quality: { quality } } = @_latestDepInfo
+    resizeCanvas(@_canvas, worldShape, quality)
     for event in model.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()
@@ -78,7 +80,7 @@ class DrawingLayer extends Layer
   _drawLine: ({ rgb, size, penMode, fromX, fromY, toX, toY }) ->
     if penMode is 'up' then return
 
-    { worldShape } = @_latestModelState
+    { model: { worldShape } } = @_latestDepInfo
     usePatchCoords(worldShape, @_ctx, (ctx) =>
       ctx.save()
 
@@ -98,7 +100,7 @@ class DrawingLayer extends Layer
     return
 
   _drawTurtleStamp: (turtleStamp) ->
-    { worldShape, model } = @_latestModelState
+    { model: { model, worldShape }, font: { fontFamily, fontSize } } = @_latestDepInfo
     mockTurtleObject = makeMockTurtleObject(turtleStamp)
     usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(turtleStamp.stampMode), ctx, (ctx) =>
@@ -108,15 +110,15 @@ class DrawingLayer extends Layer
           ctx,
           mockTurtleObject,
           true,
-          @_layerOptions.fontSize,
-          @_layerOptions.font
+          fontSize,
+          fontFamily
         )
       )
     )
     return
 
   _drawLinkStamp: (linkStamp) ->
-    { worldShape, model } = @_latestModelState
+    { model: { model, worldShape }, font: { fontFamily, fontSize } } = @_latestDepInfo
     mockLinkObject = makeMockLinkObject(linkStamp)
     usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(linkStamp.stampMode), ctx, (ctx) =>
@@ -125,8 +127,8 @@ class DrawingLayer extends Layer
           mockLinkObject...,
           worldShape,
           ctx,
-          @_layerOptions.fontSize,
-          @_layerOptions.font,
+          fontSize,
+          fontFamily,
           true
         )
       )
@@ -157,7 +159,7 @@ class DrawingLayer extends Layer
   # image has actually been drawn to this DrawingLayer.
   importImage: (base64, x, y) ->
     ctx = @_ctx
-    q = @_layerOptions.quality
+    q = @_latestDepInfo.quality.quality
     image = new Image()
     new Promise((resolve) ->
       image.onload = ->

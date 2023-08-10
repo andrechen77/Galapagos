@@ -9,41 +9,36 @@ import { setImageSmoothing, clearCtx, extractWorldShape } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
+# TODO type signature
+initLayers = (layerDeps) ->
+  # Tis important that we don't access the properties of `layerDeps` except within the client code using `layerDeps`,
+  # because the identities of the objects will change (see "./layers.coffee"'s comment on layer dependencies' for why).
+  turtles = new TurtleLayer(-> layerDeps)
+  patches = new PatchLayer(-> layerDeps)
+  drawing = new DrawingLayer(-> layerDeps)
+  world = new CompositeLayer([patches, drawing, turtles], -> layerDeps)
+  spotlight = new SpotlightLayer(-> layerDeps)
+  highlight = new HighlightLayer(-> layerDeps)
+  all = new CompositeLayer([world, spotlight, highlight], -> layerDeps)
+  { turtles, patches, drawing, world, spotlight, highlight, all }
+
 class ViewController
-  ###
-  Some Layers might take a LayerOptions object that affects rendering options such as font size and font family.
-  Mutations to this object take effect on the next repaint.
-  LayerOptions: {
-    quality: number,
-    fontSize: number,
-    font: string
-  }
-
-  Layers who depend on model state may be passed a ModelState object which includes a reference to the model, the world
-  shape calculated from the model, and a symbol that uniquely corresponds to a single state of the model between updates
-  (i.e. if `updateSym` is different from the last time you saw it, that means the model has changed from the last time
-  you saw it).
-  ModelState: {
-    updateSym: symbol,
-    model: AgentModel,
-    worldShape: WorldShape,
-    highlightedAgents: Array[Agent] # the actual Agent object, not the AgentModel analogue
-  }
-  ###
-
   # (Unit) -> Unit
   constructor: ->
     @resetModel() # defines `@_model`
-    @_latestUpdateSym = Symbol() # changed every time the model updates, so that the layers know when to update
-    @_latestWorldShape = undefined # cached so that if the model doesn't update, the layers don't have to recalculate
-    @_highlightedAgents = []
-
-    @layerOptions = {
-      quality: Math.max(window.devicePixelRatio ? 2, 2),
-      fontSize: 50, # some random number; can be set by the client
-      font: '"Lucida Grande", sans-serif'
+    @_layerDeps = {
+      model: {
+        model: @_model
+        worldShape: extractWorldShape(@_model)
+        highlightedAgents: []
+      },
+      quality: { quality: Math.max(window.devicePixelRatio ? 2, 2) },
+      font: {
+        fontFamily: '"Lucida Grande", sans-serif',
+        fontSize: 50 # some random number; can be set by the client
+      }
     }
-    @_initLayers(@layerOptions) # sets up the `@_layers` object
+    @_layers = initLayers(@_layerDeps)
 
     repaint = => @repaint()
     drawingLayer = @_layers.drawing
@@ -70,17 +65,6 @@ class ViewController
     @repaint()
     return
 
-  # (Unit) -> Unit
-  _initLayers: (layerOptions) ->
-    turtles = new TurtleLayer(layerOptions, @getModelState)
-    patches = new PatchLayer(layerOptions, @getModelState)
-    drawing = new DrawingLayer(layerOptions, @getModelState)
-    world = new CompositeLayer(layerOptions, [patches, drawing, turtles])
-    spotlight = new SpotlightLayer(@getModelState)
-    highlight = new HighlightLayer(@getModelState)
-    all = new CompositeLayer(layerOptions, [world, spotlight, highlight])
-    @_layers = { turtles, patches, drawing, world, spotlight, highlight, all }
-
   mouseInside: => @_sharedMouseState.inside # (Unit) -> boolean
   mouseXcor: => @_sharedMouseState.x # (Unit) -> number; patch coordinates
   mouseYcor: => @_sharedMouseState.y # (Unit) -> number; patch coordinates
@@ -98,12 +82,10 @@ class ViewController
     return
 
   # (Unit) -> AgentModel
-  getModelState: => {
-    updateSym: @_latestUpdateSym,
-    model: @_model,
-    worldShape: @_latestWorldShape,
-    highlightedAgents: @_highlightedAgents
-  }
+  getModel: => @_model
+
+  # (Unit) -> WorldShaspe
+  getWorldShape: => @_layerDeps.model.worldShape
 
   # (Unit) -> Unit
   repaint: ->
@@ -119,18 +101,40 @@ class ViewController
 
   # (Update|Array[Update]) => Unit
   update: (modelUpdate) ->
-    @_latestUpdateSym = Symbol() # so that layers who depend on the model see the change and know to update themselves
-    @_latestWorldShape = extractWorldShape(@_model.world)
     @_applyUpdateToModel(modelUpdate)
+    @_layerDeps.model = {
+      @_layerDeps.model...,
+      worldShape: extractWorldShape(@_model.world)
+    }
     @repaint()
     @_model.drawingEvents = []
     return
 
+  # (number) -> Unit
+  setQuality: (quality) ->
+    # It's important that we create a new object instead of setting the property on the old object.
+    @_layerDeps.quality = { quality }
+    @repaint()
+    return
+
   # (Array[Agent]) -> Unit
   # where `Agent` is the actual agent object as opposed to the `AgentModel` analogue
-  setHighlightedAgents: (@_highlightedAgents) ->
-    @_latestUpdateSym = Symbol() # so that layers who depend on the model will see the change
+  setHighlightedAgents: (highlightedAgents) ->
+    # It's important that we create a new object instead of simply setting the property on the old `@_layerDeps.model`
+    # object.
+    @_layerDeps.model = { @_layerDeps.model..., highlightedAgents }
     @repaint()
+    return
+
+  # We have the `avoidRepaint` parameter because the view widget sets the font size while rendering, but the world is
+  # not ready to render yet. I'd like to see a way to eliminate this mess.
+  # (string?, number?, boolean) -> Unit
+  setFont: (fontFamily, fontSize, avoidRepaint = false) ->
+    fontFamily or= @_layerDeps.font.fontFamily
+    fontSize or= @_layerDeps.font.fontSize
+    # It's important that we create a new object instead of setting the properties on the old one.
+    @_layerDeps.font = { fontFamily, fontSize }
+    if not avoidRepaint then @repaint()
     return
 
   # Returns a new WindowView that controls the specified container

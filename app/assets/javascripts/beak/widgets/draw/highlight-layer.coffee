@@ -1,4 +1,4 @@
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { usePatchCoords } from "./draw-utils.js"
 import { netlogoColorToCSS } from "/colors.js"
 import { getEquivalentAgent } from "./agent-conversion.js"
@@ -28,19 +28,19 @@ drawGlow = (ctx, x, y, r, color) ->
   ctx.fill()
 
 class HighlightLayer extends Layer
-  # See comment on `ViewController` class for type info on `LayerOptions` (which is meant to be shared and may mutate)
-  # as well as `ModelState`.
-  # (LayerOptions, (Unit) -> ModelState, (Unit) -> Array[Agent]) -> Unit
-  # where `Agent` is the actual agent object instead of the `AgentModel` analogue
-  constructor: (@_getModelState, @_getHighlightedAgents) ->
+  # (-> { model: ModelObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
-    @_latestModelState = { updateSym: Symbol() } # other fields left undefined should not cause issues
+    @_latestDepInfo = {
+      model: undefined
+    }
     return
 
-  getWorldShape: -> @_getModelState.worldShape
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (ctx) ->
-    { highlightedAgents, model, worldShape } = @_latestModelState
+    { highlightedAgents, model, worldShape } = @_latestDepInfo.model
     toModelAgent = getEquivalentAgent(model) # function that converts from actual agent object to AgentModel analogue
     usePatchCoords(
       worldShape,
@@ -59,9 +59,7 @@ class HighlightLayer extends Layer
     )
 
   repaint: ->
-    lastUpdateSym = @_getModelState.updateSym
-    { updateSym } = @_latestModelState = @_getModelState()
-    lastUpdateSym isnt updateSym
+    mergeInfo(@_latestDepInfo, @_getDepInfo())
 
 export {
   HighlightLayer
