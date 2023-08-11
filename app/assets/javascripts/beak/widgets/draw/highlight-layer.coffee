@@ -65,7 +65,7 @@ class HighlightLayer extends Layer
           [agent, type] = toModelAgent(agent)
           switch type
             when 'turtle'
-              glowPoint(ctx, agent.xcor, agent.ycor, agent.size, netlogoColorToCSS(agent.color))
+              glowPoint(ctx, agent.xcor, agent.ycor, 1.5 * agent.size, netlogoColorToCSS(agent.color))
             when 'patch'
               outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
             when 'link'
