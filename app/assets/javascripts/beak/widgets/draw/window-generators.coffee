@@ -13,12 +13,15 @@ In addition, this "Rectangle" type may have a property `canvasHeight` that speci
 actual canvas.
 ###
 
-followObserver = (model) ->
+# The `WorldShape` returned by `getWorldShape` must agree with the `AgentModel` returned by `getModel`.
+# Sucks that for proper memoization of the world shape, we have to pass two functions that must agree.
+# ((Unit) -> Model, (Unit) -> WorldShape) -> Iterator<_>
+followObserver = (getModel, getWorldShape) ->
   loop
-    { actualMinX: x, actualMaxY: y, worldWidth: w, worldHeight: h, patchsize } = extractWorldShape(model.world)
+    { actualMinX: x, actualMaxY: y, worldWidth: w, worldHeight: h, patchsize } = getWorldShape()
 
     # Account for the possibility of having to center on an agent
-    if (centeredAgent = getCenteredAgent(model))?
+    if (centeredAgent = getCenteredAgent(getModel()))?
       [agentX, agentY, _] = getDimensions(centeredAgent)
       x = agentX - w / 2
       y = agentY + h / 2

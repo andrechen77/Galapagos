@@ -1,5 +1,5 @@
 import { usePatchCoords, useWrapping } from "./draw-utils.js"
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { getDimensions, getSpotlightAgent, WATCH } from "./perspective-utils.js"
 
 adjustSize = (size, worldShape) ->
@@ -56,31 +56,36 @@ drawSpotlight = (ctx, worldShape, xcor, ycor, size, dimOther) ->
   return
 
 class SpotlightLayer extends Layer
-  constructor: ->
+  # (-> { model: ModelObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo)->
     super()
+    @_latestDepInfo = {
+      model: undefined
+    }
     return
 
+  getWorldShape: -> @_latestDepInfo.model.worldShape
+
   blindlyDrawTo: (ctx) ->
-    watched = getSpotlightAgent(@_latestModel)
+    { worldShape, model } = @_latestDepInfo.model
+    watched = getSpotlightAgent(model)
     if not watched? then return
-    usePatchCoords(@_latestWorldShape, ctx, (ctx) =>
+    usePatchCoords(worldShape, ctx, (ctx) =>
       [xcor, ycor, size] = getDimensions(watched)
       drawSpotlight(
         ctx,
-        @_latestWorldShape,
+        worldShape,
         xcor,
         ycor,
-        adjustSize(size, @_latestWorldShape),
-        @_latestModel.observer.perspective is WATCH
+        adjustSize(size, worldShape),
+        model.observer.perspective is WATCH
       )
     )
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
-    return
-
-  getDirectDependencies: -> []
+  repaint: ->
+    mergeInfo(@_latestDepInfo, @_getDepInfo())
 
 export {
   SpotlightLayer

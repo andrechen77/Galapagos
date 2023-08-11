@@ -1,4 +1,4 @@
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { drawTurtle } from "./draw-shape.js"
 import { drawLink } from "./link-drawer.js"
 import { resizeCanvas, usePatchCoords, useCompositing, useImageSmoothing } from "./draw-utils.js"
@@ -36,20 +36,30 @@ Possible drawing events:
 ###
 
 class DrawingLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # (-> { model: ModelObj, quality: QualityObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
+    @_latestDepInfo = {
+      model: undefined,
+      quality: undefined,
+      font: undefined
+    }
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
+
+  getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (ctx) ->
     ctx.drawImage(@_canvas, 0, 0)
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
-    resizeCanvas(@_canvas, worldShape, @_layerOptions.quality)
-    { world } = model
+  repaint: ->
+    if not mergeInfo(@_latestDepInfo, @_getDepInfo()) then return false
+
+    { model: { model, worldShape }, quality: { quality } } = @_latestDepInfo
+    resizeCanvas(@_canvas, worldShape, quality)
     for event in model.drawingEvents
       switch event.type
         when 'clear-drawing' then @_clearDrawing()
@@ -59,11 +69,9 @@ class DrawingLayer extends Layer
             when 'turtle' then @_drawTurtleStamp(event.stamp)
             when 'link' then @_drawLinkStamp(event.stamp)
         when 'import-drawing' then @_importDrawing(event.imageBase64)
-    # For those who still remember, `model.drawingEvents` is now reset by the LayerManager after
+    # For those who still remember, `model.drawingEvents` is now reset by the ViewController after
     # every layer has finished repainting.
-    return
-
-  getDirectDependencies: -> []
+    true
 
   _clearDrawing: ->
     @_ctx.clearRect(0, 0, @_canvas.width, @_canvas.height)
@@ -72,11 +80,12 @@ class DrawingLayer extends Layer
   _drawLine: ({ rgb, size, penMode, fromX, fromY, toX, toY }) ->
     if penMode is 'up' then return
 
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    { model: { worldShape } } = @_latestDepInfo
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       ctx.save()
 
       ctx.strokeStyle = rgbToCss(rgb)
-      ctx.lineWidth   = size * @_latestWorldShape.onePixel
+      ctx.lineWidth   = size * worldShape.onePixel
       ctx.lineCap     = 'round'
 
       ctx.beginPath()
@@ -91,33 +100,35 @@ class DrawingLayer extends Layer
     return
 
   _drawTurtleStamp: (turtleStamp) ->
+    { model: { model, worldShape }, font: { fontFamily, fontSize } } = @_latestDepInfo
     mockTurtleObject = makeMockTurtleObject(turtleStamp)
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(turtleStamp.stampMode), ctx, (ctx) =>
         drawTurtle(
-          @_latestWorldShape,
-          @_latestModel.world.turtleshapelist,
+          worldShape,
+          model.world.turtleshapelist,
           ctx,
           mockTurtleObject,
           true,
-          @_layerOptions.fontSize,
-          @_layerOptions.font
+          fontSize,
+          fontFamily
         )
       )
     )
     return
 
   _drawLinkStamp: (linkStamp) ->
+    { model: { model, worldShape }, font: { fontFamily, fontSize } } = @_latestDepInfo
     mockLinkObject = makeMockLinkObject(linkStamp)
-    usePatchCoords(@_latestWorldShape, @_ctx, (ctx) =>
+    usePatchCoords(worldShape, @_ctx, (ctx) =>
       useCompositing(compositingOperation(linkStamp.stampMode), ctx, (ctx) =>
         drawLink(
-          @_latestModel.world.linkshapelist,
+          model.world.linkshapelist,
           mockLinkObject...,
-          @_latestWorldShape,
+          worldShape,
           ctx,
-          @_layerOptions.fontSize,
-          @_layerOptions.font,
+          fontSize,
+          fontFamily,
           true
         )
       )
@@ -148,7 +159,7 @@ class DrawingLayer extends Layer
   # image has actually been drawn to this DrawingLayer.
   importImage: (base64, x, y) ->
     ctx = @_ctx
-    q = @_layerOptions.quality
+    q = @_latestDepInfo.quality.quality
     image = new Image()
     new Promise((resolve) ->
       image.onload = ->

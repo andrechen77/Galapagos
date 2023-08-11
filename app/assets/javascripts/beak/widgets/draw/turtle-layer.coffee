@@ -1,4 +1,4 @@
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { drawTurtle } from "./draw-shape.js"
 import { usePatchCoords } from "./draw-utils.js"
 import { drawLink } from "./link-drawer.js"
@@ -30,14 +30,25 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # (-> { model: ModelObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
+    @_latestDepInfo = {
+      model: undefined,
+      font: undefined
+    }
     return
 
+  getWorldShape: -> @_latestDepInfo.model.worldShape
+
   blindlyDrawTo: (context) ->
-    { world, turtles, links } = @_latestModel
+    {
+      model: { model: { world, turtles, links }, worldShape },
+      font: { fontFamily, fontSize }
+    } = @_latestDepInfo
     usePatchCoords(
-      @_latestWorldShape,
+      worldShape,
       context,
       (context) =>
         for link from filteredByBreed('LINKS', links, world.linkbreeds ? [])
@@ -46,25 +57,26 @@ class TurtleLayer extends Layer
             link,
             turtles[link.end1],
             turtles[link.end2],
-            @_latestWorldShape,
+            worldShape,
             context,
-            @_layerOptions.fontSize,
-            @_layerOptions.font
+            fontSize,
+            fontFamily
           )
         for turtle from filteredByBreed('TURTLES', turtles, world.turtlebreeds ? [])
           drawTurtle(
-            @_latestWorldShape,
+            worldShape,
             world.turtleshapelist,
             context,
             turtle,
             false,
-            @_layerOptions.fontSize,
-            @_layerOptions.font
+            fontSize,
+            fontFamily
           )
     )
     return
 
-  getDirectDependencies: -> []
+  repaint: ->
+    mergeInfo(@_latestDepInfo, @_getDepInfo())
 
 export {
   TurtleLayer

@@ -1,6 +1,6 @@
 import { usePatchCoords } from "./draw-utils.js"
 import { drawLabel } from "./draw-shape.js"
-import { Layer } from "./layer.js"
+import { mergeInfo, Layer } from "./layer.js"
 import { netlogoColorToRGB } from "/colors.js"
 
 clearPatches = (ctx) ->
@@ -51,27 +51,36 @@ labelPatches = (ctx, worldShape, patches, fontSize, font) ->
 # canvas scaled. This is very, very fast. It also prevents weird lines between
 # patches.
 class PatchLayer extends Layer
-  constructor: (@_layerOptions) ->
+  # (-> { model: ModelObj, font: FontObj }) -> Unit
+  # see "./layer.coffee" for type info
+  constructor: (@_getDepInfo) ->
     super()
+    @_latestDepInfo = {
+      model: undefined,
+      font: undefined
+    }
     @_canvas = document.createElement('canvas')
     @_ctx = @_canvas.getContext('2d')
     return
 
+  getWorldShape: -> @_latestDepInfo.model.worldShape
+
   blindlyDrawTo: (context) ->
+    { model: { model, worldShape }, font: { fontFamily, fontSize }} = @_latestDepInfo
     context.drawImage(@_canvas, 0, 0, context.canvas.width, context.canvas.height)
-    if @_latestModel.world.patcheswithlabels
-      labelPatches(context, @_latestWorldShape, @_latestModel.patches, @_layerOptions.fontSize, @_layerOptions.font)
+    if model.world.patcheswithlabels
+      labelPatches(context, worldShape, model.patches, fontSize, fontFamily)
     return
 
-  repaint: (worldShape, model) ->
-    super(worldShape, model)
+  repaint: ->
+    if not mergeInfo(@_latestDepInfo, @_getDepInfo()) then return false
+    { model, worldShape } = @_latestDepInfo.model
+
     if model.world.patchesallblack
       clearPatches(@_ctx)
     else
       colorPatches(@_ctx, worldShape, model.patches)
-    return
-
-  getDirectDependencies: -> []
+    true
 
 export {
   PatchLayer
