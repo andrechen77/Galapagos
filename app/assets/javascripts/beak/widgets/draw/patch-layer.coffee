@@ -16,8 +16,7 @@ colorPatches = (ctx, worldShape, patches) ->
   if ctx.canvas.height isnt worldHeight then ctx.canvas.height = worldHeight
   imageData = ctx.createImageData(worldWidth, worldHeight)
   numPatches = worldWidth * worldHeight
-  for i in [0...numPatches] # Is there a reason we iterate by number instead of directly?
-    patch = patches[i]
+  for i in [0...numPatches] when (patch = patches[i])?
     j = 4 * i
     [r, g, b] = netlogoColorToRGB(patch.pcolor)
     imageData.data[j + 0] = r

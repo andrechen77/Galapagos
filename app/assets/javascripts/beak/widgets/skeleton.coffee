@@ -52,7 +52,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
     someDialogIsOpen:     false
     someEditFormIsOpen:   false
     source
-    quality:              Math.max(window.devicePixelRatio ? 2, 2)
+    viewQuality:          undefined
     speed:                0.0
     ticks:                "" # Remember, ticks initialize to nothing, not 0
     ticksStarted:         false
@@ -160,8 +160,11 @@ generateRactiveSkeleton = (container, widgets, code, info,
     }
 
     observe: {
-      'quality': (newQuality) ->
-        @get('viewController').setQuality(newQuality)
+      'viewQuality': {
+        handler: (newQuality) ->
+          @get('viewController').setQuality(newQuality)
+        init: false
+      }
     }
 
     data: -> model
@@ -245,12 +248,6 @@ template =
         <input type="range" min=-1 max=1 step=0.01 value="{{speed}}"{{#isEditing}} disabled{{/}} on-change="['speed-slider-changed', speed]" />
         <tickCounter isVisible="{{primaryView.showTickCounter}}"
                      label="{{primaryView.tickCounterLabel}}" value="{{ticks}}" />
-      </label>
-
-      <label class="{{#isEditing}} interface-unlocked{{/}}">
-        <span class="netlogo-label">view quality</span>
-        <input type="range" min=1 max=8 step=1 value="{{quality}}"{{#isEditing}} disabled{{/}} on-change="['quality-slider-changed', quality]" />
-        {{quality}}
       </label>
 
       <div style="position: relative; width: {{width}}px; height: {{height}}px"
