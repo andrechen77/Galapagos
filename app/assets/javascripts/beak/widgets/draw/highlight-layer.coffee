@@ -5,23 +5,23 @@ import { getEquivalentAgent } from "./agent-conversion.js"
 
 # Turns a string representing a valid CSS color into the same color, but with 0 alpha. If the string is not an
 # `RGBColorString`, then null is returned.
-# (string) -> RGBColorString | null
+# (string, number) -> RGBColorString | null
 # where `RGBColorString` is just a string of the form "rgb[a](RED, GREEN, BLUE[, ALPHA])" representing a valid CSS color
-turnTransparent = do ->
+setTransparency = do ->
   regex = /^rgba?\((?<r>\d+), (?<g>\d+), (?<b>\d+)(?:, .*)?\)$/
-  (colorString) ->
+  (colorString, newAlpha) ->
     match = colorString.match(regex)
     if not match?
       console.error("Color string `%s` failed to match regex. Might want to look into that.", colorString)
       return null
     { r, g, b } = match.groups
-    "rgb(#{r}, #{g}, #{b}, 0)"
+    "rgb(#{r}, #{g}, #{b}, #{newAlpha})"
 
 # Modifies canvas state.
-drawGlow = (ctx, x, y, r, color) ->
+glowPoint = (ctx, x, y, r, color) ->
   grad = ctx.createRadialGradient(x, y, 0, x, y, r)
   grad.addColorStop(0, color)
-  grad.addColorStop(1, turnTransparent(color) ? 'transparent')
+  grad.addColorStop(1, setTransparency(color, 0) ? 'transparent')
   ctx.fillStyle = grad
   ctx.beginPath()
   ctx.arc(x, y, r, 0, 2 * Math.PI)
@@ -32,6 +32,15 @@ outlineUnitSquare = (ctx, x, y, onePixel) ->
   ctx.lineWidth = onePixel
   ctx.strokeStyle = 'white'
   ctx.strokeRect(x - 0.5, y - 0.5, 1, 1)
+
+# Modifies canvas state
+glowLine = (ctx, x1, y1, x2, y2, thickness, color) ->
+  ctx.lineWidth = thickness
+  ctx.strokeStyle = setTransparency(color, 0.5)
+  ctx.beginPath()
+  ctx.moveTo(x1, y1)
+  ctx.lineTo(x2, y2)
+  ctx.stroke()
 
 class HighlightLayer extends Layer
   # (-> { model: ModelObj }) -> Unit
@@ -56,11 +65,14 @@ class HighlightLayer extends Layer
           [agent, type] = toModelAgent(agent)
           switch type
             when 'turtle'
-              drawGlow(ctx, agent.xcor, agent.ycor, agent.size, netlogoColorToCSS(agent.color))
+              glowPoint(ctx, agent.xcor, agent.ycor, agent.size, netlogoColorToCSS(agent.color))
             when 'patch'
               outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
             when 'link'
-              console.log("highlighting #{agent.getName()}")
+              { end1, end2, color, thickness } = agent
+              { xcor: x1, ycor: y1 } = model.turtles[end1]
+              { xcor: x2, ycor: y2 } = model.turtles[end2]
+              glowLine(ctx, x1, y1, x2, y2, Math.max(2 * thickness, 5 * worldShape.onePixel), netlogoColorToCSS(color))
         return
     )
 
