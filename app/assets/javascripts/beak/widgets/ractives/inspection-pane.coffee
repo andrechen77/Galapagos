@@ -384,7 +384,7 @@ RactiveInspectionPane = Ractive.extend({
         @update('inspectedAgents')
       when 'remove'
         inspectedAgents = @get('inspectedAgents')
-        for agent in action.agent
+        for agent in action.agents
           keypath = getKeypathFor(agent)
           arr = traverseKeypath(inspectedAgents, keypath, [])
           index = arr.indexOf(agent) ? -1
