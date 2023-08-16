@@ -56,13 +56,20 @@ class ViewController
     # Tracks the latest known information about the location of the mouse.
     # `currentlyInteracting` denotes whether the start handler has been fired without the corresponding end handler
     # having been fired yet. If `currentlyInteracting` is true, `view` must not also be undefined.
-    @_latestMouseInfo = { currentlyInteracting: false, view: undefined, xPcor: 0, yPcor: 0 }
+    @_latestMouseInfo = { currentlyInteracting: false, view: undefined, pageX: 0, pageY: 0, xPcor: 0, yPcor: 0 }
 
     @repaint()
     return
 
   # (MouseHandler, MouseHandler, MouseHandler) -> (Unit) -> Unit
-  # where MouseHandler: ({ event: MouseEvent? | TouchEvent?, view: View, xPcor: number?, yPcor: number? }) -> Unit
+  # where MouseHandler: ({
+  #   event: MouseEvent? | TouchEvent?,
+  #   view: View,
+  #   pageX: number,
+  #   pageY: number,
+  #   xPcor: number?,
+  #   yPcor: number?,
+  # }) -> Unit
   # Registering another set of mouse listeners while the previously active set of listeners was "still interacting"
   # (as in the down handler was fired but not the up handler) causes the previous end listener to fire and the new
   # down handler to fire, as if the mouse interaction immediately ended and then began again. Returns an unsubscribe
@@ -70,9 +77,9 @@ class ViewController
   # was called.
   registerMouseListeners: (downHandler, moveHandler, upHandler) ->
     if @_latestMouseInfo.currentlyInteracting
-      { view, xPcor, yPcor } = @_latestMouseInfo
-      @_mouseListeners[0].upHandler({ view, xPcor, yPcor })
-      downHandler({ view, xPcor, yPcor })
+      { view, pageX, pageY, xPcor, yPcor } = @_latestMouseInfo
+      @_mouseListeners[0]?.upHandler({ view, pageX, pageY, xPcor, yPcor })
+      downHandler({ view, pageX, pageY, xPcor, yPcor })
     handlerObj = { downHandler, moveHandler, upHandler }
     @_mouseListeners.unshift(handlerObj)
     =>
@@ -147,16 +154,24 @@ class ViewController
   # (Node, string, Iterator<Rectangle>) -> WindowView
   getNewView: (container, layerName, windowRectGen) ->
     layer = @_layers[layerName]
+    updateLatestMouseInfo = (mouseHandlerArg) =>
+      {
+        view: @_latestMouseInfo.view,
+        pageX: @_latestMouseInfo.pageX,
+        pageY: @_latestMouseInfo.pageY,
+        xPcor: @_latestMouseInfo.xPcor,
+        yPcor: @_latestMouseInfo.yPcor
+      } = mouseHandlerArg
     mouseHandlers = {
       downHandler: (arg) =>
-        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        updateLatestMouseInfo(arg)
         @_latestMouseInfo.currentlyInteracting = true
         @_mouseListeners[0]?.downHandler(arg)
       moveHandler: (arg) =>
-        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        updateLatestMouseInfo(arg)
         @_mouseListeners[0]?.moveHandler(arg)
       upHandler: (arg) =>
-        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        updateLatestMouseInfo(arg)
         @_latestMouseInfo.currentlyInteracting = false
         @_mouseListeners[0]?.upHandler(arg)
     }
@@ -225,8 +240,14 @@ class View
 
   # Unit -> Unit
   _initMouseTracking: ->
-    createMouseHandlerArg = (e) =>
-      { event: e, view: this, xPcor: @xPixToPcor(e.offsetX), yPcor: @yPixToPcor(e.offsetY) }
+    createMouseHandlerArg = (e) => {
+      event: e,
+      view: this,
+      pageX: e.pageX,
+      pageY: e.pageY,
+      xPcor: @xPixToPcor(e.offsetX),
+      yPcor: @yPixToPcor(e.offsetY)
+    }
 
     mouseIsDown = false # Records whether the mouse was pressed down *while inside the view*; so dragging a cursor that
     # is already held down doesn't trigger either the down handlers or up handlers.
@@ -256,9 +277,9 @@ class View
     # element.
     createMouseHandlerArg = (e) =>
       { left, top, right, bottom } = @_visibleCanvas.getBoundingClientRect()
-      { clientX, clientY } = e.changedTouches[0]
+      { pageX, pageY, clientX, clientY } = e.changedTouches[0]
       [
-        { event: e, view: this, xPcor: @xPixToPcor(clientX - left), yPcor: @yPixToPcor(clientY - top) },
+        { event: e, view: this, pageX, pageY, xPcor: @xPixToPcor(clientX - left), yPcor: @yPixToPcor(clientY - top) },
         (left <= clientX <= right) and (top <= clientY <= bottom)
       ]
 
