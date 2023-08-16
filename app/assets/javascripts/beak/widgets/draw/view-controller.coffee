@@ -61,21 +61,24 @@ class ViewController
     @repaint()
     return
 
-  # (MouseHandler, MouseHandler, MouseHandler) -> boolean
+  # (MouseHandler, MouseHandler, MouseHandler) -> (Unit) -> Unit
   # where MouseHandler: ({ event: MouseEvent? | TouchEvent?, view: View, xPcor: number?, yPcor: number? }) -> Unit
   # Registering another set of mouse listeners while the previously active set of listeners was "still interacting"
   # (as in the down handler was fired but not the up handler) causes the previous end listener to fire and the new
-  # down handler to fire, as if the mouse interaction immediately ended and then began again. Returns whether the
-  # previously active set of listeners was "still interacting".
+  # down handler to fire, as if the mouse interaction immediately ended and then began again. Returns an unsubscribe
+  # function that removes the listeners. This unsubscribe function does not call the up handler even if the down handler
+  # was called.
   registerMouseListeners: (downHandler, moveHandler, upHandler) ->
-    interrupted = false
     if @_latestMouseInfo.currentlyInteracting
-      interrupted = true
       { view, xPcor, yPcor } = @_latestMouseInfo
       @_mouseListeners[0].upHandler({ view, xPcor, yPcor })
       downHandler({ view, xPcor, yPcor })
-    @_mouseListeners.unshift({ downHandler, moveHandler, upHandler })
-    interrupted
+    handlerObj = { downHandler, moveHandler, upHandler }
+    @_mouseListeners.unshift(handlerObj)
+    =>
+      index = @_mouseListeners.indexOf(handlerObj)
+      if index >= 0 then @_mouseListeners.splice(index, 1)
+      if index is 0 then @_latestMouseInfo.currentlyInteracting = false
 
   # (Unit) -> Unit
   resetModel: ->

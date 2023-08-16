@@ -4,6 +4,9 @@ class MouseTracker
   down: false
   inside: false
 
+  # (Unit) -> Unit
+  unsubscribe: ->
+
   # (number, number) -> Unit
   updateMouseLocation: (xPcor, yPcor) ->
     if not xPcor? or not yPcor?
@@ -28,7 +31,7 @@ class MouseTracker
     upHandler = =>
       @inside = false
       @down = false
-    viewController.registerMouseListeners(downHandler, moveHandler, upHandler)
+    @unsubscribe = viewController.registerMouseListeners(downHandler, moveHandler, upHandler)
     return
 
 export {
