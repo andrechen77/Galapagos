@@ -1,5 +1,6 @@
 import { toNetLogoMarkdown }              from "/beak/tortoise-utils.js"
 import { synchroDecoder, synchroEncoder } from "@netlogo/synchrodecoder/synchrodecoder.mjs"
+import { MouseTracker } from "./mouse-tracker.js"
 
 # (String, Ractive) => ((String) => Unit) => Unit
 importFile = (type, ractive) -> (callback) ->
@@ -23,12 +24,8 @@ importFile = (type, ractive) -> (callback) ->
 
   return
 
-# (Ractive, ViewController) => AsyncDialogConfig
-genAsyncDialogConfig = (ractive, viewController) ->
-
-  clearMouse = ->
-    viewController.forceMouseUp()
-    return
+# (Ractive, (Unit) -> Unit) => AsyncDialogConfig
+genAsyncDialogConfig = (ractive, clearMouse) ->
 
   tellDialog = (eventName, args...) ->
     ractive.findComponent('asyncDialog').fire(eventName, args...)
@@ -57,12 +54,8 @@ genAsyncDialogConfig = (ractive, viewController) ->
 
   }
 
-# (ViewController, (String) => Unit) => DialogConfig
-genDialogConfig = (viewController, notify) ->
-
-  clearMouse = ->
-    viewController.forceMouseUp()
-    return
+# ((Unit) -> Unit, (String) => Unit) => DialogConfig
+genDialogConfig = (clearMouse, notify) ->
 
   # `yesOrNo` should eventually be changed to use a proper synchronous, three-button,
   # customizable dialog... when HTML and JS start to support that. --Jason B. (6/1/16)
@@ -195,13 +188,13 @@ genIOConfig = (ractive) ->
 
   }
 
-# (ViewController) => MouseConfig
-genMouseConfig = (viewController) ->
+# (MouseTracker) => MouseConfig
+genMouseConfig = (mouseTracker) ->
   {
-    peekIsDown:      viewController.mouseDown
-    peekIsInside:    viewController.mouseInside
-    peekX:           viewController.mouseXcor
-    peekY:           viewController.mouseYcor
+    peekIsDown:      -> mouseTracker.down
+    peekIsInside:    -> mouseTracker.inside
+    peekX:           -> mouseTracker.x
+    peekY:           -> mouseTracker.y
   }
 
 # (Ractive, (String) => Unit) => OutputConfig
@@ -233,6 +226,9 @@ genWorldConfig = (ractive) ->
 # (Ractive, ViewController, Element, BrowserCompiler) => Configs
 genConfigs = (ractive, viewController, container, compiler) ->
 
+  mouseTracker = new MouseTracker(viewController)
+  clearMouse = -> mouseTracker.down = false
+
   notify = (message) ->
     ractive.fire('notify-user', message)
 
@@ -246,15 +242,15 @@ genConfigs = (ractive, viewController, container, compiler) ->
     { array, height, width } = synchroDecoder(base64)
     new ImageData(array, width, height)
 
-  { asyncDialog:       genAsyncDialogConfig(ractive, viewController)
+  { asyncDialog:       genAsyncDialogConfig(ractive, clearMouse)
   , base64ToImageData
   , imageDataToBase64: synchroEncoder
-  , dialog:            genDialogConfig(viewController, notify)
+  , dialog:            genDialogConfig(clearMouse, notify)
   , importExport:      genImportExportConfig(ractive, viewController, compiler)
   , importImage:       viewController.configShims.importImage
   , inspection:        genInspectionConfig(ractive)
   , io:                genIOConfig(ractive)
-  , mouse:             genMouseConfig(viewController)
+  , mouse:             genMouseConfig(mouseTracker)
   , output:            genOutputConfig(ractive, appendToConsole)
   , print:             { write: appendToConsole }
   , plotOps:           {}

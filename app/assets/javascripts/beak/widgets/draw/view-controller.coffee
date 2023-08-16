@@ -61,16 +61,6 @@ class ViewController
     @repaint()
     return
 
-  mouseInside: => false # (Unit) -> boolean
-  mouseXcor: => 0 # (Unit) -> number; patch coordinates
-  mouseYcor: => 0 # (Unit) -> number; patch coordinates
-  mouseDown: => false # (Unit) -> boolean
-
-  # Forces the mouse state to consider the mouse as not being clicked. Only lasts until the next time the presses the
-  # mouse or begins a touch.
-  # (Unit) -> Unit
-  forceMouseUp: ->
-
   # (MouseHandler, MouseHandler, MouseHandler) -> boolean
   # where MouseHandler: ({ event: MouseEvent? | TouchEvent?, view: View, xPcor: number?, yPcor: number? }) -> Unit
   # Registering another set of mouse listeners while the previously active set of listeners was "still interacting"
