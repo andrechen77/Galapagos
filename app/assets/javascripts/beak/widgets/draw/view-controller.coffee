@@ -50,30 +50,42 @@ class ViewController
     }
 
     @_views = [] # Stores the views themselves; some values might be null for destructed views
-    # _sharedMouseState is an object shared by all Views plus the ViewController that any one of
-    # them can update when they have more up-to-date information about the mouse. The `x` and `y`
-    # properties should be kept at their last valid positions when the mouse leaves a view, and the
-    # `down` property should be set false at the same time that the mouse leaves a view. We have
-    # faith that mutations to this object do not interleave; it's not likely/possible that the mouse
-    # moves quickly enough to cause that.
-    @_sharedMouseState = {
-      inside: false,
-      down: false,
-      x: 0,
-      y: 0
-    }
+
+    # Array[{ downHandler: MouseHandler, moveHandler: MouseHandler, upHandler: MouseHandler }]
+    @_mouseListeners = []
+    # Tracks the latest known information about the location of the mouse.
+    # `currentlyInteracting` denotes whether the start handler has been fired without the corresponding end handler
+    # having been fired yet. If `currentlyInteracting` is true, `view` must not also be undefined.
+    @_latestMouseInfo = { currentlyInteracting: false, view: undefined, xPcor: 0, yPcor: 0 }
+
     @repaint()
     return
 
-  mouseInside: => @_sharedMouseState.inside # (Unit) -> boolean
-  mouseXcor: => @_sharedMouseState.x # (Unit) -> number; patch coordinates
-  mouseYcor: => @_sharedMouseState.y # (Unit) -> number; patch coordinates
-  mouseDown: => @_sharedMouseState.down # (Unit) -> boolean
+  mouseInside: => false # (Unit) -> boolean
+  mouseXcor: => 0 # (Unit) -> number; patch coordinates
+  mouseYcor: => 0 # (Unit) -> number; patch coordinates
+  mouseDown: => false # (Unit) -> boolean
 
   # Forces the mouse state to consider the mouse as not being clicked. Only lasts until the next time the presses the
   # mouse or begins a touch.
   # (Unit) -> Unit
-  forceMouseUp: -> @_sharedMouseState.down = false
+  forceMouseUp: ->
+
+  # (MouseHandler, MouseHandler, MouseHandler) -> boolean
+  # where MouseHandler: ({ event: MouseEvent? | TouchEvent?, view: View, xPcor: number?, yPcor: number? }) -> Unit
+  # Registering another set of mouse listeners while the previously active set of listeners was "still interacting"
+  # (as in the down handler was fired but not the up handler) causes the previous end listener to fire and the new
+  # down handler to fire, as if the mouse interaction immediately ended and then began again. Returns whether the
+  # previously active set of listeners was "still interacting".
+  registerMouseListeners: (downHandler, moveHandler, upHandler) ->
+    interrupted = false
+    if @_latestMouseInfo.currentlyInteracting
+      interrupted = true
+      { view, xPcor, yPcor } = @_latestMouseInfo
+      @_mouseListeners[0].upHandler({ view, xPcor, yPcor })
+      downHandler({ view, xPcor, yPcor })
+    @_mouseListeners.unshift({ downHandler, moveHandler, upHandler })
+    interrupted
 
   # (Unit) -> Unit
   resetModel: ->
@@ -142,9 +154,21 @@ class ViewController
   # (Node, string, Iterator<Rectangle>) -> WindowView
   getNewView: (container, layerName, windowRectGen) ->
     layer = @_layers[layerName]
-    sharedMouseState = @_sharedMouseState
+    mouseHandlers = {
+      downHandler: (arg) =>
+        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        @_latestMouseInfo.currentlyInteracting = true
+        @_mouseListeners[0]?.downHandler(arg)
+      moveHandler: (arg) =>
+        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        @_mouseListeners[0]?.moveHandler(arg)
+      upHandler: (arg) =>
+        { view: @_latestMouseInfo.view, xPcor: @_latestMouseInfo.xPcor, yPcor: @_latestMouseInfo.yPcor } = arg
+        @_latestMouseInfo.currentlyInteracting = false
+        @_mouseListeners[0]?.upHandler(arg)
+    }
     @_registerView((unregisterThisView) ->
-      new View(container, layer, sharedMouseState, windowRectGen, unregisterThisView)
+      new View(container, layer, mouseHandlers, windowRectGen, unregisterThisView)
     )
 
   # Using the passed in `createView` function, creates and registers a new View to this
@@ -171,9 +195,10 @@ class ViewController
 # Takes an iterator that returns Rectangles (see "./window-generators.coffee" for type info) to determine which part of
 # the universe to observe, as well as the size of the canvas.
 class View
-  # _sharedMouseState: see comment in ViewController
-  # (Node, Layer, { x: number, y: number, inside: boolean, down: boolean }, Iterator<Rectangle>, (Unit) -> Unit) -> Unit
-  constructor: (@_container, @_sourceLayer, @_sharedMouseState, @_windowRectGen, @_unregisterThisView) ->
+  # (Node, Layer, MouseHandlers, Iterator<Rectangle>, (Unit) -> Unit) -> Unit
+  # where MouseHandlers: { downHandler: MouseHandler, moveHandler: MouseHandler, upHandler: MouseHandler }
+  # where MouseHandler is as described in the comment on `ViewController`
+  constructor: (@_container, @_sourceLayer, @_mouseHandlers, @_windowRectGen, @_unregisterThisView) ->
     # Track the dimensions of the window rectangle currently being displayed so that we know when the canvas
     # dimensions need to be updated.
     @_windowCornerX = undefined
@@ -205,63 +230,75 @@ class View
   # `offsetX` and `offsetY` properties plus the client bounding box, used in the mouse-tracking functions, account for
   # padding and/or border, which we do not want.
 
-  # (number, number) -> Unit
-  _updateMouseLoc: (xPix, yPix) ->
-    xPcor = @xPixToPcor(xPix)
-    yPcor = @yPixToPcor(yPix)
-    if not xPcor? or not yPcor?
-      # Mouse is outside the world boundaries.
-      @_sharedMouseState.inside = false
-      # Leave the `.x` and `.y` properties untouched, so that they report the coordinates the last time the mouse was
-      # inside.
-    else
-      @_sharedMouseState.inside = true
-      @_sharedMouseState.x = xPcor
-      @_sharedMouseState.y = yPcor
-    # Leave the `.down` property untouched, since that doesn't care about whether the mouse is outside world
-    # boundaries, in parity with NetLogo Desktop behavior. (This might change, and IMO should)
-
   # Unit -> Unit
   _initMouseTracking: ->
-    @_visibleCanvas.addEventListener('mousedown', => @_sharedMouseState.down = true)
-    @_visibleCanvas.addEventListener('mouseup', => @_sharedMouseState.down = false)
-    @_visibleCanvas.addEventListener('mousemove', (e) => @_updateMouseLoc(e.offsetX, e.offsetY))
-    @_visibleCanvas.addEventListener('mouseleave', =>
-      @_sharedMouseState.inside = false
-      @_sharedMouseState.down = false
+    createMouseHandlerArg = (e) =>
+      { event: e, view: this, xPcor: @xPixToPcor(e.offsetX), yPcor: @yPixToPcor(e.offsetY) }
+
+    mouseIsDown = false # Records whether the mouse was pressed down *while inside the view*; so dragging a cursor that
+    # is already held down doesn't trigger either the down handlers or up handlers.
+    @_visibleCanvas.addEventListener('mousedown', (e) =>
+      @_mouseHandlers.downHandler(createMouseHandlerArg(e))
+      mouseIsDown = true
+      return
+    )
+    @_visibleCanvas.addEventListener('mouseup', (e) =>
+      if mouseIsDown
+        @_mouseHandlers.upHandler(createMouseHandlerArg(e))
+        mouseIsDown = false
+      return
+    )
+    @_visibleCanvas.addEventListener('mousemove', (e) => @_mouseHandlers.moveHandler(createMouseHandlerArg(e)))
+    @_visibleCanvas.addEventListener('mouseleave', (e) =>
+      if mouseIsDown
+        @_mouseHandlers.upHandler(createMouseHandlerArg(e))
+        mouseIsDown = false
+      return
     )
     return
 
   # Unit -> Unit
   _initTouchTracking: ->
-    # event -> Unit
-    endTouch = =>
-      @_sharedMouseState.inside = false
-      @_sharedMouseState.down   = false
-      return
-
-    # Touch -> Unit
-    trackTouch = ({ clientX, clientY }) =>
+    # Returns a valid argument for a MouseHandler, as well as a boolean for whether the touch is inside the canvas
+    # element.
+    createMouseHandlerArg = (e) =>
       { left, top, right, bottom } = @_visibleCanvas.getBoundingClientRect()
-      if (left <= clientX <= right) and (top <= clientY <= bottom)
-        # equivalent to a "mousemove" event
-        @_updateMouseLoc(clientX - left, clientY - top)
-      else
-        # equivalent to a "mouseleave" event
-        @_sharedMouseState.inside = false
-        @_sharedMouseState.down = false
-      return
+      { clientX, clientY } = e.changedTouches[0]
+      [
+        { event: e, view: this, xPcor: @xPixToPcor(clientX - left), yPcor: @yPixToPcor(clientY - top) },
+        (left <= clientX <= right) and (top <= clientY <= bottom)
+      ]
 
-    @_visibleCanvas.addEventListener('touchend',    endTouch)
+    movedOutside = false
+    endTouch = (e) =>
+      if movedOutside then return # ignore event if the current touch already moved out of the canvas
+      [mouseHandlerArg, inside] = createMouseHandlerArg(e)
+      if inside
+        @_mouseHandlers.upHandler(mouseHandlerArg)
+      return
+    @_visibleCanvas.addEventListener('touchend', endTouch)
     @_visibleCanvas.addEventListener('touchcancel', endTouch)
     @_visibleCanvas.addEventListener('touchmove', (e) =>
       e.preventDefault()
-      trackTouch(e.changedTouches[0])
+      if movedOutside then return # ignore event if the current touch already moved out of the canvas
+      [mouseHandlerArg, inside] = createMouseHandlerArg(e)
+      if inside
+        @_mouseHandlers.moveHandler(mouseHandlerArg)
+      else
+        # The current touch has moved out of the canvas, so ignore this and have future touchmove events be ignored too
+        # Also fire the up handler
+        movedOutside = true
+        @_mouseHandlers.upHandler(mouseHandlerArg)
       return
     )
     @_visibleCanvas.addEventListener('touchstart', (e) =>
-      @_sharedMouseState.down = true
-      trackTouch(e.touches[0])
+      [mouseHandlerArg, inside] = createMouseHandlerArg(e)
+      # Since touches have size, and aren't just infinitesimal points, this event might falsely fire if the touch
+      # happens to ontact the canvas even if the center of the touch isn't in the canvas.
+      if not inside then return
+
+      movedOutside = false # Have future touchmove events *not* be ignored.
+      @_mouseHandlers.downHandler(mouseHandlerArg)
       return
     )
     return
@@ -327,7 +364,7 @@ class View
   # These convert between model coordinates and position in the canvas DOM element
   # This will differ from untransformed canvas position if quality != 1. BCH 5/6/2015
   # Return null if the point lies outside the moudel coordinates.
-  # (number) -> number | null
+  # (number) -> number?
   xPixToPcor: (xPix) ->
     { actualMinX, actualMaxX, worldWidth, wrapX } = @_latestWorldShape
     # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
@@ -339,7 +376,7 @@ class View
     else if actualMinX <= rawPcor and rawPcor <= actualMaxX
       rawPcor
     else
-      null
+      undefined
   yPixToPcor: (yPix) ->
     { actualMinY, actualMaxY, worldHeight, wrapY } = @_latestWorldShape
     # Calculate the patch coordinate by extrapolating from the window dimensions and the point's
@@ -351,7 +388,7 @@ class View
     else if actualMinY <= rawPcor and rawPcor <= actualMaxY
       rawPcor
     else
-      null
+      undefined
 
   # (Unit) -> Unit
   destructor: ->
