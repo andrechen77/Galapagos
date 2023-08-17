@@ -2,6 +2,7 @@ import { mergeInfo, Layer } from "./layer.js"
 import { usePatchCoords } from "./draw-utils.js"
 import { netlogoColorToCSS } from "/colors.js"
 import { getEquivalentAgent } from "./agent-conversion.js"
+import { useWrapping } from "./draw-utils.js"
 
 # Turns a string representing a valid CSS color into the same color, but with 0 alpha. If the string is not an
 # `RGBColorString`, then null is returned.
@@ -57,23 +58,23 @@ class HighlightLayer extends Layer
   blindlyDrawTo: (ctx) ->
     { highlightedAgents, model, worldShape } = @_latestDepInfo.model
     toModelAgent = getEquivalentAgent(model) # function that converts from actual agent object to AgentModel analogue
-    usePatchCoords(
-      worldShape,
-      ctx,
-      (ctx) =>
-        for agent in highlightedAgents
-          [agent, type] = toModelAgent(agent)
-          switch type
-            when 'turtle'
-              glowPoint(ctx, agent.xcor, agent.ycor, 1.5 * agent.size, netlogoColorToCSS(agent.color))
-            when 'patch'
-              outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
-            when 'link'
-              { end1, end2, color, thickness } = agent
-              { xcor: x1, ycor: y1 } = model.turtles[end1]
-              { xcor: x2, ycor: y2 } = model.turtles[end2]
-              glowLine(ctx, x1, y1, x2, y2, Math.max(2 * thickness, 5 * worldShape.onePixel), netlogoColorToCSS(color))
-        return
+    usePatchCoords(worldShape, ctx, (ctx) =>
+      for agent in highlightedAgents
+        [agent, type] = toModelAgent(agent)
+        switch type
+          when 'turtle'
+            radius = agent.size
+            useWrapping(worldShape, ctx, agent.xcor, agent.ycor, 2 * radius, (ctx, x, y) ->
+              glowPoint(ctx, x, y, radius, netlogoColorToCSS(agent.color))
+            )
+          when 'patch'
+            outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
+          when 'link'
+            { end1, end2, color, thickness } = agent
+            { xcor: x1, ycor: y1 } = model.turtles[end1]
+            { xcor: x2, ycor: y2 } = model.turtles[end2]
+            glowLine(ctx, x1, y1, x2, y2, Math.max(2 * thickness, 5 * worldShape.onePixel), netlogoColorToCSS(color))
+      return
     )
 
   repaint: ->
