@@ -1,5 +1,6 @@
 import RactiveMiniAgentCard from "./mini-agent-card.js"
 import RactiveInspectionWindow from "./inspection-window.js"
+import { attachDragSelector } from "../drag-selector.js"
 
 { arrayEquals } = tortoise_require('brazier/equals')
 Turtle = tortoise_require('engine/core/turtle')
@@ -209,6 +210,9 @@ RactiveInspectionPane = Ractive.extend({
 
     # State
 
+    dragToSelectEnabled: false # boolean
+    unsubscribeDragSelector: -> # (Unit) -> Unit
+
     # type InspectedAgents = {
     #   turtles: Object<string, Array[Turtle]>,
     #   patches: Array[Patch],
@@ -313,6 +317,18 @@ RactiveInspectionPane = Ractive.extend({
   observe: {
     targetedAgents: (newValue) ->
       @get('viewController').setHighlightedAgents(newValue)
+    dragToSelectEnabled: (enabled) ->
+      if enabled
+        @set('unsubscribeDragSelector', attachDragSelector(
+          @get('viewController'),
+          @root.findComponent('dragSelectionBox'),
+          (agents) =>
+            @setInspect({ type: 'add', agents })
+            @set('dragToSelectEnabled', false)
+            return
+        ))
+      else
+        @get('unsubscribeDragSelector')()
   }
 
   components: {
@@ -364,9 +380,9 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   ### type SetInspectAction =
-    { action: 'add-focus', agent: Agent }
-    | { action: 'add' | 'remove', agents: Array[Agent] }
-    | { action: 'clear-dead' }
+    { type: 'add-focus', agent: Agent }
+    | { type: 'add' | 'remove', agents: Array[Agent] }
+    | { type: 'clear-dead' }
   ###
   # (SetInspectAction) -> Unit
   setInspect: (action) ->
@@ -460,9 +476,21 @@ RactiveInspectionPane = Ractive.extend({
 
   template: """
     <div class='netlogo-tab-content'>
+      <div on-click="@.toggle('dragToSelectEnabled')">
+        DRAG SELECT ({{#if dragToSelectEnabled}}on{{else}}off{{/if}})
+      </div>
       {{#with selection}}
         {{#if currentScreen == 'categories'}}
-          {{>categoriesScreen}}
+          {{#if getAgentsInPath([]).length === 0}}
+            {{#if dragToSelectEnabled}}
+              Click or drag in the view to select agents.
+            {{else}}
+              To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
+              turn on drag select to activate inspection mode.
+            {{/if}}
+          {{else}}
+            {{>categoriesScreen}}
+          {{/if}}
         {{elseif currentScreen == 'agents'}}
           {{>agentsScreen}}
         {{elseif currentScreen == 'details'}}

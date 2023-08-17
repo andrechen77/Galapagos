@@ -18,6 +18,7 @@ import RactivePlot from "./ractives/plot.js"
 import RactiveResizer from "./ractives/resizer.js"
 import RactiveAsyncUserDialog from "./ractives/async-user-dialog.js"
 import RactiveContextMenu from "./ractives/context-menu.js"
+import RactiveDragSelectionBox from "./ractives/drag-selection-box.js"
 import RactiveEditFormSpacer from "./ractives/subcomponent/spacer.js"
 import RactiveTickCounter from "./ractives/subcomponent/tick-counter.js"
 
@@ -97,6 +98,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
     , console:       RactiveConsoleWidget
     , inspection:    RactiveInspectionPane
     , contextMenu:   RactiveContextMenu
+    , dragSelectionBox: RactiveDragSelectionBox
     , editableTitle: RactiveModelTitle
     , codePane:      RactiveModelCodeComponent
     , helpDialog:    RactiveHelpDialog
@@ -242,6 +244,7 @@ template =
       <asyncDialog wareaHeight="{{height}}" wareaWidth="{{width}}"></asyncDialog>
       <helpDialog isOverlayUp="{{isOverlayUp}}" isVisible="{{isHelpVisible}}" stateName="{{stateName}}" wareaHeight="{{height}}" wareaWidth="{{width}}"></helpDialog>
       <contextMenu></contextMenu>
+      <dragSelectionBox/>
 
       <label class="netlogo-speed-slider{{#isEditing}} interface-unlocked{{/}}">
         <span class="netlogo-label">model speed</span>
