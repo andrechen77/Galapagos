@@ -25,7 +25,9 @@ RactiveMiniAgentCard = Ractive.extend({
       on-click="['clicked-agent-card', agent]"
       on-dblclick="['dblclicked-agent-card', agent]"
     >
-      <b>{{agent.getName()}}</b><br/>
+      <b>{{agent.getName()}}</b>
+      <span style="float: right;" on-click="['closed-agent-card', agent]">(-)</span>
+      <br/>
       {{{printPropertiesBrief(agent)}}}
     </div>
   """

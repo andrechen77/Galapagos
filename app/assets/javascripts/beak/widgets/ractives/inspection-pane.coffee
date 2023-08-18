@@ -375,6 +375,11 @@ RactiveInspectionPane = Ractive.extend({
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
         @openAgent(agent)
+    'miniAgentCard.closed-agent-card': (_, agent) ->
+      @setInspect({ type: 'remove', agents: [agent] })
+      false
+    'inspectionWindow.closed-inspection-window': ->
+      @setInspect({ type: 'remove', agents: [@get('selection.currentAgent')] })
     'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
   }
@@ -486,7 +491,7 @@ RactiveInspectionPane = Ractive.extend({
         filtered = @get('selection.selectedAgents').filter((selected) -> not agentsToUnselect.includes(selected))
         @set('selection.selectedAgents', filtered)
       when 'details'
-        if agentsToUnselect.includes(@get('currentAgent'))
+        if agentsToUnselect.includes(@get('selection.currentAgent'))
           @selectCategory({ mode: 'replace', categoryPath: [] })
       # ignore other cases
 
