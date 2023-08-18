@@ -390,13 +390,18 @@ RactiveInspectionPane = Ractive.extend({
       when 'add-focus'
         { agent } = action
         keypath = getKeypathFor(agent)
-        @push("inspectedAgents.#{keypath.join('.')}", agent)
+        keypathStr = "inspectedAgents.#{keypath.join('.')}"
+        array = @get(keypathStr)
+        if not array? or not array.includes(agent)
+          @push(keypathStr, agent)
         @openCategory(keypath)
         @openAgent(agent)
       when 'add'
         inspectedAgents = @get('inspectedAgents')
         for agent in action.agents
-          traverseKeypath(inspectedAgents, getKeypathFor(agent), []).push(agent)
+          array = traverseKeypath(inspectedAgents, getKeypathFor(agent), [])
+          if not array.includes(agent)
+            array.push(agent)
         @update('inspectedAgents')
       when 'remove'
         inspectedAgents = @get('inspectedAgents')
