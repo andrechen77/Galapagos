@@ -411,6 +411,7 @@ RactiveInspectionPane = Ractive.extend({
           index = arr.indexOf(agent) ? -1
           if index isnt -1
             arr.splice(index, 1)
+        @unselectAgents(action.agents)
         @update('inspectedAgents')
       when 'clear-dead'
         pruneTree(
@@ -478,6 +479,16 @@ RactiveInspectionPane = Ractive.extend({
 
     getAgentSetReporter(@get('targetedAgents'))
 
+  # (Array[Agent]) -> Unit
+  unselectAgents: (agentsToUnselect) ->
+    switch @get('selection.currentScreen')
+      when 'agents'
+        filtered = @get('selection.selectedAgents').filter((selected) -> not agentsToUnselect.includes(selected))
+        @set('selection.selectedAgents', filtered)
+      when 'details'
+        if agentsToUnselect.includes(@get('currentAgent'))
+          @selectCategory({ mode: 'replace', categoryPath: [] })
+      # ignore other cases
 
   template: """
     <div class='netlogo-tab-content'>
