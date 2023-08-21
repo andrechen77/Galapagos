@@ -25,11 +25,11 @@ initLayers = (layerDeps) ->
 class ViewController
   # (Unit) -> Unit
   constructor: ->
-    @resetModel() # defines `@_model`
+    # Define `@_layerDeps` first because the `@resetModel()` call below needs this variable to be valid.
     @_layerDeps = {
       model: {
-        model: @_model
-        worldShape: extractWorldShape(@_model)
+        model: undefined # will be set by `@resetModel`
+        worldShape: undefined # will be set by `@resetModel`
         highlightedAgents: []
       },
       quality: { quality: Math.max(window.devicePixelRatio ? 2, 2) },
@@ -38,6 +38,7 @@ class ViewController
         fontSize: 50 # some random number; can be set by the client
       }
     }
+    @resetModel() # defines `@_model`
     @_layers = initLayers(@_layerDeps)
 
     repaint = => @repaint()
@@ -91,6 +92,11 @@ class ViewController
   resetModel: ->
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes
+    @_layerDeps.model = {
+      @_layerDeps.model...,
+      model: @_model,
+      worldShape: extractWorldShape(@_model.world)
+    }
     return
 
   # (Unit) -> AgentModel
