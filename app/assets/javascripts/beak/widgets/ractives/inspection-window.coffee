@@ -3,6 +3,8 @@ import { getDimensions } from "../draw/perspective-utils.js"
 import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu-utils.js"
 import { getEquivalentAgent } from "../draw/agent-conversion.js"
 
+{ Perspective: { Ride, Follow, Watch } } = tortoise_require('engine/core/observer')
+
 RactiveInspectionWindow = Ractive.extend({
   data: -> {
     # Props
@@ -65,8 +67,14 @@ RactiveInspectionWindow = Ractive.extend({
   on: {
     'world-might-change': ->
       @update('agent')
-    'watch-this-agent': ->
-      @get('agent').watchMe()
+    'watch-button-clicked': ->
+      observer = world.observer
+      persp = observer.getPerspective()
+      inspectedAgent = @get('agent')
+      if (persp is Ride or persp is Follow or persp is Watch) and observer.subject() is inspectedAgent
+        observer.resetPerspective()
+      else
+        inspectedAgent.watchMe()
   }
 
   observe: {
@@ -107,7 +115,7 @@ RactiveInspectionWindow = Ractive.extend({
         on-contextmenu="show-context-menu"
       ></div>
       <div>
-        <button on-click="watch-this-agent">Watch</button>
+        <button on-click="watch-button-clicked">Watch</button>
         <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
         ZOOM LEVEL {{zoomLevel}}
       </div>
