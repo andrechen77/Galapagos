@@ -6,7 +6,7 @@
 attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
   # Creating these variables in this private scope essentially turns them into state that is used by the handler
   # functions below.
-  startPageX = undefined # the pixel-based position of where the mouse started dragging; immune to world-wrapping effects
+  startPageX = undefined # the pixel-based position of where the mouse started dragging; immune to world-wrapping
   startPageY = undefined
   startX = undefined # the patch coordinates of where the mouse started dragging
   startY = undefined
@@ -49,7 +49,7 @@ attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
 
     selectedTurtles = world.turtles().iterator().filter((turtle) -> checkWithinRegion(turtle.xcor, turtle.ycor))
     selectedPatches = world.patches().iterator().filter((patch) -> checkWithinRegion(patch.pxcor, patch.pycor))
-    selectedLinks = world.links().iterator().filter((link) -> checkWithinRegion(link.getMidpointX(), link.getMidpointY()))
+    selectedLinks = world.links().iterator().filter((l) -> checkWithinRegion(l.getMidpointX(), l.getMidpointY()))
     selectedTurtles.concat(selectedPatches, selectedLinks)
 
   updatePosition = (xPcor, yPcor) ->
