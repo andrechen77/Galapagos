@@ -225,6 +225,12 @@ listenerEvents = Object.freeze([
     ]
   },
   {
+    'name': 'inspection-pane-toggled',
+    'args': [
+      'isOpen' # Boolean
+    ]
+  },
+  {
     'name': 'command-center-toggled',
     'args': [
       'isOpen' # Boolean

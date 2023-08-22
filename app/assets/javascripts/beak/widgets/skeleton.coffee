@@ -275,13 +275,16 @@ template =
     </div>
 
     <div class="netlogo-tab-area" style="min-width: {{Math.min(width, 500)}}px; max-width: {{Math.max(width, 500)}}px">
-      <label class="netlogo-tab">
+      <label class="netlogo-tab{{#showInspectionPane}} netlogo-active{{/}}">
+        <input id="inspection-pane-toggle" type="checkbox" checked="{{ showInspectionPane }}" on-change="['inspection-pane-toggled', showInspectionPane]"/>
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
+      {{#showInspectionPane}}
       <inspection
         viewController={{viewController}}
         checkIsReporter={{checkIsReporter}}
       />
+      {{/}}
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>
