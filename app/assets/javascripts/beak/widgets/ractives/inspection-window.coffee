@@ -65,6 +65,8 @@ RactiveInspectionWindow = Ractive.extend({
   on: {
     'world-might-change': ->
       @update('agent')
+    'watch-this-agent': ->
+      @get('agent').watchMe()
   }
 
   observe: {
@@ -105,6 +107,7 @@ RactiveInspectionWindow = Ractive.extend({
         on-contextmenu="show-context-menu"
       ></div>
       <div>
+        <button on-click="watch-this-agent">Watch</button>
         <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
         ZOOM LEVEL {{zoomLevel}}
       </div>
