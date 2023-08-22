@@ -43,6 +43,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
     isResizerVisible:     true
     isStale:              false
     isVertical:           true
+    showInspectionPane:   false
     lastCompiledCode:     code
     lastCompileFailed:    false
     lastDragX:            undefined
@@ -154,7 +155,9 @@ generateRactiveSkeleton = (container, widgets, code, info,
         []
 
     # (SetInspectAction) -> Unit
-    setInspect: (action) -> @findComponent('inspection').setInspect(action)
+    setInspect: (action) ->
+      @set('showInspectionPane', true)
+      @findComponent('inspection').setInspect(action)
 
     on: {
       'world-might-change': (context) ->
@@ -162,6 +165,11 @@ generateRactiveSkeleton = (container, widgets, code, info,
     }
 
     observe: {
+      'showInspectionPane': {
+        handler: (newValue) ->
+          @fire('inspection-pane-toggled', {}, newValue)
+        init: false
+      },
       'viewQuality': {
         handler: (newQuality) ->
           @get('viewController').setQuality(newQuality)
@@ -276,7 +284,7 @@ template =
 
     <div class="netlogo-tab-area" style="min-width: {{Math.min(width, 500)}}px; max-width: {{Math.max(width, 500)}}px">
       <label class="netlogo-tab{{#showInspectionPane}} netlogo-active{{/}}">
-        <input id="inspection-pane-toggle" type="checkbox" checked="{{ showInspectionPane }}" on-change="['inspection-pane-toggled', showInspectionPane]"/>
+        <input id="inspection-pane-toggle" type="checkbox" checked="{{ showInspectionPane }}"/>
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
       {{#showInspectionPane}}
