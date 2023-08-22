@@ -119,8 +119,30 @@ genImportExportConfig = (ractive, viewController, compiler) ->
 
 # (Ractive) => InspectionConfig
 genInspectionConfig = (ractive) ->
-  inspect = (agent) -> ractive.setInspect({ type: 'add', agents: [agent] })
-  stopInspecting = (agent) -> ractive.setInspect({ type: 'remove', agents: [agent] })
+  toAdd = []
+  toRemove = []
+  inspect = (agent) ->
+    # Request an animation frame if this is the first call made during this frame. This is not a thread-safe solution,
+    # in that concurrent calls to this function might cause multiple animation frames to be requested, but that
+    # shouldn't be an issue.
+    if toAdd.length is 0
+      requestAnimationFrame(->
+        ractive.setInspect({ type: 'add', agents: toAdd })
+        toAdd.splice(0, toAdd.length)
+        return
+      )
+    toAdd.push(agent)
+    return
+  stopInspecting = (agent) ->
+    # see comment on `inspect` function above
+    if toRemove.length is 0
+      requestAnimationFrame(->
+        ractive.setInspect({ type: 'remove', agents: toRemove })
+        toRemove.splice(0, toRemove.length)
+        return
+      )
+    toRemove.push(agent)
+    return
   clearDead = -> ractive.setInspect({ type: 'clear-dead' })
   { inspect, stopInspecting, clearDead }
 
