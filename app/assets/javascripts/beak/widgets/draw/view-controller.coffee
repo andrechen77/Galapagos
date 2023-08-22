@@ -365,7 +365,7 @@ class View
     @_setCanvasDimensionsAndClear(canvasHeight, true)
     return
 
-  # Ensures that the canvas is property sized to have the specified height while maintaining the aspect ratio specified
+  # Ensures that the canvas is properly sized to have the specified height while maintaining the aspect ratio specified
   # by `@_windowWidth` and @_windowHeight`. `canvasHeight` can be optional, in which case it will keep the same height
   # and maintain aspect ratio.
   _setCanvasDimensionsAndClear: (canvasHeight, changedAspRatio) ->

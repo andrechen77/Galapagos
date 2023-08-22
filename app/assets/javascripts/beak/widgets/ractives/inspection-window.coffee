@@ -25,7 +25,7 @@ RactiveInspectionWindow = Ractive.extend({
     replaceView: ->
       if @get('viewWindow')?
         @get('viewWindow').destructor()
-      windowGenerator = followAgentWithZoom(@get('viewModelAgent'), @get('zoomLevel'))
+      windowGenerator = followAgentWithZoom(300, @get('viewModelAgent'), @get('zoomLevel'))
       viewWindow = @get('viewController').getNewView(
         @find('.inspection-window-view-container'),
         'world',
@@ -101,7 +101,7 @@ RactiveInspectionWindow = Ractive.extend({
       <b>{{agent.getName()}}</b><span style="float: right;" on-click="closed-inspection-window">(-)</span>
       <div
         class="inspection-window-view-container"
-        style="border: 10px solid red; width: fit-content;"
+        style="width: fit-content;"
         on-contextmenu="show-context-menu"
       ></div>
       <div>

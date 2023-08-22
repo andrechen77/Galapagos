@@ -31,10 +31,10 @@ followObserver = (getModel, getWorldShape) ->
 # Returns an iterator that generates windows following the specified agent. If the zoomRadius is specified during
 # construction or later set to a number, that will be the Moore radius of the window. Otherwise, the zoomRadius will
 # depend on the size of the agent (TODO how?).
-# (Agent, number | null) -> Iterator<Rectangle>
+# (number, Agent, number | null) -> Iterator<Rectangle>
 # where Rectangle is defined above in the comment;
 # can also safely set the public properties `agent` and `zoomRadius`
-followAgentWithZoom = (agent, zoomRadius = null) -> return {
+followAgentWithZoom = (canvasHeight, agent, zoomRadius = null) -> return {
   agent,
   zoomRadius,
   next: ->
@@ -45,7 +45,8 @@ followAgentWithZoom = (agent, zoomRadius = null) -> return {
         x: x - r,
         y: y + r,
         w: r * 2,
-        h: r * 2
+        h: r * 2,
+        canvasHeight
       },
       done: false
     }
