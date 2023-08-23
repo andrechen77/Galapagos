@@ -23,6 +23,10 @@ RactiveMiniAgentCard = Ractive.extend({
   on: {
     'world-might-change': ->
       @update('agent')
+    'agentVarField.agent-id-var-changed': ->
+      # We shouldn't be able to change the agent identity from the mini agent cards, so ignore the event.
+      # The agentVarField is expected to revert the value back to the last valid value.
+      false # prevent propagation
   }
 
   template: """

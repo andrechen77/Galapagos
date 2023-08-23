@@ -152,8 +152,8 @@ getLinkSetReporter = getAgentSetReporterCreator(
   (link) -> "#{link.getBreedNameSingular()} #{link.end1.id} #{link.end2.id}"
 )
 
-# Given an agent, returns the keypath with respect to the skeleton ractive to the array where that agent would go if it
-# were inspected.
+# Given an agent, returns the keypath with respect to the 'inspectedAgents' data to the array where that agent would go
+# if it were inspected.
 # (Agent) -> string
 getKeypathFor = (agent) ->
   switch
@@ -380,6 +380,9 @@ RactiveInspectionPane = Ractive.extend({
       false
     'inspectionWindow.closed-inspection-window': ->
       @setInspect({ type: 'remove', agents: [@get('selection.currentAgent')] })
+    'inspectionWindow.switch-agent': (_, agent) ->
+      @openAgent(agent)
+      false
     unrender: ->
       @get('viewController').setHighlightedAgents([])
   }
@@ -461,11 +464,10 @@ RactiveInspectionPane = Ractive.extend({
         togglePresence(@get('selection.selectedAgents'), agent, (a) -> (b) -> a is b)[0]
     @set('selection.selectedAgents', selectedAgents)
 
-  # Precondition: 'selection.currentScreen' is 'agents' and `selection.currentPath` is contains the specified agent.
   # Enters 'details' screen mode, displaying detailed information and a mini view of the specified agent.
   # (Agent) -> Unit
   openAgent: (agent) ->
-    @set('selection', { currentScreen: 'details', currentAgent: agent }, { deep: true })
+    @set('selection', { currentScreen: 'details', currentPath: getKeypathFor(agent), currentAgent: agent })
 
   # This method should only be run when 'selection.currentScreen' is either 'agents' or 'details'.
   # Returns a string of interpretable NetLogo code with all the agents for which a command should be run.
