@@ -1,5 +1,7 @@
 import RactiveAgentVarField from "./agent-var-field.js"
 
+omittedVarNames = ['who', 'pxcor', 'pycor', 'end1', 'end2', 'breed']
+
 RactiveMiniAgentCard = Ractive.extend({
   components: {
     agentVarField: RactiveAgentVarField
@@ -14,7 +16,8 @@ RactiveMiniAgentCard = Ractive.extend({
 
   computed: {
     # Array[string]
-    varNames: -> @get('agent').varNames()[1...6] # first 5 variables, ignoring who number
+    varNames: ->
+      @get('agent').varNames().filter((varName) -> not omittedVarNames.includes(varName))[0...5]
   }
 
   on: {
