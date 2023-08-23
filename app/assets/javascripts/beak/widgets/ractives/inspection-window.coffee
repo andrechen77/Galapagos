@@ -99,7 +99,9 @@ RactiveInspectionWindow = Ractive.extend({
         when 'link'
           # TODO what's the correct behavior here?
           currentAgent
-      @fire('switch-agent', {}, newAgent)
+      # the agent could be Nobody
+      if newAgent.id isnt -1
+        @fire('switch-agent', {}, newAgent)
       false
   }
 
