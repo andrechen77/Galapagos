@@ -97,8 +97,15 @@ RactiveInspectionWindow = Ractive.extend({
           pycor = if varName is 'pycor' then parseInt(newValue) else currentAgent.pycor
           world.getPatchAt(pxcor, pycor)
         when 'link'
-          # TODO what's the correct behavior here?
-          currentAgent
+          who1 = if varName is 'end1' then parseInt(newValue) else currentAgent.end1.id
+          who2 = if varName is 'end2' then parseInt(newValue) else currentAgent.end2.id
+          breedName = if varName is 'breed' then newValue else currentAgent.getBreedName()
+          if world.breedManager.get(breedName)?
+            world.linkManager.getLink(who1, who2, breedName)
+          else
+            # The breed name is invalid; asking the link manager for the link of an invalid breed will cause it to panic
+            # We have to design around this.
+            currentAgent
       # the agent could be Nobody
       if newAgent.id isnt -1
         @fire('switch-agent', {}, newAgent)
