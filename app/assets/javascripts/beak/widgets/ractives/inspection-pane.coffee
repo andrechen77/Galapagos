@@ -440,10 +440,24 @@ RactiveInspectionPane = Ractive.extend({
         paths = togglePresence(@get('selection.selectedPaths'), categoryPath, arrayEquals)[0]
         if paths.length is 0 then paths.push([])
         paths
-    @set('selection', {
-      currentScreen: 'categories',
-      selectedPaths
-    })
+    ### @set('selection', { currentScreen: 'categories', selectedPaths }) ###
+    # Ideally we'd want to use the concise code above instead of the kludgy bandaid below, but Ractive can't figure out
+    # how to update the dependents of 'selection' in the correct order. If the inspection window is open, it will
+    # complain that 'selection.currentAgent' is gone before it notices that, because 'selection.currentScreen' is
+    # 'categories', it shouldn't even be rendered in the first place. So much for "Ractive runs updates based on
+    # priority" (see https://ractive.js.org/concepts/#dependents), bunch of lying bastards. This complaining doesn't
+    # cause any material issues, but it clogs up the console output. Therefore, we do a deep merge of the data, leaving
+    # the keypath 'selection.currentAgent' valid even while 'selection.currentScreen' is 'categories'. However, the
+    # option `deep: true` doesn't even work correctly either :P so we just manually do the deep merge. This same problem
+    # should apply to other methods like `openCategory` but only seems to manifest when navigating away from the details
+    # screen.
+    # --Andre C. (2023-08-23)
+    # begin kludgy bandaid
+    selection = @get('selection')
+    selection.currentScreen = 'categories'
+    selection.selectedPaths = selectedPaths
+    @update('selection')
+    # end kludgy bandaid
 
   # Enters 'agents' screen mode, displaying the set of agents in the specified category.
   # (CategoryPath) -> Unit
