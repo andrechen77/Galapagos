@@ -1,17 +1,20 @@
+import RactiveAgentVarField from "./agent-var-field.js"
+
 RactiveMiniAgentCard = Ractive.extend({
+  components: {
+    agentVarField: RactiveAgentVarField
+  }
+
   data: -> {
     # Props
 
     agent: undefined # Agent
     selected: false # boolean
+  }
 
-    # Consts
-
-    # (Turtle|Patch|Link|Observer) -> String
-    printPropertiesBrief: (agent) ->
-      pairList = for varName in agent.varNames()
-        "#{varName}: #{agent.getVariable(varName)}"
-      pairList[1...6].join("<br/>")
+  computed: {
+    # Array[string]
+    varNames: -> @get('agent').varNames()[1...6] # first 5 variables, ignoring who number
   }
 
   on: {
@@ -28,7 +31,9 @@ RactiveMiniAgentCard = Ractive.extend({
       <b>{{agent.getName()}}</b>
       <span style="float: right;" on-click="['closed-agent-card', agent]">(-)</span>
       <br/>
-      {{{printPropertiesBrief(agent)}}}
+      {{#each varNames as varName}}
+        <agentVarField agent={{agent}} varName={{varName}}/>
+      {{/each}}
     </div>
   """
 })

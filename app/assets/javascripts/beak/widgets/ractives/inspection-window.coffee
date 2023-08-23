@@ -2,10 +2,15 @@ import { followAgentWithZoom } from '../draw/window-generators.js'
 import { getDimensions } from "../draw/perspective-utils.js"
 import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu-utils.js"
 import { getEquivalentAgent } from "../draw/agent-conversion.js"
+import RactiveAgentVarField from './agent-var-field.js'
 
 { Perspective: { Ride, Follow, Watch } } = tortoise_require('engine/core/observer')
 
 RactiveInspectionWindow = Ractive.extend({
+  components: {
+    agentVarField: RactiveAgentVarField
+  }
+
   data: -> {
     # Props
 
@@ -55,6 +60,11 @@ RactiveInspectionWindow = Ractive.extend({
       pairList = for varName in agent.varNames()
         "#{varName}: #{agent.getVariable(varName)}"
       pairList.join("<br/>")
+  }
+
+  computed: {
+    # Array[string]
+    varNames: -> @get('agent').varNames()
   }
 
   onrender: ->
@@ -119,7 +129,9 @@ RactiveInspectionWindow = Ractive.extend({
         <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
         ZOOM LEVEL {{zoomLevel}}
       </div>
-      {{{printProperties(agent)}}}
+      {{#each varNames as varName}}
+        <agentVarField agent={{agent}} varName={{varName}}/>
+      {{/each}}
     </div>
     """
 })

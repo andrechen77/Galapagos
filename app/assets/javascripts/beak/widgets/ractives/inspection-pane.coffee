@@ -346,7 +346,7 @@ RactiveInspectionPane = Ractive.extend({
         agentSetReporter = @getTargetedAgentsReporter()
         input = "ask #{agentSetReporter} [ #{input} ]"
 
-        @fire('run', {}, 'console', input)
+        @fire('run', {}, 'inspection-pane', input)
         @fire('command-center-run', input)
 
 
