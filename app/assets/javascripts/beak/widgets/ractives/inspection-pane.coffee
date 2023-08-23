@@ -380,8 +380,6 @@ RactiveInspectionPane = Ractive.extend({
       false
     'inspectionWindow.closed-inspection-window': ->
       @setInspect({ type: 'remove', agents: [@get('selection.currentAgent')] })
-    'world-might-change': (context) ->
-      @findAllComponents().forEach((component) -> component.fire(context.name, context))
     unrender: ->
       @get('viewController').setHighlightedAgents([])
   }
