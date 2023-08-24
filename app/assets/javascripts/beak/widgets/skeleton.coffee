@@ -287,12 +287,12 @@ template =
         <input id="inspection-pane-toggle" type="checkbox" checked="{{ showInspectionPane }}"/>
         <span class="netlogo-tab-text">Agent Inspection</span>
       </label>
-      {{#showInspectionPane}}
-      <inspection
-        viewController={{viewController}}
-        checkIsReporter={{checkIsReporter}}
-      />
-      {{/}}
+      <div style="{{#!showInspectionPane}}display: none;{{/}}">
+        <inspection
+          viewController={{viewController}}
+          checkIsReporter={{checkIsReporter}}
+        />
+      </div>
       {{# !isReadOnly }}
       <label class="netlogo-tab{{#showConsole}} netlogo-active{{/}}">
         <input id="console-toggle" type="checkbox" checked="{{ showConsole }}" on-change="['command-center-toggled', showConsole]"/>
