@@ -1,5 +1,6 @@
 import RactiveMiniAgentCard from "./mini-agent-card.js"
 import RactiveInspectionWindow from "./inspection-window.js"
+import RactiveCommandInput from "./command-input.js"
 import { attachDragSelector } from "../drag-selector.js"
 
 { arrayEquals } = tortoise_require('brazier/equals')
@@ -131,26 +132,6 @@ togglePresence = (array, testItem, comparator) ->
     # Since we're toggling and `testItem` wasn't already present, add it.
     filtered.push(testItem)
   [filtered, matchFound]
-
-# The following "get agent set reporter" functions return a string of interpretable NetLogo code referring to each
-# the agents passed in.
-
-# (string, (Agent) -> string) -> (Array[Agent]) -> string
-getAgentSetReporterCreator = (setName, getAgentReporter) -> (agents) ->
-  "(#{setName} #{(for agent in agents then getAgentReporter(agent)).join(' ')})"
-# (Array[Agent]) -> string
-getTurtleSetReporter = getAgentSetReporterCreator(
-  'turtle-set',
-  (turtle) -> "turtle #{turtle.id}"
-)
-getPatchSetReporter = getAgentSetReporterCreator(
-  'patch-set',
-  (patch) -> "patch #{patch.pxcor} #{patch.pycor}"
-)
-getLinkSetReporter = getAgentSetReporterCreator(
-  'link-set',
-  (link) -> "#{link.getBreedNameSingular()} #{link.end1.id} #{link.end2.id}"
-)
 
 # Given an agent, returns the keypath with respect to the 'inspectedAgents' data to the array where that agent would go
 # if it were inspected.
@@ -297,25 +278,39 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   computed: {
-    targetedAgents: ->
-      selection = @get('selection')
-      switch selection.currentScreen
-        when 'categories'
-          selection.selectedPaths.flatMap(@get('getAgentsInPath'))
-        when 'agents'
-          inspected = @get('getAgentsInPath')(selection.currentPath)
-          selected = selection.selectedAgents
-          # For the second branch, we use `inspected` with `selected` as a filter instead of just `selected` directly
-          # because agents that stopped being inspected can still show up as selected if the user doesn't
-          # deselect them before `stop-inspecting` them. If/when this is no longer the case, we can iterate over
-          # `selected` directly.
-          if selected.length is 0 then inspected else inspected.filter((agent) -> selected.includes(agent))
-        when 'details'
-          [selection.currentAgent]
+    targetedAgentObj: {
+      get: ->
+        selection = @get('selection')
+        switch selection.currentScreen
+          when 'categories'
+            {
+              agentType: 'observer',
+              agents: selection.selectedPaths.flatMap(@get('getAgentsInPath'))
+            }
+          when 'agents'
+            inspected = @get('getAgentsInPath')(selection.currentPath)
+            selected = selection.selectedAgents
+            # For the second branch, we use `inspected` with `selected` as a filter instead of just `selected` directly
+            # because agents that stopped being inspected can still show up as selected if the user doesn't
+            # deselect them before `stop-inspecting` them. If/when this is no longer the case, we can iterate over
+            # `selected` directly.
+            targeted = if selected.length is 0 then inspected else inspected.filter((agent) -> selected.includes(agent))
+            {
+              agentType: selection.currentPath[0],
+              agents: targeted
+            }
+          when 'details'
+            {
+              agentType: selection.currentPath[0]
+              agents: [selection.currentAgent]
+            }
+      set: ->
+        # TODO
+    }
   }
 
   observe: {
-    targetedAgents: (newValue) ->
+    'targetedAgentObj.agents': (newValue) ->
       @get('viewController').setHighlightedAgents(newValue)
     dragToSelectEnabled: (enabled) ->
       if enabled
@@ -334,31 +329,9 @@ RactiveInspectionPane = Ractive.extend({
   components: {
     breadcrumbs: RactiveBreadcrumbs,
     miniAgentCard: RactiveMiniAgentCard,
-    inspectionWindow: RactiveInspectionWindow
+    inspectionWindow: RactiveInspectionWindow,
+    commandInput: RactiveCommandInput
   }
-
-  onrender: ->
-    # This function should only be run when 'selection.currentScreen' is either 'agents' or 'details'.
-    run = (input) =>
-      if input.trim().length > 0
-        if @get('checkIsReporter')(input)
-          input = "show #{input}"
-        agentSetReporter = @getTargetedAgentsReporter()
-        input = "ask #{agentSetReporter} [ #{input} ]"
-
-        @fire('run', {}, 'inspection-pane', input)
-        @fire('command-center-run', input)
-
-
-    editor = new GalapagosEditor(@find('.netlogo-command-center-editor'), {
-      Wrapping: true,
-      OneLine: true,
-      OnKeyUp: (event, editor) ->
-        switch event.key
-          when "Enter"
-            run(editor.GetCode())
-            editor.SetCode("")
-    })
 
   on: {
     'clicked-category-card': (context, categoryPath) ->
@@ -482,23 +455,6 @@ RactiveInspectionPane = Ractive.extend({
   openAgent: (agent) ->
     @set('selection', { currentScreen: 'details', currentPath: getKeypathFor(agent), currentAgent: agent })
 
-  # This method should only be run when 'selection.currentScreen' is either 'agents' or 'details'.
-  # Returns a string of interpretable NetLogo code with all the agents for which a command should be run.
-  # If on the 'agents' screen, this is all inspected and selected agents, or if there are none, all inspected agents.
-  # If on the 'details' screen, this is simply the inspected agent.
-  # (Unit) -> string
-  getTargetedAgentsReporter: ->
-    currentPath = @get('selection.currentPath')
-
-    # (Array[Agent]) -> string
-    getAgentSetReporter = switch currentPath[0]
-      when 'turtles' then getTurtleSetReporter
-      when 'patches' then getPatchSetReporter
-      when 'links' then getLinkSetReporter
-      else throw new Error("Couldn't turn the current path into a valid agent set reporter.") # should never happen
-
-    getAgentSetReporter(@get('targetedAgents'))
-
   # (Array[Agent]) -> Unit
   unselectAgents: (agentsToUnselect) ->
     switch @get('selection.currentScreen')
@@ -532,10 +488,13 @@ RactiveInspectionPane = Ractive.extend({
         {{elseif currentScreen == 'details'}}
           {{>detailsScreen}}
         {{/if}}
-        <div
-          class="netlogo-command-center-editor"
-          style="{{#if !hasCommandInput()}}display: none; {{/if}}width: 400px; height: 25px;"
-        ></div>
+        <div style="{{#if !hasCommandInput()}}display: none; {{/if}}">
+          <commandInput
+            source="inspection-pane"
+            checkIsReporter={{checkIsReporter}}
+            targetedAgentObj={{targetedAgentObj}}
+          />
+        </div>
       {{/with}}
     </div>
   """
