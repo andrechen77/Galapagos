@@ -356,6 +356,7 @@ RactiveInspectionPane = Ractive.extend({
     'inspectionWindow.switch-agent': (_, agent) ->
       @openAgent(agent)
       false
+    'commandInput.command-input-tabbed': -> false # ignore and block event
     unrender: ->
       @get('viewController').setHighlightedAgents([])
   }

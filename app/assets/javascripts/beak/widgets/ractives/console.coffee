@@ -63,7 +63,8 @@ RactiveConsoleWidget = Ractive.extend({
       @appendText("#{agentType}> #{input}\n")
       true # propagate event
     'commandInput.command-input-tabbed': ->
-      # TODO
+      @set('agentTypeIndex', (@get('agentTypeIndex') + 1) % @get('agentTypes').length)
+      false
   }
 
   template:
