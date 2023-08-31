@@ -194,6 +194,9 @@ RactiveInspectionPane = Ractive.extend({
     dragToSelectEnabled: false # boolean
     unsubscribeDragSelector: -> # (Unit) -> Unit
 
+    updateTargetedAgentsInHistory: true # boolean; whether scrolling through history will also change what
+    # agents are selected
+
     # type InspectedAgents = {
     #   turtles: Object<string, Array[Turtle]>,
     #   patches: Array[Patch],
@@ -304,8 +307,22 @@ RactiveInspectionPane = Ractive.extend({
               agentType: selection.currentPath[0]
               agents: [selection.currentAgent]
             }
-      set: ->
-        # TODO
+      set: (targetedAgentObj) ->
+        if not @get('updateTargetedAgentsInHistory')
+          # ignore the set operation and force the targeted agent obj to remain the same
+          return
+
+        # While we can't set the targetedAgentObj directly, we can attempt to put the inspection pane into a state such
+        # that the getter would return something equivalent to the value passed to this setter.
+
+        { agentType, agents } = targetedAgentObj
+        if agents? and agents.length is 1 and @get('selection.currentScreen') is 'details'
+          # use 'details' screen
+          @openAgent(agents[0])
+        else
+          # use 'agents' screen
+          @openCategory([agentType])
+          @selectAgent({ mode: 'replace', agents })
     }
   }
 
@@ -343,7 +360,7 @@ RactiveInspectionPane = Ractive.extend({
         @openCategory(categoryPath)
     'miniAgentCard.clicked-agent-card': (context, agent) ->
       ctrl = context.event.ctrlKey
-      @selectAgent({ mode: (if ctrl then 'toggle' else 'replace'), agent })
+      @selectAgent(if ctrl then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
     'miniAgentCard.dblclicked-agent-card': (context, agent) ->
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
@@ -439,16 +456,16 @@ RactiveInspectionPane = Ractive.extend({
     @set('selection', { currentScreen: 'agents', currentPath: categoryPath, selectedAgents: [] })
 
   # Only makes sense if 'selection.currentScreen' is 'agents'.
-  # Selects the specified agent.
+  # Selects the specified agents.
   # 'replace' mode removes all other selected agents (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item).
-  # ({ mode: 'replace' | 'toggle', agent: Agent }) -> Unit
-  selectAgent: ({ mode, agent }) ->
-    selectedAgents = switch mode
+  # ({ mode: 'replace', agents: Array[Agent] } | { mode: 'toggle', agent: Agent}) -> Unit
+  selectAgent: (arg) ->
+    selectedAgents = switch arg.mode
       when 'replace'
-        [agent]
+        arg.agents
       when 'toggle'
-        togglePresence(@get('selection.selectedAgents'), agent, (a) -> (b) -> a is b)[0]
+        togglePresence(@get('selection.selectedAgents'), arg.agent, (a) -> (b) -> a is b)[0]
     @set('selection.selectedAgents', selectedAgents)
 
   # Enters 'details' screen mode, displaying detailed information and a mini view of the specified agent.
@@ -471,6 +488,9 @@ RactiveInspectionPane = Ractive.extend({
     <div class='netlogo-tab-content'>
       <div on-click="@.toggle('dragToSelectEnabled')">
         DRAG SELECT ({{#if dragToSelectEnabled}}on{{else}}off{{/if}})
+      </div>
+      <div on-click="@.toggle('updateTargetedAgentsInHistory')">
+        Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
       </div>
       {{#with selection}}
         {{#if currentScreen == 'categories'}}
