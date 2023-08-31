@@ -65,6 +65,9 @@ RactiveConsoleWidget = Ractive.extend({
     'commandInput.command-input-tabbed': ->
       @set('agentTypeIndex', (@get('agentTypeIndex') + 1) % @get('agentTypes').length)
       false
+    'focus-command-input': ->
+      @findComponent('commandInput').focus()
+      false
   }
 
   template:
@@ -75,7 +78,7 @@ RactiveConsoleWidget = Ractive.extend({
 
       <div class='netlogo-command-center-input'>
         <label>
-          <select value="{{agentType}}">
+          <select value="{{agentType}}" on-change="focus-command-input">
           {{#agentTypes}}
             <option value="{{.}}">{{.}}</option>
           {{/}}

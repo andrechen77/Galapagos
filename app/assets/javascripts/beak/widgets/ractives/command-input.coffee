@@ -146,6 +146,11 @@ RactiveCommandInput = Ractive.extend({
       @set('editor', editor)
   }
 
+  # (Unit) -> Unit
+  focus: ->
+    @get('editor').Focus()
+    return
+
   template: """
     <div class="netlogo-command-center-editor"></div>
   """
