@@ -325,6 +325,23 @@ RactiveInspectionPane = Ractive.extend({
           @openCategory([agentType])
           @selectAgent({ mode: 'replace', agents })
     }
+
+    # string
+    commandPlaceholderText: ->
+      { agents } = @get('targetedAgentObj')
+      selection = @get('selection')
+      "Input command for " + switch selection.currentScreen
+        when 'categories'
+          # In the 'categories' screen, the command center is invisible anyway, so it doesn't matter what we return.
+          "selected categories"
+        when 'agents'
+          collectiveName = calcCategoryPathDetails(selection.currentPath).display
+          if not agents? or selection.selectedAgents.length is 0 # recall no selected agents means target all of them
+            "all #{collectiveName}"
+          else
+            "selected #{collectiveName}"
+        when 'details'
+          agents[0].getName()
   }
 
   observe: {
@@ -516,6 +533,7 @@ RactiveInspectionPane = Ractive.extend({
             source="inspection-pane"
             checkIsReporter={{checkIsReporter}}
             targetedAgentObj={{targetedAgentObj}}
+            placeholderText={{commandPlaceholderText}}
           />
         </div>
       {{/with}}

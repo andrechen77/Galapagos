@@ -41,6 +41,14 @@ RactiveConsoleWidget = Ractive.extend({
         # intentionally ignore the `agents` property of the input
         @set('agentType', agentType)
     }
+
+    # string
+    placeholderText: ->
+      "Input command for " + switch @get('agentType')
+        when 'observer' then "the observer"
+        when 'turtles' then "all turtles"
+        when 'patches' then "all patches"
+        when 'links' then "all links"
   }
 
   # String -> Unit
@@ -83,7 +91,9 @@ RactiveConsoleWidget = Ractive.extend({
           isReadOnly={{isEditing}}
           source="console"
           checkIsReporter={{checkIsReporter}}
-          targetedAgentObj={{targetedAgentObj}}/>
+          targetedAgentObj={{targetedAgentObj}}
+          placeholderText={{placeholderText}}
+        />
         <button on-click='clear-output'>Clear</button>
       </div>
     </div>
