@@ -62,6 +62,7 @@ RactiveCommandInput = Ractive.extend({
 
     source: undefined # string; where the command came from, e.g. 'console'
     checkIsReporter: undefined # (string) -> boolean
+    isReadOnly: undefined # boolean
 
     # Shared State (both this component and the enclosing root component can read/write)
 
@@ -91,6 +92,14 @@ RactiveCommandInput = Ractive.extend({
     input: {
       get: -> @get('editor').GetCode()
       set: (newValue) -> @get('editor').SetCode(newValue)
+    }
+  }
+
+  observe: {
+    isReadOnly: {
+      handler: (isReadOnly) ->
+        @get('editor').SetReadOnly(isReadOnly)
+      init: false # automatically handled on render when the editor is constructed
     }
   }
 
@@ -130,6 +139,7 @@ RactiveCommandInput = Ractive.extend({
         @set({ targetedAgentObj, input, historyIndex: newIndex })
 
       editor = new GalapagosEditor(@find('.netlogo-command-center-editor'), {
+        ReadOnly: @get('isReadOnly')
         Language: 0, # TODO actually import the enum and use the constant EditorLanguage.NetLogo
         Placeholder: "yes",
         ParseMode: 'Oneline' # TODO actually import the enum and use the constant ParseMode.Oneline

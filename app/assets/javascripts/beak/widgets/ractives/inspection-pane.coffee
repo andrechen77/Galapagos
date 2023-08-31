@@ -186,6 +186,7 @@ RactiveInspectionPane = Ractive.extend({
   data: -> {
     # Props
 
+    isEditing: undefined # boolean
     viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
     checkIsReporter: undefined # (string) -> boolean
 
@@ -511,6 +512,7 @@ RactiveInspectionPane = Ractive.extend({
         {{/if}}
         <div style="{{#if !hasCommandInput()}}display: none; {{/if}}">
           <commandInput
+            isReadOnly={{isEditing}}
             source="inspection-pane"
             checkIsReporter={{checkIsReporter}}
             targetedAgentObj={{targetedAgentObj}}

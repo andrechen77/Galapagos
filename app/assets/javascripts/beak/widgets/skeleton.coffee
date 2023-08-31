@@ -289,6 +289,7 @@ template =
       </label>
       <div style="{{#!showInspectionPane}}display: none;{{/}}">
         <inspection
+          isEditing={{isEditing}}
           viewController={{viewController}}
           checkIsReporter={{checkIsReporter}}
         />

@@ -48,11 +48,6 @@ RactiveConsoleWidget = Ractive.extend({
     @set('output', @get('output') + str)
     return
 
-  observe: {
-    'isEditing': (isEditing) ->
-      # TODO make the command input read-only
-  }
-
   on: {
     'clear-output': ->
       @set('output', "")
@@ -85,6 +80,7 @@ RactiveConsoleWidget = Ractive.extend({
           </select>
         </label>
         <commandInput
+          isReadOnly={{isEditing}}
           source="console"
           checkIsReporter={{checkIsReporter}}
           targetedAgentObj={{targetedAgentObj}}/>
