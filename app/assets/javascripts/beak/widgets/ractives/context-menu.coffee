@@ -1,5 +1,3 @@
-import RactiveWidget from "./widget.js"
-
 RactiveContextMenu = Ractive.extend({
 
   data: -> {
@@ -17,7 +15,6 @@ RactiveContextMenu = Ractive.extend({
 
   unreveal: ->
     @set('visible', false)
-    @fire('unlock-selection')
     return
 
   # Returns whether the context menu actually revealed itself, which will not happen if there are no options to display.
@@ -33,8 +30,7 @@ RactiveContextMenu = Ractive.extend({
       mouseY: y
     })
 
-    if component instanceof RactiveWidget
-      @fire('lock-selection', component)
+
 
     visible
 

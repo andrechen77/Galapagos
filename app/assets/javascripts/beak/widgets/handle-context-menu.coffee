@@ -1,3 +1,5 @@
+import RactiveWidget from "./ractives/widget.js"
+
 # (Ractive) => Unit
 handleContextMenu =
   (ractive) ->
@@ -6,6 +8,7 @@ handleContextMenu =
       (event) ->
         if event?.button isnt 2 # Thanks, Firefox, you freaking moron. --Jason B. (12/6/17)
                                 # See this ticket: https://bugzilla.mozilla.org/show_bug.cgi?id=184051
+          ractive.fire('unlock-selection')
           contextMenu = ractive.findComponent('contextMenu')
           if contextMenu.get('visible')
             contextMenu.unreveal()
@@ -45,6 +48,8 @@ handleContextMenu =
       { pageX, pageY } = context.event
 
       @fire('deselect-widgets')
+      if @get('isEditing') and component instanceof RactiveWidget
+        @fire('lock-selection', component)
       menuOpened = @findComponent('contextMenu').reveal(component, pageX, pageY)
       not menuOpened # keep propagating the event if the menu didn't open
 
