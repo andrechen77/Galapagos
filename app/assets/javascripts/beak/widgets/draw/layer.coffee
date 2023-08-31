@@ -23,8 +23,11 @@ Some object types currently in use:
 - ModelObj: {
   model: AgentModel,
   worldShape: WorldShape, # see "./draw-utils.coffee"
+}
+- HighlightObj: {
   highlightedAgents: Array[Agent] # the actual agent objs
 }
+  highlightedAgents: Array[Agent] # the actual agent objs
 - QualityObj: {
   quality: number
 }

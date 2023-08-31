@@ -30,6 +30,8 @@ class ViewController
       model: {
         model: undefined # will be set by `@resetModel`
         worldShape: undefined # will be set by `@resetModel`
+      },
+      highlight: {
         highlightedAgents: []
       },
       quality: { quality: Math.max(window.devicePixelRatio ? 2, 2) },
@@ -140,7 +142,7 @@ class ViewController
   setHighlightedAgents: (highlightedAgents) ->
     # It's important that we create a new object instead of simply setting the property on the old `@_layerDeps.model`
     # object.
-    @_layerDeps.model = { @_layerDeps.model..., highlightedAgents }
+    @_layerDeps.highlight = { @_layerDeps.highlight..., highlightedAgents }
     @repaint()
     return
 

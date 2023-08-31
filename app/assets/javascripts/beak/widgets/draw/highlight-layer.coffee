@@ -44,19 +44,20 @@ glowLine = (ctx, x1, y1, x2, y2, thickness, color) ->
   ctx.stroke()
 
 class HighlightLayer extends Layer
-  # (-> { model: ModelObj }) -> Unit
+  # (-> { model: ModelObj, highlight: HighlightObj }) -> Unit
   # see "./layer.coffee" for type info
   constructor: (@_getDepInfo) ->
     super()
     @_latestDepInfo = {
-      model: undefined
+      model: undefined,
+      highlight: undefined
     }
     return
 
   getWorldShape: -> @_latestDepInfo.model.worldShape
 
   blindlyDrawTo: (ctx) ->
-    { highlightedAgents, model, worldShape } = @_latestDepInfo.model
+    { highlight: { highlightedAgents }, model: { model, worldShape } } = @_latestDepInfo
     toModelAgent = getEquivalentAgent(model) # function that converts from actual agent object to AgentModel analogue
     usePatchCoords(worldShape, ctx, (ctx) =>
       for agent in highlightedAgents
