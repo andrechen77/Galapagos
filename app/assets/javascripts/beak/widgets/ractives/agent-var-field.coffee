@@ -1,3 +1,5 @@
+import { toNetLogoString } from "../../tortoise-utils.js"
+
 Turtle = tortoise_require('engine/core/turtle')
 Patch = tortoise_require('engine/core/patch')
 Link = tortoise_require('engine/core/link')
@@ -48,7 +50,8 @@ RactiveAgentVarField = Ractive.extend({
         varName = @get('varName')
         switch @get('editEffect')
           when 'NORMAL'
-            cmd = "ask #{@get('agent').getName()} [ set #{varName} #{input}]"
+            sanitizedInput = toNetLogoString(input)
+            cmd = "ask #{@get('agent').getName()} [ set #{varName} runresult #{sanitizedInput}]"
             @fire('run', {}, 'agent-var-field', cmd)
             @update('varValueAsStr')
           when 'AGENT_SWITCH'
