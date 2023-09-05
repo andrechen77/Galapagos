@@ -8,6 +8,7 @@ RactiveCodePane = Ractive.extend({
 
   data: -> {
     # Props
+    isReadOnly: undefined # boolean
     initialCode: "initial code goes here" # string
 
     # Internal State
@@ -62,7 +63,7 @@ RactiveCodePane = Ractive.extend({
           </label>
         </li>
       </ul>
-      <codeContainer parseMode="normal" initialCode={{initialCode}}/>
+      <codeContainer parseMode="normal" initialCode={{initialCode}} isReadOnly={{isReadOnly}}/>
     </div>
   """
 })

@@ -57,6 +57,13 @@ RactiveCodeContainer = Ractive.extend({
       @set('editor', editor)
   }
 
+  observe: {
+    isReadOnly: {
+      handler: (isReadOnly) -> @get('editor').SetReadOnly(isReadOnly)
+      init: false # the editor is already initialized to have the correct setting
+    }
+  }
+
   # (string, number) -> Unit
   highlightProcedure: (procedureName, index) ->
     console.log("Unimplemented: highlight procedure `#{procedureName}` at index #{index}")

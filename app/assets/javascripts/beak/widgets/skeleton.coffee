@@ -312,7 +312,7 @@ template =
       {{#showCode}}
         <oldCodePane code='{{code}}' lastCompiledCode='{{lastCompiledCode}}' lastCompileFailed='{{lastCompileFailed}}' isReadOnly='{{isReadOnly}}' />
         divider here
-        <codePane initialCode={{code}}/>
+        <codePane initialCode={{code}} isReadOnly={{isReadOnly}}/>
       {{/}}
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
