@@ -6,6 +6,7 @@ import RactiveSlider from "./ractives/slider.js"
 import RactiveChooser from "./ractives/chooser.js"
 import RactiveMonitor from "./ractives/monitor.js"
 import RactiveModelCodeComponent from "./ractives/code-editor.js"
+import RactiveCodePane from "./ractives/code-pane.js"
 import RactiveSwitch from "./ractives/switch.js"
 import RactiveHelpDialog from "./ractives/help-dialog.js"
 import RactiveConsoleWidget from "./ractives/console.js"
@@ -101,7 +102,8 @@ generateRactiveSkeleton = (container, widgets, code, info,
     , contextMenu:   RactiveContextMenu
     , dragSelectionBox: RactiveDragSelectionBox
     , editableTitle: RactiveModelTitle
-    , codePane:      RactiveModelCodeComponent
+    , oldCodePane:   RactiveModelCodeComponent
+    , codePane:      RactiveCodePane
     , helpDialog:    RactiveHelpDialog
     , infotab:       RactiveInfoTabWidget
     , statusPopup:   RactiveStatusPopup
@@ -308,7 +310,9 @@ template =
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
       {{#showCode}}
-        <codePane code='{{code}}' lastCompiledCode='{{lastCompiledCode}}' lastCompileFailed='{{lastCompileFailed}}' isReadOnly='{{isReadOnly}}' />
+        <oldCodePane code='{{code}}' lastCompiledCode='{{lastCompiledCode}}' lastCompileFailed='{{lastCompileFailed}}' isReadOnly='{{isReadOnly}}' />
+        divider here
+        <codePane initialCode={{code}}/>
       {{/}}
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
