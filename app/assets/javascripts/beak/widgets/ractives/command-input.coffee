@@ -88,7 +88,7 @@ RactiveCommandInput = Ractive.extend({
   }
 
   computed: {
-    # Shared State
+    # Shareable State (downward only)
 
     # string
     input: {
@@ -149,6 +149,9 @@ RactiveCommandInput = Ractive.extend({
         Placeholder: @get('placeholderElement'),
         ParseMode: 'Oneline' # TODO actually import the enum and use the constant ParseMode.Oneline
         OneLine: true,
+        OnUpdate: (_documentChanged, _viewUpdate) =>
+          @update('code')
+          return
         OnKeyUp: (event) =>
           switch event.key
             when 'Enter' then run()
