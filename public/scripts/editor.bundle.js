@@ -10,7 +10,7 @@ if(!String.prototype.matchAll) {
         return all; // profit!
     };
 }
-      
+
 (function (exports) {
     'use strict';
 
