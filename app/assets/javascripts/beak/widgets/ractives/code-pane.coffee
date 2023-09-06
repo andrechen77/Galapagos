@@ -13,6 +13,7 @@ RactiveCodePane = Ractive.extend({
 
     # Internal State
     procedureNames: {} # Object<string, number>
+    autoCompleteStatus: false # boolean
   }
 
   getCode: ->
@@ -52,8 +53,10 @@ RactiveCodePane = Ractive.extend({
         </li>
         <li class="netlogo-codetab-widget-listitem">
           {{# !isReadOnly }}
-            <button class="netlogo-widget netlogo-ugly-button netlogo-recompilation-button{{#isEditing}} interface-unlocked{{/}}"
-                on-click="['recompile', 'user']" {{# !isStale }}disabled{{/}} >Recompile Code</button>
+            <button
+              class="netlogo-widget netlogo-ugly-button netlogo-recompilation-button"
+              on-click="['recompile', 'user']"
+            >Recompile Code</button>
           {{/}}
         </li>
         <li class="netlogo-codetab-widget-listitem">
