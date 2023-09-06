@@ -16,9 +16,10 @@ RactiveCodePane = Ractive.extend({
     autoCompleteStatus: false # boolean
   }
 
-  getCode: ->
-    console.log('getting code from new-code-editor')
-    @findComponent('codeContainer').get('code')
+  computed: {
+    # string
+    code: -> @findComponent('codeContainer').get('code')
+  }
 
   on: {
     render: ->
@@ -35,7 +36,7 @@ RactiveCodePane = Ractive.extend({
       @findComponent('codeContainer').highlightProcedure(selectedProcedure, index)
     )
     dropdownElement.on('chosen:showing_dropdown', =>
-      procedureNames = CodeUtils.findProcedureNames(@getCode(), 'as-written')
+      procedureNames = CodeUtils.findProcedureNames(@get('code'), 'as-written')
       @set('procedureNames', procedureNames)
       dropdownElement.trigger('chosen:updated')
     )
