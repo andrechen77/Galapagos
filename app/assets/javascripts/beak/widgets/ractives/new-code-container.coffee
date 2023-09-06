@@ -25,7 +25,7 @@ RactiveCodeContainer = Ractive.extend({
   }
 
   computed: {
-    # read-only
+    # Shouldn't be overridden by parent component mapping data
     # string
     code: {
       get: ->
@@ -68,6 +68,11 @@ RactiveCodeContainer = Ractive.extend({
 
     placeholder: (text) -> @get('placeholderElement').textContent = text
   }
+
+  # (Unit) -> Unit
+  focus: ->
+    @get('editor').Focus()
+    return
 
   # (string, number) -> Unit
   highlightProcedure: (procedureName, index) ->

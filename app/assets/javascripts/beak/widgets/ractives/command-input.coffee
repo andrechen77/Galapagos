@@ -1,3 +1,5 @@
+import RactiveCodeContainer from "./new-code-container.js"
+
 # The following "get agent set reporter" functions return a string of interpretable NetLogo code referring to each
 # the agents passed in.
 
@@ -55,6 +57,10 @@ compareEntries = (a, b) ->
   aAgents.every((el) -> bAgents.includes(el)) and bAgents.every((el) -> aAgents.includes(el))
 
 RactiveCommandInput = Ractive.extend({
+  components: {
+    codeContainer: RactiveCodeContainer
+  }
+
   # AgentType = 'observer' | 'turtles' | 'patches' | 'links'
 
   data: -> {
@@ -82,95 +88,73 @@ RactiveCommandInput = Ractive.extend({
     historyIndex: 0 # keyof typeof @get('history') | @get('history').length
     workingEntry: {} # stores Entry when the user up-arrows
 
-    # Private State
-    editor: undefined # GalapagosEditor
-    placeholderElement: document.createElement('span')
+    # Consts
+
+    onKeyUp: (event) =>
+      switch event.key
+        when 'Enter' then @run()
+        when 'Tab'
+          @set('input', @get('input').trim()) # kludge to get rid of tab character added (can be beginning or end)
+          @fire('command-input-tabbed')
+        when 'ArrowUp' then @moveInHistory(-1)
+        when 'ArrowDown' then @moveInHistory(1)
   }
 
   computed: {
-    # Shareable State (downward only)
-
     # string
     input: {
-      get: -> @get('editor').GetCode()
-      set: (newValue) -> @get('editor').SetCode(newValue)
+      get: -> @findComponent('codeContainer').get('code')
+      set: (newValue) -> @findComponent('codeContainer').set('code', newValue)
     }
   }
 
-  observe: {
-    isReadOnly: {
-      handler: (isReadOnly) ->
-        @get('editor').SetReadOnly(isReadOnly)
-      init: false # automatically handled on render when the editor is constructed
-    }
+  run: ->
+    input = @get('input')
+    if input.trim().length > 0
+      targetedAgentObj = @get('targetedAgentObj')
+      if @get('checkIsReporter')(input)
+        input = "show #{input}"
 
-    placeholderText: (placeholderText) ->
-      @get('placeholderElement').textContent = placeholderText
-  }
+      history = @get('history')
+      newEntry = { targetedAgentObj, input }
+      if history.length is 0 or not compareEntries(history.at(-1), newEntry)
+        history.push(newEntry)
+      @set('historyIndex', history.length)
 
-  on: {
-    render: ->
-      run = =>
-        input = @get('input')
-        if input.trim().length > 0
-          targetedAgentObj = @get('targetedAgentObj')
-          if @get('checkIsReporter')(input)
-            input = "show #{input}"
+      cmd = getCommand(targetedAgentObj, input)
+      @fire('run', {}, @get('source'), cmd, { targetedAgentObj, input })
+      @fire('command-center-run', cmd)
+    @set({ input: "", workingEntry: {} })
 
-          history = @get('history')
-          newEntry = { targetedAgentObj, input }
-          if history.length is 0 or not compareEntries(history.at(-1), newEntry)
-            history.push(newEntry)
-          @set('historyIndex', history.length)
-
-          cmd = getCommand(targetedAgentObj, input)
-          @fire('run', {}, @get('source'), cmd, { targetedAgentObj, input })
-          @fire('command-center-run', cmd)
-        @set({ input: "", workingEntry: {} })
-
-      moveInHistory = (delta) =>
-        history = @get('history')
-        currentIndex = @get('historyIndex')
-        newIndex = Math.max(Math.min(currentIndex + delta, history.length), 0)
-        if currentIndex is history.length
-          # The current entry is not in history; save it before moving to history
-          @set('workingEntry', { targetedAgentObj: @get('targetedAgentObj'), input: @get('input') })
-        { targetedAgentObj, input } = if newIndex is history.length
-          # Moving out of history to the working entry
-          @get('workingEntry')
-        else
-          # Moving to some point in history
-          history[newIndex]
-        @set({ targetedAgentObj, input, historyIndex: newIndex })
-
-      editor = new GalapagosEditor(@find('.netlogo-command-center-editor'), {
-        ReadOnly: @get('isReadOnly')
-        Language: 0, # TODO actually import the enum and use the constant EditorLanguage.NetLogo
-        Placeholder: @get('placeholderElement'),
-        ParseMode: 'Oneline' # TODO actually import the enum and use the constant ParseMode.Oneline
-        OneLine: true,
-        OnUpdate: (_documentChanged, _viewUpdate) =>
-          @update('code')
-          return
-        OnKeyUp: (event) =>
-          switch event.key
-            when 'Enter' then run()
-            when 'Tab'
-              @set('input', @get('input').trim()) # kludge to get rid of tab character added (can be beginning or end)
-              @fire('command-input-tabbed')
-            when 'ArrowUp' then moveInHistory(-1)
-            when 'ArrowDown' then moveInHistory(1)
-      })
-      @set('editor', editor)
-  }
+  moveInHistory: (delta) ->
+    history = @get('history')
+    currentIndex = @get('historyIndex')
+    newIndex = Math.max(Math.min(currentIndex + delta, history.length), 0)
+    if currentIndex is history.length
+      # The current entry is not in history; save it before moving to history
+      @set('workingEntry', { targetedAgentObj: @get('targetedAgentObj'), input: @get('input') })
+    { targetedAgentObj, input } = if newIndex is history.length
+      # Moving out of history to the working entry
+      @get('workingEntry')
+    else
+      # Moving to some point in history
+      history[newIndex]
+    @set({ targetedAgentObj, input, historyIndex: newIndex })
 
   # (Unit) -> Unit
   focus: ->
-    @get('editor').Focus()
+    @findComponent('codeContainer').focus()
     return
 
   template: """
-    <div class="netlogo-command-center-editor"></div>
+    <div class="netlogo-command-center-editor">
+      <codeContainer
+        parseMode="oneline"
+        onKeyUp={{onKeyUp}}
+        isReadOnly={{isReadOnly}}
+        placeholder={{placeholderText}}
+      />
+    </div>
   """
 })
 
