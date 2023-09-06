@@ -36,9 +36,9 @@ RactiveCodeContainerBase = Ractive.extend({
     @_editor   = new GalapagosEditor(@find("##{@get('id')}"), config)
     this.setCode(@get('code').toString());
 
-    @_editor.on('blur', =>
-      @fire('change')
-    )
+    # @_editor.on('blur', =>
+    #   @fire('change')
+    # )
 
     @observe('isDisabled', (isDisabled) ->
       # @_editor.setOption('readOnly', if isDisabled then 'nocursor' else false)
@@ -52,7 +52,7 @@ RactiveCodeContainerBase = Ractive.extend({
     )
 
     return
-  
+
   _onUpdateFunction: (changed, update) ->
     if @_editor and changed
       code = @_editor.GetCode()
@@ -116,14 +116,14 @@ RactiveCodeContainerMultiline = RactiveCodeContainerBase.extend({
   highlightProcedure: (procedureName, index) ->
     # end   = @_editor.posFromIndex(index)
     # start = CodeMirror.Pos(end.line, end.ch - procedureName.length)
-    @_editor.Select(index - procedureName.length, index)
+    # @_editor.Select(index - procedureName.length, index)
     return
 
   # ({ start: Int, end: Int }) => Unit
   highlightLocation: (location) ->
     # start = @_editor.posFromIndex(location.start)
     # end   = @_editor.posFromIndex(location.end)
-    @_editor.Select(location.start, location.end)
+    # @_editor.Select(location.start, location.end)
     return
 
   # () => Unit
@@ -137,7 +137,7 @@ RactiveCodeContainerMultiline = RactiveCodeContainerBase.extend({
   jumpToCode: () ->
     location = @get('jumpToCode')
     if location? and @_editor?
-      @_editor.JumpTo(location.start)
+      ; # @_editor.JumpTo(location.start)
     return
 
   # () => CodeMirror
