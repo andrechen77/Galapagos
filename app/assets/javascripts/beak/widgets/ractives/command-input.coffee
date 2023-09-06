@@ -156,7 +156,7 @@ RactiveCommandInput = Ractive.extend({
           switch event.key
             when 'Enter' then run()
             when 'Tab'
-              @set('input', @get('input').trim()) # kludge to get rid of tab character added (either at beginning or end)
+              @set('input', @get('input').trim()) # kludge to get rid of tab character added (can be beginning or end)
               @fire('command-input-tabbed')
             when 'ArrowUp' then moveInHistory(-1)
             when 'ArrowDown' then moveInHistory(1)
