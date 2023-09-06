@@ -47,7 +47,7 @@ RactiveCodeContainer = Ractive.extend({
         Language: 0,
         Placeholder: @get('placeholderElement'),
         ParseMode: parseModeMapping[parseMode],
-        Oneline: oneLine,
+        OneLine: oneLine,
         Wrapping: not oneLine,
         OnUpdate: (_documentChanged, _viewUpdate) =>
           @update('code')
