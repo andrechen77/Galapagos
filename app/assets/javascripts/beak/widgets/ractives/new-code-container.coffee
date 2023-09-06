@@ -42,7 +42,7 @@ RactiveCodeContainer = Ractive.extend({
     render: ->
       parseMode = @get('parseMode')
       oneLine = parseMode is 'oneline' or parseMode is 'onelinereporter'
-      editor = new GalapagosEditor(@find(".netlogo-code-container"), {
+      editor = new GalapagosEditor(@find(".netlogo-code"), {
         ReadOnly: @get('isReadOnly'),
         Language: 0,
         Placeholder: @get('placeholderElement'),
@@ -80,7 +80,7 @@ RactiveCodeContainer = Ractive.extend({
     return
 
   template: """
-    <div class="netlogo-code-container"></div>
+    <div class="netlogo-code"></div>
   """
 })
 
