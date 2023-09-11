@@ -55,6 +55,9 @@ RactiveCodeContainer = Ractive.extend({
         OnKeyUp: (event, _) =>
           @get('onKeyUp')(event)
           return
+        OnBlurred: (_view) =>
+          @fire('code-container-blurred')
+          return
       })
       editor.SetCode(@get('initialCode'))
       @set('editor', editor)
