@@ -1,4 +1,4 @@
-import RactiveCodeContainer from "./new-code-container.js"
+import RactiveCodeContainer from "./subcomponent/new-code-container.js"
 
 # The following "get agent set reporter" functions return a string of interpretable NetLogo code referring to each
 # the agents passed in.

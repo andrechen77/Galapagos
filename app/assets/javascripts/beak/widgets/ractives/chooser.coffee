@@ -1,6 +1,6 @@
 import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/code-container.js"
+import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 
 ChooserEditForm = EditForm.extend({

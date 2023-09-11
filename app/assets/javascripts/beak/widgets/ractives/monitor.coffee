@@ -1,6 +1,6 @@
 import RactiveWidget from "./widget.js"
 import EditForm from "./edit-form.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/code-container.js"
+import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import RactiveEditFormFontSize from "./subcomponent/font-size.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"

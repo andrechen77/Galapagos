@@ -1,6 +1,6 @@
 import keywords from "/keywords.js"
 import CodeUtils from "/beak/widgets/code-utils.js"
-import { RactiveCodeContainerMultiline } from "./subcomponent/code-container.js"
+import { RactiveCodeContainerMultiline } from "./subcomponent/old-code-container.js"
 
 RactiveModelCodeComponent = Ractive.extend({
 
