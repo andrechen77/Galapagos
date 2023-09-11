@@ -151,7 +151,7 @@ RactiveCommandInput = Ractive.extend({
       <codeContainer
         parseMode="oneline"
         onKeyUp={{onKeyUp}}
-        isReadOnly={{isReadOnly}}
+        isDisabled={{isReadOnly}}
         placeholder={{placeholderText}}
       />
     </div>

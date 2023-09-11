@@ -68,7 +68,7 @@ RactiveCodePane = Ractive.extend({
         </li>
       </ul>
       <div class="netlogo-code-tab">
-        <codeContainer parseMode="normal" initialCode={{initialCode}} isReadOnly={{isReadOnly}}/>
+        <codeContainer parseMode="normal" initialCode={{initialCode}} isDisabled={{isReadOnly}}/>
       </div>
     </div>
   """

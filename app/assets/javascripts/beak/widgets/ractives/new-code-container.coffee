@@ -16,7 +16,7 @@ RactiveCodeContainer = Ractive.extend({
     parseMode: undefined # ParseMode
     initialCode: "" # string
     onKeyUp: -> # (KeyboardEvent) -> Unit
-    isReadOnly: false # boolean
+    isDisabled: false # boolean
     placeholder: "" # string
 
     # State
@@ -43,7 +43,7 @@ RactiveCodeContainer = Ractive.extend({
       parseMode = @get('parseMode')
       oneLine = parseMode is 'oneline' or parseMode is 'onelinereporter'
       editor = new GalapagosEditor(@find(".netlogo-code"), {
-        ReadOnly: @get('isReadOnly'),
+        ReadOnly: @get('isDisabled'),
         Language: 0,
         Placeholder: @get('placeholderElement'),
         ParseMode: parseModeMapping[parseMode],
@@ -61,8 +61,8 @@ RactiveCodeContainer = Ractive.extend({
   }
 
   observe: {
-    isReadOnly: {
-      handler: (isReadOnly) -> @get('editor').SetReadOnly(isReadOnly)
+    isDisabled: {
+      handler: (isDisabled) -> @get('editor').SetReadOnly(isDisabled)
       init: false # the editor is already initialized to have the correct setting
     }
 
