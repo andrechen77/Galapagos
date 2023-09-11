@@ -33,7 +33,7 @@ RactiveEditFormCode = Ractive.extend({
       if @get('isCollapsible')
         @toggle('isExpanded')
       false
-    "codeContainer.code-container-blurred": (context) ->
+    "codeContainer.change": (context) ->
       code = context.component.get('code')
       @get('onchange')(code)
   }
