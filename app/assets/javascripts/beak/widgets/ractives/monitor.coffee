@@ -1,6 +1,6 @@
 import RactiveWidget from "./widget.js"
 import EditForm from "./edit-form.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
+import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import RactiveEditFormFontSize from "./subcomponent/font-size.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
@@ -15,7 +15,7 @@ MonitorEditForm = EditForm.extend({
   }
 
   components: {
-    formCode:     RactiveEditFormMultilineCode
+    formCode:     RactiveEditFormCode
   , formFontSize: RactiveEditFormFontSize
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -38,7 +38,7 @@ MonitorEditForm = EditForm.extend({
     ,  fontSize
     ,    bottom: @parent.get('widget.top') + (2 * fontSize) + 23
     , precision: parseInt(form.precision.value)
-    ,    source: @findComponent('formCode').findComponent('codeContainer').get('code')
+    ,    source: @findComponent('formCode').get('code')
     }
 
   partials: {
@@ -48,7 +48,13 @@ MonitorEditForm = EditForm.extend({
     # coffeelint: disable=max_line_length
     widgetFields:
       """
-      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Reporter" />
+      <formCode
+        id="{{id}}-source"
+        parseMode="onelinereporter" {{! TODO should be multiline reporter }}
+        name="source"
+        value="{{source}}"
+        label="Reporter"
+      />
 
       <spacer height="15px" />
 

@@ -1,7 +1,7 @@
 import RactiveWidget from "./widget.js"
 import EditForm from "./edit-form.js"
 import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
+import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import { RactiveEditFormDropdown } from "./subcomponent/dropdown.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
@@ -29,7 +29,7 @@ ButtonEditForm = EditForm.extend({
 
   components: {
     formCheckbox: RactiveEditFormCheckbox
-  , formCode:     RactiveEditFormMultilineCode
+  , formCode:     RactiveEditFormCode
   , formDropdown: RactiveEditFormDropdown
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -37,7 +37,7 @@ ButtonEditForm = EditForm.extend({
 
   genProps: (form) ->
     key    = form.actionKey.value
-    source = @findComponent('formCode').findComponent('codeContainer').get('code')
+    source = @findComponent('formCode').get('code')
     {
                    actionKey: (if key.length is 1 then key.toUpperCase() else null)
     ,             buttonKind: @_displayToType(form.type.value)
@@ -65,7 +65,7 @@ ButtonEditForm = EditForm.extend({
 
       <spacer height="15px" />
 
-      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" />
+      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" parseMode="embedded"/>
 
       <spacer height="15px" />
 

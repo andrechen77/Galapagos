@@ -1,6 +1,6 @@
 import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
+import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 
 ChooserEditForm = EditForm.extend({
@@ -25,7 +25,7 @@ ChooserEditForm = EditForm.extend({
   twoway: false
 
   components: {
-    formCode:     RactiveEditFormMultilineCode
+    formCode:     RactiveEditFormCode
   , formVariable: RactiveEditFormVariable
   }
 
@@ -37,7 +37,7 @@ ChooserEditForm = EditForm.extend({
 
   genProps: (form) ->
     varName    = form.varName.value
-    choices    = @findComponent('formCode').findComponent('codeContainer').get('code')
+    choices    = @findComponent('formCode').get('code')
     choicesArr = Converter.stringToJSValue("[#{choices}]")
     {
        choices: choicesArr
@@ -53,7 +53,8 @@ ChooserEditForm = EditForm.extend({
       """
       <formVariable id="{{id}}-varname" value="{{display}}"        name="varName" />
       <formCode     id="{{id}}-choices" value="{{chooserChoices}}" name="codeChoices"
-                    label="Choices" config="{}" style="" onchange="{{setHiddenInput}}" />
+                    parseMode="onelinereporter" {{! TODO need a parse mode that accepts whitespace-separated literals}}
+                    label="Choices" onchange="{{setHiddenInput}}" />
       <input id="{{id}}-choices-hidden" name="trueCodeChoices" class="all-but-hidden"
              style="margin: -5px 0 0 7px;" type="text" />
       <div class="widget-edit-hint-text">Example: "a" "b" "c" 1 2 3</div>

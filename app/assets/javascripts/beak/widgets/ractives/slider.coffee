@@ -2,6 +2,7 @@ import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
 import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
 import { RactiveEditFormOneLineCode } from "./subcomponent/old-code-container.js"
+import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
@@ -10,7 +11,7 @@ import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
 FlexColumn = Ractive.extend({
   template:
     """
-    <div class="flex-column" style="align-items: center; flex-grow: 1; max-width: 140px;">
+    <div class="flex-column" style="align-items: stretch; flex-grow: 1; max-width: 140px;">
       {{ yield }}
     </div>
     """
@@ -37,9 +38,9 @@ SliderEditForm = EditForm.extend({
   components: {
     column:       FlexColumn
   , formCheckbox: RactiveEditFormCheckbox
-  , formMaxCode:  RactiveEditFormOneLineCode
-  , formMinCode:  RactiveEditFormOneLineCode
-  , formStepCode: RactiveEditFormOneLineCode
+  , formMaxCode:  RactiveEditFormCode
+  , formMinCode:  RactiveEditFormCode
+  , formStepCode: RactiveEditFormCode
   , formVariable: RactiveEditFormVariable
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -67,10 +68,10 @@ SliderEditForm = EditForm.extend({
     ,      default: value
     ,    direction: (if form.vertical.checked then "vertical" else "horizontal")
     ,      display: form.variable.value
-    ,          max: @findComponent('formMaxCode' ).findComponent('codeContainer').get('code')
-    ,          min: @findComponent('formMinCode' ).findComponent('codeContainer').get('code')
+    ,          max: @findComponent('formMaxCode' ).get('code')
+    ,          min: @findComponent('formMinCode' ).get('code')
     ,        right
-    ,         step: @findComponent('formStepCode').findComponent('codeContainer').get('code')
+    ,         step: @findComponent('formStepCode').get('code')
     ,        units: (if form.units.value isnt "" then form.units.value else undefined)
     ,     variable: form.variable.value.toLowerCase()
     }
@@ -87,16 +88,19 @@ SliderEditForm = EditForm.extend({
 
       <div class="flex-row" style="align-items: stretch; justify-content: space-around">
         <column>
-          <formMinCode id="{{id}}-min-code" label="Minimum" name="minCode" config="{ scrollbarStyle: 'null' }"
-                       style="width: 100%;" value="{{minCode}}" />
+          <formMinCode id="{{id}}-min-code" label="Minimum" name="minCode" {{! config="{ scrollbarStyle: 'null' }" }}
+                       parseMode="onelinereporter"
+                       value="{{minCode}}" />
         </column>
         <column>
-          <formStepCode id="{{id}}-step-code" label="Increment" name="stepCode" config="{ scrollbarStyle: 'null' }"
-                        style="width: 100%;" value="{{stepCode}}" />
+          <formStepCode id="{{id}}-step-code" label="Increment" name="stepCode" {{! config="{ scrollbarStyle: 'null' }" }}
+                        parseMode="onelinereporter"
+                        value="{{stepCode}}" />
         </column>
         <column>
-          <formMaxCode id="{{id}}-max-code" label="Maximum" name="maxCode" config="{ scrollbarStyle: 'null' }"
-                       style="width: 100%;" value="{{maxCode}}" />
+          <formMaxCode id="{{id}}-max-code" label="Maximum" name="maxCode" {{! config="{ scrollbarStyle: 'null' }" }}
+                       parseMode="onelinereporter"
+                       value="{{maxCode}}" />
         </column>
       </div>
 
