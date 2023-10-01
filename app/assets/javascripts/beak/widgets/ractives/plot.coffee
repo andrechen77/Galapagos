@@ -3,7 +3,7 @@ import { hexStringToNetlogoColor, netlogoColorToRGB } from "/colors.js"
 import EditForm                         from "./edit-form.js"
 import { RactiveEditFormCheckbox }      from "./subcomponent/checkbox.js"
 import { RactiveTwoWayCheckbox }        from "./subcomponent/checkbox.js"
-import { RactiveEditFormMultilineCode } from "./subcomponent/old-code-container.js"
+import RactiveEditFormCode              from "./subcomponent/edit-form-code-input.js"
 import RactiveColorInput                from "./subcomponent/color-input.js"
 import { RactiveEditFormLabeledInput }  from "./subcomponent/labeled-input.js"
 import RactiveEditFormSpacer            from "./subcomponent/spacer.js"
@@ -28,12 +28,20 @@ PenForm = Ractive.extend({
   , setupCode:          undefined # String
   , shouldShowInLegend: undefined # Boolean
   , updateCode:         undefined # String
+
+    # (string) -> Unit
+  , syncSetupCode: (code) ->
+      @set('setupCode', code)
+
+    # (string) -> Unit
+  , syncUpdateCode: (code) ->
+      @set('updateCode', code)
   }
 
   components: {
     colorInput:   RactiveColorInput
   , formCheckbox: RactiveTwoWayCheckbox
-  , formCode:     RactiveEditFormMultilineCode
+  , formCode:     RactiveEditFormCode
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
   }
@@ -74,17 +82,6 @@ PenForm = Ractive.extend({
   }
 
   on: {
-
-    '*.code-changed': ({ component }, newValue) ->
-      cid = component.get('id')
-      if cid.endsWith('setup-code')
-        @set('setupCode', newValue)
-      else if cid.endsWith('update-code')
-        @set('updateCode', newValue)
-      else
-        console.warn('Unknown plot pen code container!', component)
-      false
-
     'remove-pen': ->
       @parent.fire('remove-child-pen', @get('index'))
       false
@@ -148,9 +145,23 @@ PenForm = Ractive.extend({
           <formCheckbox id="{{id}}-in-legend?" isChecked={{shouldShowInLegend}} labelText="In legend?" name="legend" />
         </div>
         <spacer height="10px" />
-        <formCode id="{{id}}-setup-code"  name="setupCode"  value="{{setupCode}}"  label="Pen setup commands"   style="width: 100%;" />
+        <formCode
+          id="{{id}}-setup-code"
+          name="setupCode"
+          parseMode="embedded"
+          onchange={{syncSetupCode}}
+          value="{{setupCode}}"
+          label="Pen setup commands"
+        />
         <spacer height="10px" />
-        <formCode id="{{id}}-update-code" name="updateCode" value="{{updateCode}}" label="Pen update commands"  style="width: 100%;" />
+        <formCode
+          id="{{id}}-update-code"
+          name="updateCode"
+          parseMode="embedded"
+          onchange={{syncUpdateCode}}
+          value="{{updateCode}}"
+          label="Pen update commands"
+        />
         <spacer height="10px" />
       {{/}}
     </div>
@@ -179,7 +190,7 @@ PlotEditForm = EditForm.extend({
 
   components: {
     formCheckbox: RactiveEditFormCheckbox
-  , formCode:     RactiveEditFormMultilineCode
+  , formCode:     RactiveEditFormCode
   , formPen:      PenForm
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -214,7 +225,6 @@ PlotEditForm = EditForm.extend({
       (ractive) -> (elemID) ->
         ractive.findAllComponents('formCode').
           find((x) -> x.get('id') is elemID).
-          findComponent('codeContainer').
           get('code')
 
     name = if form.name.length? then form.name[0].value else form.name.value
@@ -380,12 +390,14 @@ PlotEditForm = EditForm.extend({
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
           <formCode id="{{id}}-setup-code" isCollapsible="true" isExpanded="false"
+                    parseMode="embedded"
                     value="{{setupCode}}" label="Plot setup commands"
                     style="width: 100%;" />
         </div>
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
           <formCode id="{{id}}-update-code" isCollapsible="true" isExpanded="false"
+                    parseMode="embedded"
                     value="{{updateCode}}" label="Plot update commands"
                     style="width: 100%;" />
         </div>
