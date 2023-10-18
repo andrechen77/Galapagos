@@ -5,7 +5,6 @@ import RactiveView from "./ractives/view.js"
 import RactiveSlider from "./ractives/slider.js"
 import RactiveChooser from "./ractives/chooser.js"
 import RactiveMonitor from "./ractives/monitor.js"
-import RactiveModelCodeComponent from "./ractives/code-editor.js"
 import RactiveCodePane from "./ractives/code-pane.js"
 import RactiveSwitch from "./ractives/switch.js"
 import RactiveHelpDialog from "./ractives/help-dialog.js"
@@ -102,7 +101,6 @@ generateRactiveSkeleton = (container, widgets, code, info,
     , contextMenu:   RactiveContextMenu
     , dragSelectionBox: RactiveDragSelectionBox
     , editableTitle: RactiveModelTitle
-    , oldCodePane:   RactiveModelCodeComponent
     , codePane:      RactiveCodePane
     , helpDialog:    RactiveHelpDialog
     , infotab:       RactiveInfoTabWidget
@@ -310,8 +308,6 @@ template =
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
       {{#showCode}}
-        <oldCodePane code='{{code}}' lastCompiledCode='{{lastCompiledCode}}' lastCompileFailed='{{lastCompileFailed}}' isReadOnly='{{isReadOnly}}' />
-        divider here
         <codePane initialCode={{code}} isReadOnly={{isReadOnly}}/>
       {{/}}
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">

@@ -1,4 +1,4 @@
-import RactiveCodeContainer from "./new-code-container.js"
+import RactiveCodeContainer from "./code-container.js"
 
 RactiveEditFormCode = Ractive.extend({
   components: {
@@ -8,7 +8,7 @@ RactiveEditFormCode = Ractive.extend({
   data: -> {
     # Props
     id: undefined # string
-    parseMode: undefined # ParseMode; see "new-code-container.coffee" for definition
+    parseMode: undefined # ParseMode; see "code-container.coffee" for definition
     label: undefined # String
     value: undefined # string
     isDisabled: false # boolean

@@ -1,5 +1,5 @@
 import CodeUtils from "/beak/widgets/code-utils.js"
-import RactiveCodeContainer from "./subcomponent/new-code-container.js"
+import RactiveCodeContainer from "./subcomponent/code-container.js"
 
 RactiveCodePane = Ractive.extend({
   components: {
