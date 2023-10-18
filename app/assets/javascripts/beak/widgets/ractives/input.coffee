@@ -2,7 +2,7 @@ import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
 import RactiveColorInput from "./subcomponent/color-input.js"
 import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
-import { RactiveCodeContainerMultiline } from "./subcomponent/old-code-container.js"
+import RactiveCodeContainer from "./subcomponent/new-code-container.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import { RactiveEditFormDropdown } from "./subcomponent/dropdown.js"
@@ -84,7 +84,7 @@ RactiveInput = RactiveValueWidget.extend({
   components: {
     colorInput: RactiveColorInput
   , editForm:   InputEditForm
-  , editor:     RactiveCodeContainerMultiline
+  , editor:     RactiveCodeContainer
   }
 
   eventTriggers: ->
@@ -107,9 +107,13 @@ RactiveInput = RactiveValueWidget.extend({
     # The proper fix is really to get rid of the editor before stuffing the new value into it,
     # but that sounds fidgetty.  This fix is also fidgetty, but it's only fidgetty here, for Inputs;
     # other widget types are left unbothered by this. --Jason B. (4/16/18)
-    'code-changed': (_, newValue) ->
+    'editor.change': ({ component }) ->
+      newValue = component.get('code')
       if @get('widget').boxedValue.type.includes("String ")
         @set('internalValue', newValue)
+      # manually fire the 'widget-value-changed' event so that the "superclass" widget component
+      # knows. This is a special case for the code inputs because it
+      @fire('widget-value-change', @get('widget.boxedValue.type'))
       false
 
     'handle-keypress': ({ original: { keyCode, target } }) ->
@@ -135,7 +139,7 @@ RactiveInput = RactiveValueWidget.extend({
       scrollToBottom = -> elem.scrollTop = elem.scrollHeight
       setTimeout(scrollToBottom, 0)
 
-    @findComponent('editor')?.setCode(newValue)
+    @findComponent('editor')?.set('code', newValue)
     return
 
   # (String, String|Number, String|Number) => Unit
@@ -212,15 +216,14 @@ RactiveInput = RactiveValueWidget.extend({
           </textarea>
         {{/}}
         {{# widget.boxedValue.type === 'String (reporter)' || widget.boxedValue.type === 'String (commands)' }}
-          <editor
-            extraClasses="['netlogo-multiline-input']"
-            id="{{id}}-code"
-            injectedConfig="{ scrollbarStyle: 'null' }"
-            style="height: 50%;"
-            initialCode="{{internalValue}}"
-            isDisabled="{{isEditing}}"
-            on-change="['widget-value-change', widget.boxedValue.type]"
+          <div class="netlogo-multiline-input">
+            <editor
+              id="{{id}}-code"
+              parseMode="onelinereporter" {{! TODO could be multilinereporter depending on the settings}}
+              initialCode="{{internalValue}}"
+              isDisabled="{{isEditing}}"
             />
+          </div>
         {{/}}
         {{# widget.boxedValue.type === 'Color'}}
           <colorInput
