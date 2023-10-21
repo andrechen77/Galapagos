@@ -1,7 +1,6 @@
 import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
 import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
-import { RactiveEditFormOneLineCode } from "./subcomponent/old-code-container.js"
 import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
