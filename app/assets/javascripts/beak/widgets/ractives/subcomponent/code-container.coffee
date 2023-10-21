@@ -79,7 +79,7 @@ RactiveCodeContainer = Ractive.extend({
 
   # (string, number) -> Unit
   highlightProcedure: (procedureName, index) ->
-    console.log("Unimplemented: highlight procedure `#{procedureName}` at index #{index}")
+    @get('editor').Selection.Select(index - procedureName.length, index)
     return
 
   template: """
