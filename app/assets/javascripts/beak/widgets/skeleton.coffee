@@ -61,6 +61,12 @@ generateRactiveSkeleton = (container, widgets, code, info,
     widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
     viewController:       viewController # ViewController
     width:                0
+    parentEditor:         null
+    receiveParentEditor:  (editor) ->
+      # `this` is intended to bind to the skeleton Ractive, not the Ractive
+      # that happens to run this function. I'm not sure why this works since
+      # we never bind this function but it does.
+      @set('parentEditor', editor)
   }
 
   animateWithClass = (klass) ->
@@ -300,16 +306,16 @@ template =
         <span class="netlogo-tab-text">Command Center</span>
       </label>
       {{#showConsole}}
-        <console output="{{consoleOutput}}" isEditing="{{isEditing}}" checkIsReporter="{{checkIsReporter}}" />
+        <console output="{{consoleOutput}}" isEditing="{{isEditing}}" checkIsReporter="{{checkIsReporter}}" parentEditor={{parentEditor}}/>
       {{/}}
       {{/}}
       <label class="netlogo-tab{{#showCode}} netlogo-active{{/}}">
         <input id="code-tab-toggle" type="checkbox" checked="{{ showCode }}" on-change="['model-code-toggled', showCode]" />
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
-      {{#showCode}}
-        <codePane initialCode={{code}} isReadOnly={{isReadOnly}}/>
-      {{/}}
+      <div style="{{#!showCode}}display: none;{{/}}">
+        <codePane initialCode={{code}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}}/>
+      </div>
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
         <span class="netlogo-tab-text">Model Info</span>

@@ -1,15 +1,17 @@
 import CodeUtils from "/beak/widgets/code-utils.js"
-import RactiveCodeContainer from "./subcomponent/code-container.js"
+import { RactiveParentCodeContainer } from "./subcomponent/code-container.js"
 
 RactiveCodePane = Ractive.extend({
   components: {
-    codeContainer: RactiveCodeContainer
+    codeContainer: RactiveParentCodeContainer
   }
 
   data: -> {
     # Props
     isReadOnly: undefined # boolean
     initialCode: "initial code goes here" # string
+    setAsParent: null # (GalapagosEditor) -> Unit | null
+    # (see 'code-container.coffee' for a description of `setAsParent`)
 
     # Internal State
     procedureNames: {} # Object<string, number>
@@ -68,7 +70,12 @@ RactiveCodePane = Ractive.extend({
         </li>
       </ul>
       <div class="netlogo-code-tab">
-        <codeContainer parseMode="normal" initialCode={{initialCode}} isDisabled={{isReadOnly}}/>
+        <codeContainer
+          parseMode="normal"
+          initialCode={{initialCode}}
+          isDisabled={{isReadOnly}}
+          setAsParent={{setAsParent}}
+        />
       </div>
     </div>
   """

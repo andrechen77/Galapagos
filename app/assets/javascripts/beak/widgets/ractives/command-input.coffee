@@ -70,6 +70,7 @@ RactiveCommandInput = Ractive.extend({
     checkIsReporter: undefined # (string) -> boolean
     isReadOnly: undefined # boolean
     placeholderText: undefined # string
+    parentEditor: null # GalapagosEditor | null
 
     # Shared State (both this component and the enclosing root component can read/write)
 
@@ -153,6 +154,7 @@ RactiveCommandInput = Ractive.extend({
         onKeyUp={{onKeyUp}}
         isDisabled={{isReadOnly}}
         placeholder={{placeholderText}}
+        parentEditor={{parentEditor}}
       />
     </div>
   """

@@ -18,6 +18,7 @@ RactiveCodeContainer = Ractive.extend({
     onKeyUp: -> # (KeyboardEvent) -> Unit
     isDisabled: false # boolean
     placeholder: "" # string
+    parentEditor: null # GalapagosEditor | null
 
     # State
     editor: undefined # GalapagosEditor
@@ -61,6 +62,22 @@ RactiveCodeContainer = Ractive.extend({
       })
       editor.SetCode(@get('initialCode'))
       @set('editor', editor)
+
+      # We create the observer here instead of as an initialization option
+      # because if this code container was rendered with a `parentEditor`
+      # prop already specified, we should wait for this editor to actually be
+      # created before we try to add it as a child to the parent editor.
+      @observe('parentEditor', ((parentEditor) ->
+        if parentEditor?
+          parentEditor.AddChild(@get('editor'))
+          # Note that there is a potential memory leak here. If this code
+          # container gets unrendered and destroyed, we have no way of
+          # unregistering our GalapagosEditor instance from the parent editor,
+          # which means that it will be kept alive (even as the Ractive itself
+          # is destroyed). Thus, if the user keeps rendering and unrendering
+          # GalapagosEditors, then the parent editor's number of children will
+          # only grow with dead children.
+      ))
   }
 
   observe: {
@@ -87,4 +104,32 @@ RactiveCodeContainer = Ractive.extend({
   """
 })
 
+# Does it make sense for the `RactiveCodeContainer` to have a parent, but also
+# have the `RactiveParentCodeContainer` extend it? This would imply that parents
+# themselves can also have parents, which would result in a runtime error if
+# attempted. I'm going to leave it like this because the nature of a "parent"
+# relationship implies that it is possible, and also because I don't want to
+# change all the code that already uses `RactiveCodeContainer`. -Andre C.
+
+RactiveParentCodeContainer = RactiveCodeContainer.extend({
+  data: -> {
+    # Props
+
+    setAsParent: null # (GalapagosEditor) -> Unit | null
+    # 'setAsParent', if not null, will be called when the editor is rendered.
+    # The intention of this function is so that the parent of this Ractive has
+    # a way to get a handle on the editor so that it can be set as the parent
+    # of other editors. Thus, it wouldn't make sense to have both `parentEditor`
+    # and `setAsParent` set at the same time for a component.
+  }
+
+  on: {
+    render: ->
+      if (setAsParent = @get('setAsParent'))?
+        setAsParent(@get('editor'))
+  }
+})
+
+
 export default RactiveCodeContainer
+export { RactiveParentCodeContainer }
