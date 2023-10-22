@@ -12,6 +12,7 @@ MonitorEditForm = EditForm.extend({
   , fontSize:  undefined # Number
   , precision: undefined # Number
   , source:    undefined # String
+  , parentEditor: null # GalapagosEditor | null
   }
 
   components: {
@@ -54,6 +55,7 @@ MonitorEditForm = EditForm.extend({
         name="source"
         value="{{source}}"
         label="Reporter"
+        parentEditor={{parentEditor}}
       />
 
       <spacer height="15px" />
@@ -86,6 +88,7 @@ RactiveMonitor = RactiveWidget.extend({
   data: -> {
     errorClass:         undefined # String
   , resizeDirs:         ['left', 'right']
+  , parentEditor:       null # GalapagosEditor | null
   }
 
   components: {
@@ -108,7 +111,7 @@ RactiveMonitor = RactiveWidget.extend({
     {{>editorOverlay}}
     {{>monitor}}
     <editForm idBasis="{{id}}" display="{{widget.display}}" fontSize="{{widget.fontSize}}"
-              precision="{{widget.precision}}" source="{{widget.source}}" />
+              precision="{{widget.precision}}" source="{{widget.source}}" parentEditor={{parentEditor}}/>
     """
 
   # coffeelint: disable=max_line_length

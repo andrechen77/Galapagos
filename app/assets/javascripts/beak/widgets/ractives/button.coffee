@@ -15,6 +15,7 @@ ButtonEditForm = EditForm.extend({
   , source:         undefined # String
   , startsDisabled: undefined # Boolean
   , type:           undefined # String
+  , parentEditor:   null # GalapagosEditor | null
   }
 
   computed: { displayedType: { get: -> @_typeToDisplay(@get('type')) } }
@@ -65,7 +66,7 @@ ButtonEditForm = EditForm.extend({
 
       <spacer height="15px" />
 
-      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" parseMode="embedded"/>
+      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" parseMode="embedded" parentEditor={{parentEditor}}/>
 
       <spacer height="15px" />
 
@@ -100,6 +101,7 @@ RactiveButton = RactiveWidget.extend({
     errorClass:         undefined # String
   , ticksStarted:       undefined # Boolean
   , isRunning:          false     # Boolean
+  , parentEditor:       null      # GalapagosEditor | null
   }
 
   computed: {
@@ -170,7 +172,8 @@ RactiveButton = RactiveWidget.extend({
     {{>button}}
     <editForm actionKey="{{widget.actionKey}}" display="{{widget.display}}"
               idBasis="{{id}}" isForever="{{widget.forever}}" source="{{widget.source}}"
-              startsDisabled="{{widget.disableUntilTicksStart}}" type="{{widget.buttonKind}}" />
+              startsDisabled="{{widget.disableUntilTicksStart}}" type="{{widget.buttonKind}}"
+              parentEditor={{parentEditor}}/>
     """
 
   partials: {

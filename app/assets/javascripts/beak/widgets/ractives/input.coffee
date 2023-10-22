@@ -77,7 +77,9 @@ InputEditForm = EditForm.extend({
 
 RactiveInput = RactiveValueWidget.extend({
 
-  data: -> {}
+  data: -> {
+    parentEditor: null # GalapagosEditor | null
+  }
 
   widgetType: "input"
 
@@ -222,6 +224,7 @@ RactiveInput = RactiveValueWidget.extend({
               parseMode="onelinereporter" {{! TODO could be multilinereporter depending on the settings}}
               initialCode="{{internalValue}}"
               isDisabled="{{isEditing}}"
+              parentEditor={{parentEditor}}
             />
           </div>
         {{/}}

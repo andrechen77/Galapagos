@@ -20,6 +20,7 @@ ChooserEditForm = EditForm.extend({
             "Invalid format: Must be a space-separated list of NetLogo literal values"
         elem.setCustomValidity(validityStr)
     )
+  , parentEditor: null # GalapagosEditor | null
   }
 
   twoway: false
@@ -54,7 +55,8 @@ ChooserEditForm = EditForm.extend({
       <formVariable id="{{id}}-varname" value="{{display}}"        name="varName" />
       <formCode     id="{{id}}-choices" value="{{chooserChoices}}" name="codeChoices"
                     parseMode="onelinereporter" {{! TODO need a parse mode that accepts whitespace-separated literals}}
-                    label="Choices" onchange="{{setHiddenInput}}" />
+                    label="Choices" onchange="{{setHiddenInput}}"
+                    parentEditor={{parentEditor}}/>
       <input id="{{id}}-choices-hidden" name="trueCodeChoices" class="all-but-hidden"
              style="margin: -5px 0 0 7px;" type="text" />
       <div class="widget-edit-hint-text">Example: "a" "b" "c" 1 2 3</div>
@@ -68,6 +70,7 @@ RactiveChooser = RactiveValueWidget.extend({
 
   data: -> {
     resizeDirs:         ['left', 'right']
+    parentEditor:       null # GalapagosEditor | null
   }
 
   widgetType: "chooser"
@@ -109,7 +112,7 @@ RactiveChooser = RactiveValueWidget.extend({
         {{/}}
       </select>
     </label>
-    <editForm idBasis="{{id}}" choices="{{widget.choices}}" display="{{widget.display}}" />
+    <editForm idBasis="{{id}}" choices="{{widget.choices}}" display="{{widget.display}}" parentEditor={{parentEditor}}/>
     """
 
   partials: {

@@ -28,6 +28,7 @@ PenForm = Ractive.extend({
   , setupCode:          undefined # String
   , shouldShowInLegend: undefined # Boolean
   , updateCode:         undefined # String
+  , parentEditor:       null # GalapagosEditor | null
 
     # (string) -> Unit
   , syncSetupCode: (code) ->
@@ -152,6 +153,7 @@ PenForm = Ractive.extend({
           onchange={{syncSetupCode}}
           value="{{setupCode}}"
           label="Pen setup commands"
+          parentEditor={{parentEditor}}
         />
         <spacer height="10px" />
         <formCode
@@ -161,6 +163,7 @@ PenForm = Ractive.extend({
           onchange={{syncUpdateCode}}
           value="{{updateCode}}"
           label="Pen update commands"
+          parentEditor={{parentEditor}}
         />
         <spacer height="10px" />
       {{/}}
@@ -186,6 +189,7 @@ PlotEditForm = EditForm.extend({
   , yLabel:     undefined # String
   , yMax:       undefined # Number
   , yMin:       undefined # Number
+  , parentEditor: null # GalapagosEditor | null
   }
 
   components: {
@@ -392,14 +396,16 @@ PlotEditForm = EditForm.extend({
           <formCode id="{{id}}-setup-code" isCollapsible="true" isExpanded="false"
                     parseMode="embedded"
                     value="{{setupCode}}" label="Plot setup commands"
-                    style="width: 100%;" />
+                    style="width: 100%;"
+                    parentEditor={{parentEditor}}/>
         </div>
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
           <formCode id="{{id}}-update-code" isCollapsible="true" isExpanded="false"
                     parseMode="embedded"
                     value="{{updateCode}}" label="Plot update commands"
-                    style="width: 100%;" />
+                    style="width: 100%;"
+                    parentEditor={{parentEditor}}/>
         </div>
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; margin-left: 18px; width: 100%;">Plot pens</div>
@@ -407,7 +413,8 @@ PlotEditForm = EditForm.extend({
           {{#each guiPens: index}}
             <formPen color="{{color}}" display="{{display}}" index="{{index}}"
                      interval="{{interval}}" modeIndex="{{mode}}" setupCode="{{setupCode}}"
-                     shouldShowInLegend="{{inLegend}}" updateCode="{{updateCode}}" />
+                     shouldShowInLegend="{{inLegend}}" updateCode="{{updateCode}}"
+                     parentEditor={{parentEditor}}/>
           {{/each}}
           <input type="button" on-click="@this.fire('add-new')" style="height: 26px; margin: 8px 0 8px 6px;" value="Add Pen" />
         </div>
@@ -425,6 +432,7 @@ RactivePlot = RactiveWidget.extend({
   data: -> {
     menuIsOpen:     false
   , resizeCallback: ((x, y) ->)
+  , parentEditor:   null # GalapagosEditor | null
   }
 
   components: {
@@ -500,7 +508,8 @@ RactivePlot = RactiveWidget.extend({
               legendOn={{widget.legendOn}} pens="{{widget.pens}}"
               setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
               xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
-              yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}" />
+              yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
+              parentEditor={{parentEditor}}/>
     """
   # coffeelint: enable=max_line_length
 

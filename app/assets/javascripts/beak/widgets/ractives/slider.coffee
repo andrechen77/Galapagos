@@ -30,6 +30,7 @@ SliderEditForm = EditForm.extend({
   , units:     undefined # String
   , value:     undefined # Number
   , variable:  undefined # String
+  , parentEditor: null # GalapagosEditor | null
   }
 
   twoway: false
@@ -89,17 +90,20 @@ SliderEditForm = EditForm.extend({
         <column>
           <formMinCode id="{{id}}-min-code" label="Minimum" name="minCode" {{! config="{ scrollbarStyle: 'null' }" }}
                        parseMode="onelinereporter"
-                       value="{{minCode}}" />
+                       value="{{minCode}}"
+                       parentEditor={{parentEditor}}/>
         </column>
         <column>
           <formStepCode id="{{id}}-step-code" label="Increment" name="stepCode" {{! config="{ scrollbarStyle: 'null' }" }}
                         parseMode="onelinereporter"
-                        value="{{stepCode}}" />
+                        value="{{stepCode}}"
+                        parentEditor={{parentEditor}}/>
         </column>
         <column>
           <formMaxCode id="{{id}}-max-code" label="Maximum" name="maxCode" {{! config="{ scrollbarStyle: 'null' }" }}
                        parseMode="onelinereporter"
-                       value="{{maxCode}}" />
+                       value="{{maxCode}}"
+                       parentEditor={{parentEditor}}/>
         </column>
       </div>
 
@@ -127,6 +131,7 @@ RactiveSlider = RactiveValueWidget.extend({
   data: -> {
     errorClass:         undefined # String
   , internalValue:      0         # Number
+  , parentEditor:       null      # GalapagosEditor | null
   }
 
   widgetType: "slider"
@@ -179,7 +184,8 @@ RactiveSlider = RactiveValueWidget.extend({
     <editForm direction="{{widget.direction}}" idBasis="{{id}}" maxCode="{{widget.max}}"
               minCode="{{widget.min}}" stepCode="{{widget.step}}" units="{{widget.units}}"
               top="{{widget.top}}" right="{{widget.right}}" bottom="{{widget.bottom}}"
-              left="{{widget.left}}" value="{{widget.default}}" variable="{{widget.variable}}" />
+              left="{{widget.left}}" value="{{widget.default}}" variable="{{widget.variable}}"
+              parentEditor={{parentEditor}}/>
     """
 
   partials: {
