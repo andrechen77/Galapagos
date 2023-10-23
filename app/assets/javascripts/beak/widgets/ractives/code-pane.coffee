@@ -13,6 +13,9 @@ RactiveCodePane = Ractive.extend({
     setAsParent: null # (GalapagosEditor) -> Unit | null
     # (see 'code-container.coffee' for a description of `setAsParent`)
 
+    # State (but others can set it ig)
+    widgetVarNames: [] # Array[String]
+
     # Internal State
     procedureNames: {} # Object<string, number>
     autoCompleteStatus: false # boolean
@@ -75,6 +78,7 @@ RactiveCodePane = Ractive.extend({
           initialCode={{initialCode}}
           isDisabled={{isReadOnly}}
           setAsParent={{setAsParent}}
+          widgetVarNames={{widgetVarNames}}
         />
       </div>
     </div>

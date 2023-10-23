@@ -121,12 +121,22 @@ RactiveParentCodeContainer = RactiveCodeContainer.extend({
     # a way to get a handle on the editor so that it can be set as the parent
     # of other editors. Thus, it wouldn't make sense to have both `parentEditor`
     # and `setAsParent` set at the same time for a component.
+
+    # State
+
+    widgetVarNames: [] # Array[String]
   }
 
   on: {
     render: ->
       if (setAsParent = @get('setAsParent'))?
         setAsParent(@get('editor'))
+
+      # add observer here because we want to make sure the editor exists before
+      # the observer fires.
+      @observe('widgetVarNames', (widgetVarNames) ->
+        @get('editor').SetWidgetVariables(widgetVarNames)
+      )
   }
 })
 

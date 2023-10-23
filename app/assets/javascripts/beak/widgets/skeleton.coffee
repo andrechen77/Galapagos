@@ -59,6 +59,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
     ticks:                "" # Remember, ticks initialize to nothing, not 0
     ticksStarted:         false
     widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
+    widgetVarNames:       undefined # Array[String]
     viewController:       viewController # ViewController
     width:                0
     parentEditor:         null
@@ -165,9 +166,15 @@ generateRactiveSkeleton = (container, widgets, code, info,
       @set('showInspectionPane', true)
       @findComponent('inspection').setInspect(action)
 
+    # (Unit) -> Unit
+    recalculateWidgetVarNames: ->
+      @set('widgetVarNames', convertWidgetsToVarNames(@get('widgetObj')))
+
     on: {
       'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
+      render: ->
+        @recalculateWidgetVarNames()
     }
 
     observe: {
@@ -315,7 +322,7 @@ template =
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
       <div style="{{#!showCode}}display: none;{{/}}">
-        <codePane initialCode={{code}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}}/>
+        <codePane initialCode={{code}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}} widgetVarNames={{widgetVarNames}}/>
       </div>
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
@@ -368,5 +375,9 @@ widgetCreationOptions = [
   ["Slider",  "slider"],
   ["Switch",  "switch"],
 ].map((args) -> genWidgetCreator(args...))
+
+# `widgetObj` is just the type of the skeleton's 'widgetObj' data.
+convertWidgetsToVarNames = (widgetObj) ->
+  Object.values(widgetObj).map((widget) -> widget.variable).filter((x) -> x?)
 
 export default generateRactiveSkeleton
