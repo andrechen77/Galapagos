@@ -33,7 +33,11 @@ RactiveCodePane = Ractive.extend({
 
   _setupProceduresDropdown: ->
     dropdownElement = $(@find('.netlogo-procedurenames-dropdown'))
-    dropdownElement.chosen({ search_contains: true })
+    dropdownElement.chosen({
+      search_contains: true,
+      width: getComputedStyle(dropdownElement[0]).getPropertyValue('width')
+      # The width needs to be manually specified to match, otherwise the menu will show up with 0 width.
+    })
     dropdownElement.on('change', =>
       procedureNames = @get('procedureNames')
       selectedProcedure = dropdownElement.val()
