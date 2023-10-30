@@ -59,7 +59,7 @@ class ViewController
     # Tracks the latest known information about the location of the mouse.
     # `currentlyInteracting` denotes whether the start handler has been fired without the corresponding end handler
     # having been fired yet. If `currentlyInteracting` is true, `view` must not also be undefined.
-    @_latestMouseInfo = { currentlyInteracting: false, view: undefined, pageX: 0, pageY: 0, xPcor: 0, yPcor: 0 }
+    @_latestMouseInfo = { currentlyInteracting: false, view: undefined, clientX: 0, clientY: 0, xPcor: 0, yPcor: 0 }
 
     @repaint()
     return
@@ -68,8 +68,8 @@ class ViewController
   # where MouseHandler: ({
   #   event: MouseEvent? | TouchEvent?,
   #   view: View,
-  #   pageX: number,
-  #   pageY: number,
+  #   clientX: number,
+  #   clientY: number,
   #   xPcor: number?,
   #   yPcor: number?,
   # }) -> Unit
@@ -80,9 +80,9 @@ class ViewController
   # was called.
   registerMouseListeners: (downHandler, moveHandler, upHandler) ->
     if @_latestMouseInfo.currentlyInteracting
-      { view, pageX, pageY, xPcor, yPcor } = @_latestMouseInfo
-      @_mouseListeners[0]?.upHandler({ view, pageX, pageY, xPcor, yPcor })
-      downHandler({ view, pageX, pageY, xPcor, yPcor })
+      { view, clientX, clientY, xPcor, yPcor } = @_latestMouseInfo
+      @_mouseListeners[0]?.upHandler({ view, clientX, clientY, xPcor, yPcor })
+      downHandler({ view, clientX, clientY, xPcor, yPcor })
     handlerObj = { downHandler, moveHandler, upHandler }
     @_mouseListeners.unshift(handlerObj)
     =>
@@ -165,8 +165,8 @@ class ViewController
     updateLatestMouseInfo = (mouseHandlerArg) =>
       {
         view: @_latestMouseInfo.view,
-        pageX: @_latestMouseInfo.pageX,
-        pageY: @_latestMouseInfo.pageY,
+        clientX: @_latestMouseInfo.clientX,
+        clientY: @_latestMouseInfo.clientY,
         xPcor: @_latestMouseInfo.xPcor,
         yPcor: @_latestMouseInfo.yPcor
       } = mouseHandlerArg
@@ -251,8 +251,8 @@ class View
     createMouseHandlerArg = (e) => {
       event: e,
       view: this,
-      pageX: e.pageX,
-      pageY: e.pageY,
+      clientX: e.clientX,
+      clientY: e.clientY,
       xPcor: @xPixToPcor(e.offsetX),
       yPcor: @yPixToPcor(e.offsetY)
     }
@@ -285,9 +285,9 @@ class View
     # element.
     createMouseHandlerArg = (e) =>
       { left, top, right, bottom } = @_visibleCanvas.getBoundingClientRect()
-      { pageX, pageY, clientX, clientY } = e.changedTouches[0]
+      { clientX, clientY } = e.changedTouches[0]
       [
-        { event: e, view: this, pageX, pageY, xPcor: @xPixToPcor(clientX - left), yPcor: @yPixToPcor(clientY - top) },
+        { event: e, view: this, clientX, clientY, xPcor: @xPixToPcor(clientX - left), yPcor: @yPixToPcor(clientY - top) },
         (left <= clientX <= right) and (top <= clientY <= bottom)
       ]
 

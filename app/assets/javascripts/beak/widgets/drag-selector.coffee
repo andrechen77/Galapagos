@@ -6,15 +6,15 @@
 attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
   # Creating these variables in this private scope essentially turns them into state that is used by the handler
   # functions below.
-  startPageX = undefined # the pixel-based position of where the mouse started dragging; immune to world-wrapping
-  startPageY = undefined
+  startClientX = undefined # the pixel-based position of where the mouse started dragging; immune to world-wrapping
+  startClientY = undefined
   startX = undefined # the patch coordinates of where the mouse started dragging
   startY = undefined
   endX = undefined # the patch coordinates of where the mouse is currently dragging to
   endY = undefined
 
   # (number, number) -> Array[Agent]
-  getAgentsInArea = (endPageX, endPageY) ->
+  getAgentsInArea = (endClientX, endClientY) ->
     # The drag never went through valid points.
     if not startX? or not startY? then return []
 
@@ -22,7 +22,7 @@ attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
     The weirdness of these calculations is intended to account for wrapping.
 
     The reason I used this strange algorithm is because we can't make any guarantees about whether `startX > endX` or
-    `startPageX > endPageX`, etc.
+    `startClientX > endClientX`, etc.
 
     Explanation of algorithm:
 
@@ -41,8 +41,8 @@ attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
     that the mouse landed in the opposite direction in-universe, then wrapping must have occurred. Therefore, we use an
     XOR to find whether there is disagreement.
     ###
-    xwrap = (endPageX >= startPageX) isnt (endX >= startX)
-    ywrap = (endPageY <= startPageY) isnt (endY >= startY)
+    xwrap = (endClientX >= startClientX) isnt (endX >= startX)
+    ywrap = (endClientY <= startClientY) isnt (endY >= startY)
     checkWithinRegion = (x, y) ->
       # Parentheses inserted to prevent chained comparisons (i.e `a isnt b isnt c` becoming `a isnt b and a isnt c`)
       (xwrap isnt ((x >= startX) isnt (x >= endX))) and (ywrap isnt ((y >= startY) isnt (y >= endY)))
@@ -65,18 +65,18 @@ attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
       startY or= yPcor
       endY = yPcor
 
-  downHandler = ({ pageX, pageY, xPcor, yPcor }) ->
-    startPageX = pageX
-    startPageY = pageY
-    dragSelectionBox.beginDrag(pageX, pageY)
+  downHandler = ({ clientX, clientY, xPcor, yPcor }) ->
+    startClientX = clientX
+    startClientY = clientY
+    dragSelectionBox.beginDrag(clientX, clientY)
     updatePosition(xPcor, yPcor)
-  moveHandler = ({ pageX, pageY, xPcor, yPcor }) ->
+  moveHandler = ({ clientX, clientY, xPcor, yPcor }) ->
     if dragSelectionBox.checkDragInProgress()
-      dragSelectionBox.continueDrag(pageX, pageY)
+      dragSelectionBox.continueDrag(clientX, clientY)
       updatePosition(xPcor, yPcor)
-  upHandler = ({ pageX, pageY }) ->
+  upHandler = ({ clientX, clientY }) ->
     dragSelectionBox.endDrag()
-    onComplete(getAgentsInArea(pageX, pageY))
+    onComplete(getAgentsInArea(clientX, clientY))
   unsubscribe = viewController.registerMouseListeners(downHandler, moveHandler, upHandler)
   unsubscribe
 

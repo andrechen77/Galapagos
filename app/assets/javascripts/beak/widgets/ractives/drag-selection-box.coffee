@@ -37,7 +37,7 @@ RactiveDragSelectionBox = Ractive.extend({
     {{#visible}}
       <div
         class="drag-selection-box"
-        style="top: {{top}}px; left: {{left}}px; width: {{width}}px; height: {{height}}px;"
+        style="position:fixed; top: {{top}}px; left: {{left}}px; width: {{width}}px; height: {{height}}px;"
       ></div>
     {{/}}
   """
