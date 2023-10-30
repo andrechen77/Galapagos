@@ -66,17 +66,15 @@ RactiveCodeContainer = Ractive.extend({
       # because if this code container was rendered with a `parentEditor`
       # prop already specified, we should wait for this editor to actually be
       # created before we try to add it as a child to the parent editor.
-      @observe('parentEditor', ((parentEditor) ->
-        if parentEditor?
-          parentEditor.AddChild(@get('editor'))
-          # Note that there is a potential memory leak here. If this code
-          # container gets unrendered and destroyed, we have no way of
-          # unregistering our GalapagosEditor instance from the parent editor,
-          # which means that it will be kept alive (even as the Ractive itself
-          # is destroyed). Thus, if the user keeps rendering and unrendering
-          # GalapagosEditors, then the parent editor's number of children will
-          # only grow with dead children.
+      @observe('parentEditor', ((newParentEditor, oldParentEditor) ->
+        if oldParentEditor?
+          oldParentEditor.RemoveChild(@get('editor'))
+        if newParentEditor?
+          newParentEditor.AddChild(@get('editor'))
       ))
+      @on('unrender', ->
+        @get('editor').Detach()
+      )
   }
 
   observe: {
