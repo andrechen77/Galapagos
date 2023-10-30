@@ -155,6 +155,7 @@ RactiveCommandInput = Ractive.extend({
         isDisabled={{isReadOnly}}
         placeholder={{placeholderText}}
         parentEditor={{parentEditor}}
+        editorContext={{targetedAgentObj.agentType}}
       />
     </div>
   """

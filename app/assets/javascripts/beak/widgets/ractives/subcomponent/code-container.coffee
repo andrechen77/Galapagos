@@ -20,6 +20,10 @@ RactiveCodeContainer = Ractive.extend({
     placeholder: "" # string
     parentEditor: null # GalapagosEditor | null
 
+    # State (which parents can update)
+    editorContext: null # string | null
+    # if null, the context will be decided by GalapagosEditor
+
     # State
     editor: undefined # GalapagosEditor
     placeholderElement: document.createElement('span')
@@ -72,6 +76,10 @@ RactiveCodeContainer = Ractive.extend({
         if newParentEditor?
           newParentEditor.AddChild(@get('editor'))
       ))
+      @observe('editorContext', (editorContext) ->
+        console.log("setting context to #{editorContext}")
+        @get('editor').SetContext(editorContext)
+      )
       @on('unrender', ->
         @get('editor').Detach()
       )
