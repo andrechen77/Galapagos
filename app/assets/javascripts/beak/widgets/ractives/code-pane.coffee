@@ -78,7 +78,7 @@ RactiveCodePane = Ractive.extend({
       </ul>
       <div class="netlogo-code-tab">
         <codeContainer
-          parseMode="normal"
+          codeContainerType="full_model"
           initialCode={{initialCode}}
           isDisabled={{isReadOnly}}
           setAsParent={{setAsParent}}

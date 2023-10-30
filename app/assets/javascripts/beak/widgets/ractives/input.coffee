@@ -217,11 +217,22 @@ RactiveInput = RactiveValueWidget.extend({
             {{# isEditing }}disabled{{/}} >
           </textarea>
         {{/}}
-        {{# widget.boxedValue.type === 'String (reporter)' || widget.boxedValue.type === 'String (commands)' }}
+        {{# widget.boxedValue.type === 'String (reporter)'}}
           <div class="netlogo-multiline-input">
             <editor
               id="{{id}}-code"
-              parseMode="onelinereporter" {{! TODO could be multilinereporter depending on the settings}}
+              codeContainerType="multi_line_reporter"
+              initialCode="{{internalValue}}"
+              isDisabled="{{isEditing}}"
+              parentEditor={{parentEditor}}
+            />
+          </div>
+        {{/}}
+        {{# widget.boxedValue.type === 'String (commands)' }}
+          <div class="netlogo-multiline-input">
+            <editor
+              id="{{id}}-code"
+              codeContainerType="embedded"
               initialCode="{{internalValue}}"
               isDisabled="{{isEditing}}"
               parentEditor={{parentEditor}}

@@ -66,7 +66,7 @@ ButtonEditForm = EditForm.extend({
 
       <spacer height="15px" />
 
-      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" parseMode="embedded" parentEditor={{parentEditor}}/>
+      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" codeContainerType="embedded" parentEditor={{parentEditor}}/>
 
       <spacer height="15px" />
 

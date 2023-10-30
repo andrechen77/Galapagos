@@ -51,7 +51,7 @@ MonitorEditForm = EditForm.extend({
       """
       <formCode
         id="{{id}}-source"
-        parseMode="onelinereporter" {{! TODO should be multiline reporter }}
+        codeContainerType="multi_line_reporter"
         name="source"
         value="{{source}}"
         label="Reporter"

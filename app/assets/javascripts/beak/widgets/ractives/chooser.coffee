@@ -54,7 +54,7 @@ ChooserEditForm = EditForm.extend({
       """
       <formVariable id="{{id}}-varname" value="{{display}}"        name="varName" />
       <formCode     id="{{id}}-choices" value="{{chooserChoices}}" name="codeChoices"
-                    parseMode="onelinereporter" {{! TODO need a parse mode that accepts whitespace-separated literals}}
+                    codeContainerType="multi_line_reporter"
                     label="Choices" onchange="{{setHiddenInput}}"
                     parentEditor={{parentEditor}}/>
       <input id="{{id}}-choices-hidden" name="trueCodeChoices" class="all-but-hidden"

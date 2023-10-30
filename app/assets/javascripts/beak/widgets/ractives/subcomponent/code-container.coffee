@@ -1,19 +1,19 @@
 # TODO actually import the enum and use the constants instead of the equivalent literals
 
-parseModeMapping = {
-  'normal': 'Normal',
-  'oneline': 'Oneline',
-  'onelinereporter': 'OnelineReporter',
-  'embedded': 'Embedded',
-  'generative': 'Generative'
+codeContainerMapping = {
+  'full_model': { parseMode: 'Normal', oneLine: false },
+  'command': { parseMode: 'Oneline', oneLine: true },
+  'one_line_reporter': { parseMode: 'Reporter', oneLine: true },
+  'multi_line_reporter': { parseMode: 'Reporter', oneLine: false },
+  'embedded': { parseMode: 'Embedded', oneLine: false },
+  'generative': { parseMode: 'Generative', oneLine: false }
 }
-# type ParseMode = keyof typeof parseModeMapping
-# corresponding to the parse modes of the GalapagosEditor
+# type CodeContainerType = keyof typeof codeContainerMapping
 
 RactiveCodeContainer = Ractive.extend({
   data: -> {
     # Props
-    parseMode: undefined # ParseMode
+    codeContainerType: undefined # CodeContainerType
     initialCode: "" # string
     onKeyUp: -> # (KeyboardEvent) -> Unit
     isDisabled: false # boolean
@@ -41,13 +41,12 @@ RactiveCodeContainer = Ractive.extend({
 
   on: {
     render: ->
-      parseMode = @get('parseMode')
-      oneLine = parseMode is 'oneline' or parseMode is 'onelinereporter'
+      { parseMode, oneLine } = codeContainerMapping[@get('codeContainerType')]
       editor = new GalapagosEditor(@find(".netlogo-code"), {
         ReadOnly: @get('isDisabled'),
         Language: 0,
         Placeholder: @get('placeholderElement'),
-        ParseMode: parseModeMapping[parseMode],
+        ParseMode: parseMode,
         OneLine: oneLine,
         Wrapping: not oneLine,
         OnUpdate: (_documentChanged, _viewUpdate) =>

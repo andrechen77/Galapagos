@@ -149,7 +149,7 @@ PenForm = Ractive.extend({
         <formCode
           id="{{id}}-setup-code"
           name="setupCode"
-          parseMode="embedded"
+          codeContainerType="embedded"
           onchange={{syncSetupCode}}
           value="{{setupCode}}"
           label="Pen setup commands"
@@ -159,7 +159,7 @@ PenForm = Ractive.extend({
         <formCode
           id="{{id}}-update-code"
           name="updateCode"
-          parseMode="embedded"
+          codeContainerType="embedded"
           onchange={{syncUpdateCode}}
           value="{{updateCode}}"
           label="Pen update commands"
@@ -394,7 +394,7 @@ PlotEditForm = EditForm.extend({
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
           <formCode id="{{id}}-setup-code" isCollapsible="true" isExpanded="false"
-                    parseMode="embedded"
+                    codeContainerType="embedded"
                     value="{{setupCode}}" label="Plot setup commands"
                     style="width: 100%;"
                     parentEditor={{parentEditor}}/>
@@ -402,7 +402,7 @@ PlotEditForm = EditForm.extend({
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
           <formCode id="{{id}}-update-code" isCollapsible="true" isExpanded="false"
-                    parseMode="embedded"
+                    codeContainerType="embedded"
                     value="{{updateCode}}" label="Plot update commands"
                     style="width: 100%;"
                     parentEditor={{parentEditor}}/>

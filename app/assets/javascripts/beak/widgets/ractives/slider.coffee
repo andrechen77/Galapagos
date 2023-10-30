@@ -89,19 +89,19 @@ SliderEditForm = EditForm.extend({
       <div class="flex-row" style="align-items: stretch; justify-content: space-around">
         <column>
           <formMinCode id="{{id}}-min-code" label="Minimum" name="minCode" {{! config="{ scrollbarStyle: 'null' }" }}
-                       parseMode="onelinereporter"
+                       codeContainerType="one_line_reporter"
                        value="{{minCode}}"
                        parentEditor={{parentEditor}}/>
         </column>
         <column>
           <formStepCode id="{{id}}-step-code" label="Increment" name="stepCode" {{! config="{ scrollbarStyle: 'null' }" }}
-                        parseMode="onelinereporter"
+                        codeContainerType="one_line_reporter"
                         value="{{stepCode}}"
                         parentEditor={{parentEditor}}/>
         </column>
         <column>
           <formMaxCode id="{{id}}-max-code" label="Maximum" name="maxCode" {{! config="{ scrollbarStyle: 'null' }" }}
-                       parseMode="onelinereporter"
+                       codeContainerType="one_line_reporter"
                        value="{{maxCode}}"
                        parentEditor={{parentEditor}}/>
         </column>

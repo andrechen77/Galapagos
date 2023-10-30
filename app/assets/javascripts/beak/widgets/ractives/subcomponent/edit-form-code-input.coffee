@@ -8,7 +8,7 @@ RactiveEditFormCode = Ractive.extend({
   data: -> {
     # Props
     id: undefined # string
-    parseMode: undefined # ParseMode; see "code-container.coffee" for definition
+    codeContainerType: undefined # CodeContainerType; see "code-container.coffee" for definition
     label: undefined # String
     value: undefined # string
     isDisabled: false # boolean
@@ -53,7 +53,7 @@ RactiveEditFormCode = Ractive.extend({
     </div>
     <div class="{{# isCollapsible && !isExpanded }}hidden{{/}}">
       <codeContainer
-        parseMode={{parseMode}}
+        codeContainerType={{codeContainerType}}
         initialCode={{value}}
         isDisabled={{isDisabled}}
         parentEditor={{parentEditor}}
