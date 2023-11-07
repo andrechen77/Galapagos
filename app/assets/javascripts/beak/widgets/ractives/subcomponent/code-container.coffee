@@ -81,7 +81,9 @@ RactiveCodeContainer = Ractive.extend({
         @get('editor').SetContext(editorContext)
       )
       @on('unrender', ->
-        @get('editor').Detach()
+        editor = @get('editor')
+        if editor.ParentEditor?
+          editor.Detach()
       )
   }
 
