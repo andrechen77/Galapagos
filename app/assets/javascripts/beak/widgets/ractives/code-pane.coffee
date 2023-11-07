@@ -23,7 +23,10 @@ RactiveCodePane = Ractive.extend({
 
   computed: {
     # string
-    code: -> @findComponent('codeContainer').get('code')
+    code: {
+      get: -> @findComponent('codeContainer').get('code')
+      set: (code) -> @findComponent('codeContainer').set('code', code)
+    }
   }
 
   on: {

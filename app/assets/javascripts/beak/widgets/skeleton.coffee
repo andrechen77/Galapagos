@@ -29,7 +29,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
   model = {
     checkIsReporter
-    code
+    initialCode:          code
     consoleOutput:        ''
     exportForm:           false
     hasFocus:             false
@@ -153,6 +153,12 @@ generateRactiveSkeleton = (container, widgets, code, info,
       hasRevertedWork: ->
         @get('workInProgressState') is 'enabled-with-reversion'
 
+      code: {
+        get: ->
+          @findComponent('codePane').get('code')
+        set: (code) ->
+          @findComponent('codePane').set('code', code)
+      }
     },
 
     getContextMenuOptions: (x, y) ->
@@ -322,7 +328,7 @@ template =
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
       <div style="{{#!showCode}}display: none;{{/}}">
-        <codePane initialCode={{code}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}} widgetVarNames={{widgetVarNames}}/>
+        <codePane initialCode={{initialCode}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}} widgetVarNames={{widgetVarNames}}/>
       </div>
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
