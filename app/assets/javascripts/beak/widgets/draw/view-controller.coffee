@@ -355,10 +355,10 @@ class View
 
     # See if the width has changed.
     if not w? or w is @_windowWidth
-      # Since the rectangle did not specify a new width, we should calculate the width ourselves
+      # If the rectangle did not specify a new width, we should calculate the width ourselves
       # to maintain the aspect ratio. We use the canvas dimensions to calculate the aspect ratio since
       # they haven't changed from the last frame, whereas `@_windowHeight` has.
-      @_windowWidth = h * @_visibleCanvas.width / @_visibleCanvas.height
+      @_windowWidth = w ? (h * @_visibleCanvas.width / @_visibleCanvas.height)
       @_setCanvasDimensionsAndClear(canvasHeight, false)
       return
 
