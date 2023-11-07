@@ -504,7 +504,7 @@ RactiveInspectionPane = Ractive.extend({
       # ignore other cases
 
   template: """
-    <div class='netlogo-tab-content'>
+    <div class='netlogo-tab-content netlogo-inspection-pane'>
       <div on-click="@.toggle('dragToSelectEnabled')">
         DRAG SELECT ({{#if dragToSelectEnabled}}on{{else}}off{{/if}})
       </div>

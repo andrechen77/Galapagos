@@ -63,7 +63,7 @@ RactiveAgentVarField = Ractive.extend({
   template: """
     <div>
       {{varName}}:
-      <input value={{currentInput}} on-change="['submit-input', currentInput]"/>
+      <input style="width: 50px;" value={{currentInput}} on-change="['submit-input', currentInput]"/>
     </div>
   """
 })

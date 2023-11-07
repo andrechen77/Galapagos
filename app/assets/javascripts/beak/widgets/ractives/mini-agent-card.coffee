@@ -31,7 +31,7 @@ RactiveMiniAgentCard = Ractive.extend({
 
   template: """
     <div
-      style="border: 1px solid black; min-width: 160px; {{#selected}}background-color: lightblue;{{/}}"
+      style="border: 1px solid black; min-width: 150px; {{#selected}}background-color: lightblue;{{/}}"
       on-click="['clicked-agent-card', agent]"
       on-dblclick="['dblclicked-agent-card', agent]"
     >
