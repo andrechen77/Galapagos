@@ -77,7 +77,6 @@ RactiveCodeContainer = Ractive.extend({
           newParentEditor.AddChild(@get('editor'))
       ))
       @observe('editorContext', (editorContext) ->
-        console.log("setting context to #{editorContext}")
         @get('editor').SetContext(editorContext)
       )
       @on('unrender', ->

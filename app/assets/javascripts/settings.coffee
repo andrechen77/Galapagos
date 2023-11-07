@@ -70,7 +70,6 @@ class Settings
       @workInProgress.storageTag = params.get('storageTag')
 
     if params.has('viewQuality')
-      console.log("applying query params")
       viewQualityStr = params.get('viewQuality')
       @viewQuality = Math.max(Math.floor(parseFloatOrElse(viewQualityStr, 1)))
 
