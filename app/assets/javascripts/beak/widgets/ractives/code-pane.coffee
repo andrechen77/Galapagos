@@ -12,6 +12,8 @@ RactiveCodePane = Ractive.extend({
     initialCode: "initial code goes here" # string
     setAsParent: null # (GalapagosEditor) -> Unit | null
     # (see 'code-container.coffee' for a description of `setAsParent`)
+    lastCompiledCode: undefined
+    lastCompileFailed: undefined
 
     # State (but others can set it ig)
     widgetVarNames: [] # Array[String]
@@ -27,6 +29,9 @@ RactiveCodePane = Ractive.extend({
       get: -> @findComponent('codeContainer').get('code')
       set: (code) -> @findComponent('codeContainer').set('code', code)
     }
+
+    # boolean
+    isStale: "(code !== lastCompiledCode) || lastCompileFailed"
   }
 
   on: {
@@ -68,6 +73,7 @@ RactiveCodePane = Ractive.extend({
           {{# !isReadOnly }}
             <button
               class="netlogo-widget netlogo-ugly-button netlogo-recompilation-button"
+              {{# !isStale}}disabled{{/}}
               on-click="['recompile', 'user']"
             >Recompile Code</button>
           {{/}}

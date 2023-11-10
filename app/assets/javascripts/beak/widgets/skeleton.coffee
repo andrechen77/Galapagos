@@ -328,7 +328,14 @@ template =
         <span class="netlogo-tab-text{{#lastCompileFailed}} netlogo-widget-error{{/}}">NetLogo Code</span>
       </label>
       <div style="{{#!showCode}}display: none;{{/}}">
-        <codePane initialCode={{initialCode}} isReadOnly={{isReadOnly}} setAsParent={{receiveParentEditor}} widgetVarNames={{widgetVarNames}}/>
+        <codePane
+          initialCode={{initialCode}}
+          lastCompiledCode={{lastCompiledCode}}
+          lastCompileFailed={{lastCompileFailed}}
+          isReadOnly={{isReadOnly}}
+          setAsParent={{receiveParentEditor}}
+          widgetVarNames={{widgetVarNames}}
+        />
       </div>
       <label class="netlogo-tab{{#showInfo}} netlogo-active{{/}}">
         <input id="info-toggle" type="checkbox" checked="{{ showInfo }}" on-change="['model-info-toggled', showInfo]" />
