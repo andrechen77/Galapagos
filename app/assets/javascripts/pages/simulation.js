@@ -105,8 +105,8 @@ function handleCompileResult(result) {
     } else {
       activeContainer = alertDialog;
       loadingOverlay.style.display = 'none';
+      notifyListeners('compiler-error', result.source, result.errors);
     }
-    notifyListeners('compiler-error', result.source, result.errors);
   }
 }
 

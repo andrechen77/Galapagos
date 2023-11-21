@@ -5,9 +5,13 @@ import { createNotifier, listenerEvents } from "../notifications/listener-events
 
 # (String|DomElement, BrowserCompiler, Array[Rewriter], Array[Listener], ModelResult,
 #  Boolean, String, String, NlogoSource, Boolean) => SessionLite
-newSession = (container, compiler, rewriters, listeners, modelResult,
+newSession = (container, compiler, rewriters, listeners, modelResult, origModelResult
   isReadOnly, locale, workInProgressState, nlogoSource, lastCompileFailed) ->
   { code, info, model: { result }, widgets: wiggies } = modelResult
+  compilerErrors = if not origModelResult.model.success
+    origModelResult.model.result
+  else
+    []
   widgets = globalEval(wiggies)
   info    = toNetLogoWebMarkdown(info)
   session = new SessionLite(
@@ -25,6 +29,7 @@ newSession = (container, compiler, rewriters, listeners, modelResult,
   , nlogoSource
   , result
   , lastCompileFailed
+  , compilerErrors
   )
   session
 
@@ -115,6 +120,7 @@ fromNlogoSync = (nlogoSource, container, locale, isUndoReversion,
     , rewriters
     , listeners
     , result
+    , result
     , false
     , locale
     , workInProgressState
@@ -140,6 +146,7 @@ fromNlogoSync = (nlogoSource, container, locale, isUndoReversion,
       , rewriters
       , listeners
       , secondChanceResult
+      , result
       , false
       , locale
       , workInProgressState

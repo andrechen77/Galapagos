@@ -35,7 +35,8 @@ class SessionLite
   # (Tortoise, Element|String, BrowserCompiler, Array[Rewriter], Array[Listener], Array[Widget],
   #   String, String, Boolean, String, String, NlogoSource, String, Boolean)
   constructor: (@tortoise, container, @compiler, @rewriters, listeners, widgets,
-    code, info, isReadOnly, @locale, workInProgressState, @nlogoSource, modelJS, lastCompileFailed) ->
+    code, info, isReadOnly, @locale, workInProgressState, @nlogoSource, modelJS,
+    lastCompileFailed, compilerErrors) ->
 
     @_eventLoopTimeout = -1
     @_lastRedraw       = 0
@@ -85,6 +86,10 @@ class SessionLite
     # coffeelint: enable=max_line_length
 
     ractive.set('lastCompileFailed', lastCompileFailed)
+
+    # Given that the session was started, any errors that we have must have been recoverable ones;
+    # that's why we pass "compile-recoverable" as the source of the errors.
+    @widgetController.reportError("compiler", "compile-recoverable", compilerErrors)
 
     # The global 'modelConfig' variable is used by the Tortoise runtime - David D. 7/2021
     window.modelConfig         = Object.assign(window.modelConfig ? {}, @widgetController.configs)
