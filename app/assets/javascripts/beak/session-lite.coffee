@@ -87,9 +87,10 @@ class SessionLite
 
     ractive.set('lastCompileFailed', lastCompileFailed)
 
-    # Given that the session was started, any errors that we have must have been recoverable ones;
-    # that's why we pass "compile-recoverable" as the source of the errors.
-    @widgetController.reportError("compiler", "compile-recoverable", compilerErrors)
+    if compilerErrors.length > 0
+      # Given that the session was started, any errors that we have must have been recoverable ones;
+      # that's why we pass "compile-recoverable" as the source of the errors.
+      @widgetController.reportError("compiler", "compile-recoverable", compilerErrors)
 
     # The global 'modelConfig' variable is used by the Tortoise runtime - David D. 7/2021
     window.modelConfig         = Object.assign(window.modelConfig ? {}, @widgetController.configs)
