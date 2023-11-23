@@ -17,6 +17,7 @@ RactiveEditFormCode = Ractive.extend({
     parentEditor: null # GalapagosEditor | null
 
     # State, but can be set by parent
+    compilerErrors: [] # Array[RuntimeError]
     isExpanded: undefined # boolean | undefined
                           # if undefined this will be immediately set to the opposite of 'isCollapsible'
   }
@@ -57,6 +58,7 @@ RactiveEditFormCode = Ractive.extend({
         initialCode={{value}}
         isDisabled={{isDisabled}}
         parentEditor={{parentEditor}}
+        compilerErrors={{compilerErrors}}
       />
     </div>
   """

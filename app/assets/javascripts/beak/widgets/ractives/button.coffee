@@ -16,6 +16,7 @@ ButtonEditForm = EditForm.extend({
   , startsDisabled: undefined # Boolean
   , type:           undefined # String
   , parentEditor:   null # GalapagosEditor | null
+  , compilerErrors: [] # Array[RuntimeError]
   }
 
   computed: { displayedType: { get: -> @_typeToDisplay(@get('type')) } }
@@ -66,7 +67,15 @@ ButtonEditForm = EditForm.extend({
 
       <spacer height="15px" />
 
-      <formCode id="{{id}}-source" name="source" value="{{source}}" label="Commands" codeContainerType="embedded" parentEditor={{parentEditor}}/>
+      <formCode
+        id="{{id}}-source"
+        name="source"
+        value="{{source}}"
+        label="Commands"
+        codeContainerType="embedded"
+        parentEditor={{parentEditor}}
+        compilerErrors={{compilerErrors}}
+      />
 
       <spacer height="15px" />
 
@@ -144,6 +153,22 @@ RactiveButton = RactiveWidget.extend({
     'widget.running': (isRunning) ->
       @set('isRunning', isRunning)
       return
+    'widget.compilation': (newResult, oldResult) ->
+      # We assume that we're only going to get a new compilation artifact if a recompile was done.
+      # We do this check so that it doesn't re-inform the code container of the same compiler
+      # errors every frame; we only do it when there has been a recompile.
+      # This seems to work for now, but it's okay if we reset the errors a tad more often than we
+      # should, as long as we don't miss any recompilations.
+      if oldResult isnt newResult
+        # Tortoise doesn't yet give us a start and end to where the error was; instead it just
+        # gives us a message so use that instead.
+        sourceLength = @get('widget').source.length
+        compilerErrors = newResult.messages.map((message) -> {
+          message,
+          start: 0,
+          end: sourceLength,
+        })
+        @findComponent('editForm').set('compilerErrors', compilerErrors)
   }
 
   components: {
