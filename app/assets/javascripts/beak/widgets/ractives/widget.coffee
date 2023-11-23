@@ -221,6 +221,21 @@ RactiveWidget = RactiveDraggableAndContextable.extend({
 
   }
 
+  observe: {
+    'widget.compilation': (newResult, oldResult) ->
+      # We assume that we're only going to get a new compilation artifact if a recompile was done.
+      # We do this check so that it doesn't re-inform the code container of the same compiler
+      # errors every frame; we only do it when there has been a recompile.
+      # This seems to work for now, but it's okay if we reset the errors a tad more often than we
+      # should, as long as we don't miss any recompilations.
+      if oldResult isnt newResult
+        editForm = @findComponent('editForm')
+        editForm.fire('new-compilation-result', {}, newResult)
+        if newResult.success
+          editForm.fire('activate-cloaking-device')
+      return
+  }
+
   # coffeelint: disable=max_line_length
   partials: {
     editorOverlay:

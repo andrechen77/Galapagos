@@ -25,6 +25,17 @@ ButtonEditForm = EditForm.extend({
     'handle-action-key-press': ({ event: { key }, node }) ->
       if key isnt "Enter"
         node.value = ""
+    'new-compilation-result': (_, result) ->
+      # Tortoise doesn't yet give us a start and end to where the error was; instead it just
+      # gives us a message so use that instead.
+      sourceLength = @get('source').length
+      compilerErrors = result.messages.map((message) -> {
+        message,
+        start: 0,
+        end: sourceLength,
+      })
+      @set('compilerErrors', compilerErrors)
+      false
   }
 
   twoway: false
@@ -152,27 +163,6 @@ RactiveButton = RactiveWidget.extend({
   observe: {
     'widget.running': (isRunning) ->
       @set('isRunning', isRunning)
-      return
-    'widget.compilation': (newResult, oldResult) ->
-      # We assume that we're only going to get a new compilation artifact if a recompile was done.
-      # We do this check so that it doesn't re-inform the code container of the same compiler
-      # errors every frame; we only do it when there has been a recompile.
-      # This seems to work for now, but it's okay if we reset the errors a tad more often than we
-      # should, as long as we don't miss any recompilations.
-      if oldResult isnt newResult
-        editForm = @findComponent('editForm')
-        if newResult.success
-          editForm.fire('activate-cloaking-device')
-        else
-          # Tortoise doesn't yet give us a start and end to where the error was; instead it just
-          # gives us a message so use that instead.
-          sourceLength = @get('widget').source.length
-          compilerErrors = newResult.messages.map((message) -> {
-            message,
-            start: 0,
-            end: sourceLength,
-          })
-          editForm.set('compilerErrors', compilerErrors)
       return
   }
 
