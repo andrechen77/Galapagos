@@ -160,15 +160,20 @@ RactiveButton = RactiveWidget.extend({
       # This seems to work for now, but it's okay if we reset the errors a tad more often than we
       # should, as long as we don't miss any recompilations.
       if oldResult isnt newResult
-        # Tortoise doesn't yet give us a start and end to where the error was; instead it just
-        # gives us a message so use that instead.
-        sourceLength = @get('widget').source.length
-        compilerErrors = newResult.messages.map((message) -> {
-          message,
-          start: 0,
-          end: sourceLength,
-        })
-        @findComponent('editForm').set('compilerErrors', compilerErrors)
+        editForm = @findComponent('editForm')
+        if newResult.success
+          editForm.fire('activate-cloaking-device')
+        else
+          # Tortoise doesn't yet give us a start and end to where the error was; instead it just
+          # gives us a message so use that instead.
+          sourceLength = @get('widget').source.length
+          compilerErrors = newResult.messages.map((message) -> {
+            message,
+            start: 0,
+            end: sourceLength,
+          })
+          editForm.set('compilerErrors', compilerErrors)
+      return
   }
 
   components: {
