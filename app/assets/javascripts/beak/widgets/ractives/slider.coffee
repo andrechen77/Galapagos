@@ -31,6 +31,9 @@ SliderEditForm = EditForm.extend({
   , value:     undefined # Number
   , variable:  undefined # String
   , parentEditor: null # GalapagosEditor | null
+  , maxCodeErrors: [] # Array[RuntimeError]
+  , minCodeErrors: [] # Array[RuntimeError]
+  , stepCodeErrors: [] # Array[RuntimeError]
   }
 
   twoway: false
@@ -44,6 +47,24 @@ SliderEditForm = EditForm.extend({
   , formVariable: RactiveEditFormVariable
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
+  }
+
+  on: {
+    'new-compilation-result': (_, result) ->
+      newData = { maxCodeErrors: [], minCodeErrors: [], stepCodeErrors: [] }
+      regex = RegExp("^slider '#{@get('variable')}' - slider.(\\w+):(?: (.*))?$")
+      for message in result.messages
+        [_, fieldName, messageContent] = message.match(regex) ? []
+        [errorArray, source] = switch fieldName
+          when "max" then [newData.maxCodeErrors, @get('maxCode')]
+          when "min" then [newData.minCodeErrors, @get('minCode')]
+          when "step" then [newData.stepCodeErrors, @get('stepCode')]
+          else
+            console.error("Failed to interpret Tortoise error message: %s", message)
+            [[], ""] # return dummy values that won't affect anything
+        errorArray.push({ message: messageContent, start: 0, end: source.length })
+      @set(newData)
+      false
   }
 
   genProps: (form) ->
@@ -91,19 +112,22 @@ SliderEditForm = EditForm.extend({
           <formMinCode id="{{id}}-min-code" label="Minimum" name="minCode" {{! config="{ scrollbarStyle: 'null' }" }}
                        codeContainerType="one_line_reporter"
                        value="{{minCode}}"
-                       parentEditor={{parentEditor}}/>
+                       parentEditor={{parentEditor}}
+                       compilerErrors={{minCodeErrors}}/>
         </column>
         <column>
           <formStepCode id="{{id}}-step-code" label="Increment" name="stepCode" {{! config="{ scrollbarStyle: 'null' }" }}
                         codeContainerType="one_line_reporter"
                         value="{{stepCode}}"
-                        parentEditor={{parentEditor}}/>
+                        parentEditor={{parentEditor}}
+                        compilerErrors={{stepCodeErrors}}/>
         </column>
         <column>
           <formMaxCode id="{{id}}-max-code" label="Maximum" name="maxCode" {{! config="{ scrollbarStyle: 'null' }" }}
                        codeContainerType="one_line_reporter"
                        value="{{maxCode}}"
-                       parentEditor={{parentEditor}}/>
+                       parentEditor={{parentEditor}}
+                       compilerErrors={{maxCodeErrors}}/>
         </column>
       </div>
 
