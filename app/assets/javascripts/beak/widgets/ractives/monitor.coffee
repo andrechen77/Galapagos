@@ -13,6 +13,7 @@ MonitorEditForm = EditForm.extend({
   , precision: undefined # Number
   , source:    undefined # String
   , parentEditor: null # GalapagosEditor | null
+  , compilerErrors: [] # Array[RuntimeError]
   }
 
   components: {
@@ -42,6 +43,22 @@ MonitorEditForm = EditForm.extend({
     ,    source: @findComponent('formCode').get('code')
     }
 
+  on: {
+    'new-compilation-result': (_, result) ->
+      sourceLength = @get('source').length
+      regex = RegExp("^monitor '#{@get('display')}' - monitor.reporter:(?: (.*))$")
+      newData = { compilerErrors: [] }
+      for message in result.messages
+        match = message.match(regex)
+        if not match?
+          console.error("Failed to interpret Tortoise error message: %s", message)
+          continue
+        messageContent = match[1]
+        newData.compilerErrors.push({ message: messageContent, start: 0, end: sourceLength })
+      @set(newData)
+      false
+  }
+
   partials: {
 
     title: "Monitor"
@@ -56,6 +73,7 @@ MonitorEditForm = EditForm.extend({
         value="{{source}}"
         label="Reporter"
         parentEditor={{parentEditor}}
+        compilerErrors={{compilerErrors}}
       />
 
       <spacer height="15px" />
