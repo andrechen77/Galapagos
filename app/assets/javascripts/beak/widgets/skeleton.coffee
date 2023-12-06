@@ -46,7 +46,6 @@ generateRactiveSkeleton = (container, widgets, code, info,
     showInspectionPane:   false
     lastCompiledCode:     code
     lastCompileFailed:    false
-    compilerErrors:       []
     lastDragX:            undefined
     lastDragY:            undefined
     modelTitle:           source.getModelTitle()
@@ -181,7 +180,12 @@ generateRactiveSkeleton = (container, widgets, code, info,
       'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
       'compiler-error': (_, source, details) ->
-        @set('compilerErrors', details)
+        switch source
+          when 'recompile', 'compile-recoverable'
+            @findComponent('codePane').set('compilerErrors', details)
+          else
+            console.error("received compiler error from unknown source: %s", source)
+        false
       render: ->
         @recalculateWidgetVarNames()
     }
@@ -335,7 +339,6 @@ template =
           initialCode={{initialCode}}
           lastCompiledCode={{lastCompiledCode}}
           lastCompileFailed={{lastCompileFailed}}
-          compilerErrors={{compilerErrors}}
           isReadOnly={{isReadOnly}}
           setAsParent={{receiveParentEditor}}
           widgetVarNames={{widgetVarNames}}
