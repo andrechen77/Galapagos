@@ -24,6 +24,7 @@ RactiveCodeContainer = Ractive.extend({
     editorContext: null # string | null
     # if null, the context will be decided by GalapagosEditor
     compilerErrors: [] # Array[RuntimeError]
+    runtimeErrors: [] # Array[RuntimeError]
 
     # State
     editor: undefined # GalapagosEditor
@@ -82,6 +83,9 @@ RactiveCodeContainer = Ractive.extend({
       )
       @observe('compilerErrors', (compilerErrors) ->
         @get('editor').SetCompilerErrors(compilerErrors)
+      )
+      @observe('runtimeErrors', (runtimeErrors) ->
+        @get('editor').SetRuntimeErrors(runtimeErrors)
       )
       @on('unrender', ->
         editor = @get('editor')

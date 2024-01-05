@@ -18,6 +18,7 @@ RactiveCodePane = Ractive.extend({
     # State (but others can set it ig)
     widgetVarNames: [] # Array[String]
     compilerErrors: [] # Array[RuntimeError]
+    runtimeErrors: [] # Array[RuntimeError]
 
     # Internal State
     procedureNames: {} # Object<string, number>
@@ -94,6 +95,7 @@ RactiveCodePane = Ractive.extend({
           setAsParent={{setAsParent}}
           widgetVarNames={{widgetVarNames}}
           compilerErrors={{compilerErrors}}
+          runtimeErrors={{runtimeErrors}}
         />
       </div>
     </div>

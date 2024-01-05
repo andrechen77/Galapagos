@@ -179,14 +179,29 @@ generateRactiveSkeleton = (container, widgets, code, info,
     on: {
       'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
-      'compiler-error': (_, source, details) ->
+      'compiler-error': (_, source, errors) ->
         switch source
           when 'recompile', 'compile-recoverable'
-            @findComponent('codePane').set('compilerErrors', details)
+            @findComponent('codePane').set('compilerErrors', errors)
           when 'console', 'inspection-pane'
             ; # do nothing
           else
             console.error("received compiler error from unknown source: %s", source)
+        false
+      'runtime-error': (_, source, exception, code) ->
+        message = exception.stackTraceMessage
+        codePaneErrors = for stackTraceItem in exception.stackTrace
+          switch stackTraceItem.type
+            when 'command', 'reporter'
+              {
+                message
+                start: stackTraceItem.location.start,
+                end: stackTraceItem.location.end
+              }
+            else
+              continue # don't display
+        if source isnt 'console'
+          @findComponent('codePane').set('runtimeErrors', codePaneErrors)
         false
       render: ->
         @recalculateWidgetVarNames()
