@@ -29,11 +29,13 @@ ButtonEditForm = EditForm.extend({
       # Tortoise doesn't yet give us a start and end to where the error was; instead it just
       # gives us a message so use that instead.
       sourceLength = @get('source').length
-      compilerErrors = result.messages.map((message) -> {
-        message,
-        start: 0,
-        end: sourceLength,
-      })
+      regex = RegExp("^button '#{@get('source')}' - button.(\\w+):(?: (.*))?$")
+      compilerErrors = for message in result.messages
+        [_, fieldName, messageContent] = message.match(regex) ? []
+        if fieldName isnt 'source'
+          console.error("Failed to interpret Tortoise error message: %s", message)
+          continue
+        { message: messageContent, start: 0, end: sourceLength }
       @set('compilerErrors', compilerErrors)
       false
   }
