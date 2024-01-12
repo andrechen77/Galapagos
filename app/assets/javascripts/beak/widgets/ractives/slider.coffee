@@ -50,10 +50,10 @@ SliderEditForm = EditForm.extend({
   }
 
   on: {
-    'new-compilation-result': (_, result) ->
+    'new-compilation-result': (_, widgetObj) ->
       newData = { maxCodeErrors: [], minCodeErrors: [], stepCodeErrors: [] }
       regex = RegExp("^slider '#{@get('variable')}' - slider.(\\w+):(?: (.*))?$")
-      for message in result.messages
+      for message in widgetObj.compilation.messages
         [_, fieldName, messageContent] = message.match(regex) ? []
         [errorArray, source] = switch fieldName
           when "max" then [newData.maxCodeErrors, @get('maxCode')]

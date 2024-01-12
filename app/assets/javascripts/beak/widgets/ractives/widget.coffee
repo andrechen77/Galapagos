@@ -230,7 +230,7 @@ RactiveWidget = RactiveDraggableAndContextable.extend({
       # should, as long as we don't miss any recompilations.
       if oldResult isnt newResult
         editForm = @findComponent('editForm')
-        editForm.fire('new-compilation-result', {}, newResult)
+        editForm.fire('new-compilation-result', {}, @get('widget'))
         if newResult.success
           editForm.fire('activate-cloaking-device')
       return

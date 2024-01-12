@@ -25,12 +25,12 @@ ButtonEditForm = EditForm.extend({
     'handle-action-key-press': ({ event: { key }, node }) ->
       if key isnt "Enter"
         node.value = ""
-    'new-compilation-result': (_, result) ->
+    'new-compilation-result': (_, widgetObj) ->
       # Tortoise doesn't yet give us a start and end to where the error was; instead it just
       # gives us a message so use that instead.
       sourceLength = @get('source').length
       regex = RegExp("^button '#{@get('source')}' - button.(\\w+):(?: (.*))?$")
-      compilerErrors = for message in result.messages
+      compilerErrors = for message in widgetObj.compilation.messages
         [_, fieldName, messageContent] = message.match(regex) ? []
         if fieldName isnt 'source'
           console.error("Failed to interpret Tortoise error message: %s", message)

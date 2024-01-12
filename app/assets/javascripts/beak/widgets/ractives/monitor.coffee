@@ -44,11 +44,11 @@ MonitorEditForm = EditForm.extend({
     }
 
   on: {
-    'new-compilation-result': (_, result) ->
+    'new-compilation-result': (_, widgetObj) ->
       sourceLength = @get('source').length
       regex = RegExp("^monitor '#{@get('display')}' - monitor.reporter:(?: (.*))$")
       newData = { compilerErrors: [] }
-      for message in result.messages
+      for message in widgetObj.compilation.messages
         match = message.match(regex)
         if not match?
           console.error("Failed to interpret Tortoise error message: %s", message)

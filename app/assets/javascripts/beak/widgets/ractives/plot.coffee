@@ -29,6 +29,8 @@ PenForm = Ractive.extend({
   , shouldShowInLegend: undefined # Boolean
   , updateCode:         undefined # String
   , parentEditor:       null # GalapagosEditor | null
+  , setupCodeErrors: [] # Array[RuntimeError]
+  , updateCodeErrors: [] # Array[RuntimeError]
 
     # (string) -> Unit
   , syncSetupCode: (code) ->
@@ -106,6 +108,21 @@ PenForm = Ractive.extend({
 
       false
 
+    'new-compilation-result': (_, result) ->
+      newData = { setupCodeErrors: [], updateCodeErrors: [] }
+      regex = RegExp("^pen '#{@get('display')}' - pen.(\\w+):(?: (.*))?$")
+      for message in result.messages
+        [_, fieldName, messageContent] = message.match(regex) ? []
+        [errorArray, source] = switch fieldName
+          when "setup" then [newData.setupCodeErrors, @get('setupCode')]
+          when "update" then [newData.updateCodeErrors, @get('updateCode')]
+          else
+            console.error("Failed to interpret Tortoise error message: %s", message)
+            [[], ""] # return dummy values that won't affect anything
+        errorArray.push({ message: messageContent, start: 0, end: source.length })
+      @set(newData)
+      false
+
   }
 
   # () => HTMLInputElement
@@ -154,6 +171,7 @@ PenForm = Ractive.extend({
           value="{{setupCode}}"
           label="Pen setup commands"
           parentEditor={{parentEditor}}
+          compilerErrors={{setupCodeErrors}}
         />
         <spacer height="10px" />
         <formCode
@@ -164,6 +182,7 @@ PenForm = Ractive.extend({
           value="{{updateCode}}"
           label="Pen update commands"
           parentEditor={{parentEditor}}
+          compilerErrors={{updateCodeErrors}}
         />
         <spacer height="10px" />
       {{/}}
@@ -190,6 +209,8 @@ PlotEditForm = EditForm.extend({
   , yMax:       undefined # Number
   , yMin:       undefined # Number
   , parentEditor: null # GalapagosEditor | null
+  , setupCodeErrors: [] # Array[RuntimeError]
+  , updateCodeErrors: [] # Array[RuntimeError]
   }
 
   components: {
@@ -238,8 +259,6 @@ PlotEditForm = EditForm.extend({
     guiPens = @get('guiPens')
 
     pens = @_clonePens(guiPens)
-
-    @set('guiPens', [])
 
     replaceIfEmpty = (str, replace) -> if str is '' then replace else str
 
@@ -313,6 +332,25 @@ PlotEditForm = EditForm.extend({
       @_trackedPens = cloned.map((pen) -> { name: pen.display, pen })
       @set('guiPens', cloned)
       true
+
+    'new-compilation-result': (_, widgetObj) ->
+      newData = { setupCodeErrors: [], updateCodeErrors: [] }
+      regex = RegExp("^plot '#{@get('display')}' - plot.(\\w+):(?: (.*))?$")
+      for message in widgetObj.compilation.messages
+        [_, fieldName, messageContent] = message.match(regex) ? []
+        [errorArray, source] = switch fieldName
+          when "setup" then [newData.setupCodeErrors, @get('setupCode')]
+          when "update" then [newData.updateCodeErrors, @get('updateCode')]
+          else
+            console.error("Failed to interpret Tortoise error message: %s", message)
+            [[], ""] # return dummy values that won't affect anything
+        errorArray.push({ message: messageContent, start: 0, end: source.length })
+      @set(newData)
+      
+      for penForm, index in @findAllComponents('formPen')
+        penForm.fire("new-compilation-result", {}, widgetObj.compiledPens[index].compilation)
+      
+      false
 
   }
 
@@ -397,7 +435,8 @@ PlotEditForm = EditForm.extend({
                     codeContainerType="embedded"
                     value="{{setupCode}}" label="Plot setup commands"
                     style="width: 100%;"
-                    parentEditor={{parentEditor}}/>
+                    parentEditor={{parentEditor}}
+                    compilerErrors={{setupCodeErrors}}/>
         </div>
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; width: 100%;">
@@ -405,7 +444,8 @@ PlotEditForm = EditForm.extend({
                     codeContainerType="embedded"
                     value="{{updateCode}}" label="Plot update commands"
                     style="width: 100%;"
-                    parentEditor={{parentEditor}}/>
+                    parentEditor={{parentEditor}}
+                    compilerErrors={{updateCodeErrors}}/>
         </div>
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; margin-left: 18px; width: 100%;">Plot pens</div>
