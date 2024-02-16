@@ -120,6 +120,10 @@ RactiveWidget = RactiveDraggableAndContextable.extend({
   getExtraNotificationArgs: (widget) ->
     []
 
+  # () => boolean
+  getCompilationSuccess: ->
+    @get('widget').compilation.success is true # just to make sure it's a boolean
+
   on: {
 
     'edit-widget': ->
@@ -231,7 +235,7 @@ RactiveWidget = RactiveDraggableAndContextable.extend({
       if oldResult isnt newResult
         editForm = @findComponent('editForm')
         editForm.fire('new-compilation-result', {}, @get('widget'))
-        if newResult.success
+        if @getCompilationSuccess()
           editForm.fire('activate-cloaking-device')
       return
   }

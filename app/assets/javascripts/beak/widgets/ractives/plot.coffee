@@ -8,6 +8,7 @@ import RactiveColorInput                from "./subcomponent/color-input.js"
 import { RactiveEditFormLabeledInput }  from "./subcomponent/labeled-input.js"
 import RactiveEditFormSpacer            from "./subcomponent/spacer.js"
 import RactiveWidget                    from "./widget.js"
+{ all } = tortoise_require('brazier/array')
 
 PlotEditForm = {}
 
@@ -346,10 +347,10 @@ PlotEditForm = EditForm.extend({
             [[], ""] # return dummy values that won't affect anything
         errorArray.push({ message: messageContent, start: 0, end: source.length })
       @set(newData)
-      
+
       for penForm, index in @findAllComponents('formPen')
         penForm.fire("new-compilation-result", {}, widgetObj.compiledPens[index].compilation)
-      
+
       false
 
   }
@@ -534,6 +535,11 @@ RactivePlot = RactiveWidget.extend({
   getExtraNotificationArgs: () ->
     widget = @get('widget')
     [widget.display]
+
+   # () => boolean
+  getCompilationSuccess: ->
+    widgetObj = @get('widget')
+    widgetObj.compilation.success and all((pen) -> pen.compilation.success)(widgetObj.compiledPens)
 
   minWidth:  100
   minHeight: 85
