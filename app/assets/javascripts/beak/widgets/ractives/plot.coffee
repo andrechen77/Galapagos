@@ -348,8 +348,9 @@ PlotEditForm = EditForm.extend({
         errorArray.push({ message: messageContent, start: 0, end: source.length })
       @set(newData)
 
-      for penForm, index in @findAllComponents('formPen')
-        penForm.fire("new-compilation-result", {}, widgetObj.compiledPens[index].compilation)
+      if widgetObj.compiledPens
+        for penForm, index in @findAllComponents('formPen')
+          penForm.fire("new-compilation-result", {}, widgetObj.compiledPens[index].compilation)
 
       false
 
