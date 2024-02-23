@@ -353,9 +353,9 @@ RactiveInspectionPane = Ractive.extend({
         @set('unsubscribeDragSelector', attachDragSelector(
           @get('viewController'),
           @root.findComponent('dragSelectionBox'),
+          (=> @setInspect({ type: 'clear-all' })),
           (agents) =>
             @setInspect({ type: 'add', agents })
-            @set('dragToSelectEnabled', false)
             return
         ))
       else
@@ -399,8 +399,8 @@ RactiveInspectionPane = Ractive.extend({
 
   ### type SetInspectAction =
     { type: 'add-focus', agent: Agent }
-    | { type: 'add' | 'remove', agents: Array[Agent] }
-    | { type: 'clear-dead' }
+    | { type: 'add' | 'remove' | 'replace', agents: Array[Agent] }
+    | { type: 'clear-all', 'clear-dead' }
   ###
   # (SetInspectAction) -> Unit
   setInspect: (action) ->
@@ -429,6 +429,12 @@ RactiveInspectionPane = Ractive.extend({
           if index isnt -1
             arr.splice(index, 1)
         @unselectAgents(action.agents)
+        @update('inspectedAgents')
+      when 'clear-all'
+        pruneTree(
+          @get('inspectedAgents'),
+          (obj) -> if isAgent(obj) then false else null
+        )
         @update('inspectedAgents')
       when 'clear-dead'
         pruneTree(

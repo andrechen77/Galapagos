@@ -1,9 +1,12 @@
-# Makes the specified `ViewController` listen for drags. Whenever a drag is finished, the `onComplete` function is
-# executed with the list of agents within the the dragged area as as argument.
-# Returns an unsubscribe function that can be used to stop listening; running this function will not run `onComplete`.
-# Requires the `world` global variable (of type `World`) to be available.
-# (ViewController, RactiveDragSelectionBox, (Array[Agent]) -> Unit) -> (Unit) -> Unit
-attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
+# Makes the specified `ViewController` listen for drags. When a drag (which
+# includes a click) begins,  the `onBegin` function is executed. Whenever a drag
+# is finished, the `onComplete` function is executed with the list of agents
+# within the the dragged area as as argument. Returns an unsubscribe function
+# that can be used to stop listening; running this function will not run
+# `onComplete`. Requires the `world` global variable (of type `World`) to be
+# available.
+# (ViewController, RactiveDragSelectionBox, (Unit) -> Unit, (Array[Agent]) -> Unit) -> (Unit) -> Unit
+attachDragSelector = (viewController, dragSelectionBox, onBegin, onComplete) ->
   # Creating these variables in this private scope essentially turns them into state that is used by the handler
   # functions below.
   startClientX = undefined # the pixel-based position of where the mouse started dragging; immune to world-wrapping
@@ -68,8 +71,11 @@ attachDragSelector = (viewController, dragSelectionBox, onComplete) ->
   downHandler = ({ clientX, clientY, xPcor, yPcor }) ->
     startClientX = clientX
     startClientY = clientY
+    startX = undefined # will be updated by updatePosition
+    startY = undefined
     dragSelectionBox.beginDrag(clientX, clientY)
     updatePosition(xPcor, yPcor)
+    onBegin()
   moveHandler = ({ clientX, clientY, xPcor, yPcor }) ->
     if dragSelectionBox.checkDragInProgress()
       dragSelectionBox.continueDrag(clientX, clientY)
