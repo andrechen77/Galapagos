@@ -353,7 +353,7 @@ RactiveInspectionPane = Ractive.extend({
         @set('unsubscribeDragSelector', attachDragSelector(
           @get('viewController'),
           @root.findComponent('dragSelectionBox'),
-          (=> @setInspect({ type: 'clear-all' })),
+          ((isShiftOrCtrlDrag) => if not isShiftOrCtrlDrag then @setInspect({ type: 'clear-all' })),
           (agents) =>
             @setInspect({ type: 'add', agents })
             return

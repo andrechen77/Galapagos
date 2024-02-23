@@ -1,11 +1,11 @@
 # Makes the specified `ViewController` listen for drags. When a drag (which
-# includes a click) begins,  the `onBegin` function is executed. Whenever a drag
-# is finished, the `onComplete` function is executed with the list of agents
-# within the the dragged area as as argument. Returns an unsubscribe function
-# that can be used to stop listening; running this function will not run
-# `onComplete`. Requires the `world` global variable (of type `World`) to be
-# available.
-# (ViewController, RactiveDragSelectionBox, (Unit) -> Unit, (Array[Agent]) -> Unit) -> (Unit) -> Unit
+# includes a click) begins, the `onBegin` function is executed with a boolean
+# argument describing whether the drag is a shift/ctrl drag. Whenever a drag is
+# finished, the `onComplete` function is executed with the list of agents within
+# the the dragged area as an argument . Returns an unsubscribe function that can be
+# used to stop listening; running this function will not run `onComplete`.
+# Requires the `world` global variable (of type `World`) to be available.
+# (ViewController, RactiveDragSelectionBox, (boolean) -> Unit, (Array[Agent]) -> Unit) -> (Unit) -> Unit
 attachDragSelector = (viewController, dragSelectionBox, onBegin, onComplete) ->
   # Creating these variables in this private scope essentially turns them into state that is used by the handler
   # functions below.
@@ -68,14 +68,14 @@ attachDragSelector = (viewController, dragSelectionBox, onBegin, onComplete) ->
       startY or= yPcor
       endY = yPcor
 
-  downHandler = ({ clientX, clientY, xPcor, yPcor }) ->
+  downHandler = ({ clientX, clientY, xPcor, yPcor, event: { ctrlKey, shiftKey } }) ->
     startClientX = clientX
     startClientY = clientY
     startX = undefined # will be updated by updatePosition
     startY = undefined
     dragSelectionBox.beginDrag(clientX, clientY)
     updatePosition(xPcor, yPcor)
-    onBegin()
+    onBegin(ctrlKey or shiftKey)
   moveHandler = ({ clientX, clientY, xPcor, yPcor }) ->
     if dragSelectionBox.checkDragInProgress()
       dragSelectionBox.continueDrag(clientX, clientY)
