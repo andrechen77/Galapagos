@@ -108,7 +108,7 @@ RactiveInspectionWindow = Ractive.extend({
             currentAgent
       # the agent could be Nobody
       if newAgent.id isnt -1
-        @fire('switch-agent', {}, newAgent)
+        @set('agent', newAgent)
       false
   }
 

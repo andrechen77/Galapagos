@@ -322,9 +322,6 @@ RactiveInspectionPane = Ractive.extend({
         @get('detailedAgents').filter((a) -> a != agent),
         { shuffle: true }
       )
-    'inspectionWindow.switch-agent': (_, agent) ->
-      console.log("TODO detailed window wants to switch agent")
-      false
     'commandInput.command-input-tabbed': -> false # ignore and block event
     unrender: ->
       @get('viewController').setHighlightedAgents([])
@@ -504,11 +501,9 @@ RactiveInspectionPane = Ractive.extend({
       </div>
     """
 
-    # TODO add a proper screen for detailed agents
     'detailsScreen': """
       <h3>details screen</h3>
       {{#each detailedAgents as agent}}
-        {{agent.getName()}}
         <inspectionWindow
           viewController={{viewController}}
           agent={{agent}}
