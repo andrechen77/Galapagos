@@ -141,6 +141,9 @@ RactiveCommandInput = Ractive.extend({
       # Moving to some point in history
       history[newIndex]
     @set({ targetedAgentObj, input, historyIndex: newIndex })
+    # note that setting targetedAgentObj might fail if whatever data it's
+    # actually mapped to refuses to be set (such as if the parent passes a
+    # computed property with a set function that does nothing)
 
   # (Unit) -> Unit
   focus: ->

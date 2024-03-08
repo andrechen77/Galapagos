@@ -35,41 +35,6 @@ calcCategoryPathDetails = (categoryPath) -> {
       categoryPath.at(-1)
 }
 
-RactiveBreadcrumbs = Ractive.extend({
-  data: -> {
-    # Props
-    path: undefined, # CategoryPath
-    goToPath: undefined, # (CategoryPath) -> Unit
-    optionalLeaf: null # string | null
-
-    # Consts
-
-    calcPartialPaths,
-    calcCategoryPathDetails
-  }
-
-  template: """
-    <div>
-      {{#each calcPartialPaths(path) as partialPath}}
-        <span on-click="goToPath(partialPath)">
-          {{calcCategoryPathDetails(partialPath).display}}
-        </span>
-        {{#unless @index == path.length}}{{>separator}}{{/unless}}
-      {{/each}}
-      {{#if optionalLeaf}}
-        {{>separator}}
-        {{optionalLeaf}}
-      {{/if}}
-    </div>
-  """
-
-  partials: {
-    'separator': """
-      <span>&nbsp/&nbsp</span>
-    """
-  }
-})
-
 # Given an object, returns an array of all the leaves in the object (viewing the object as a rooted tree). A value is
 # considered a leaf it is the direct child of an object for which `isPenultimateLayer` returns true.
 # (any, (any) -> boolean) -> Array
@@ -208,63 +173,46 @@ RactiveInspectionPane = Ractive.extend({
     inspectedAgents: { 'turtles': {}, 'patches': [], 'links': {} } # InspectedAgents
 
     ###
-    The `selection` describes the layout of the inspection pane.
-    Possible values of the `currentScreen` property:
-     * 'categories': the inspection pane shows a navigation screen to select agents by their type/breed.
-     * 'agents': the inspection pane shows a specific set of agents (selected from the categories screen)
-     * 'details': the inspection pane shows a full window with details about a specific agent.
-    type = {
-      currentScreen: 'categories',
-      selectedPaths: Array[CategoryPath]
-    } | {
-      currentScreen: 'agents',
-      currentPath: CategoryPath,
-      selectedAgents: Array[Agent]
-    } | {
-      currentScreen: 'details',
-      currentPath: CategoryPath,
-      currentAgent: Agent
+    type Selections = {
+      selectedPaths: Array[CategoryPath] # should at least have the root path (`[]`) if none other is selected
+      selectedAgents: Array[Agent] | null # null means to consider the categories as the main selections, not the agents
     }
-    where CategoryPath: Array[string] e.g. ["turtles"], ["turtles", "TURTLEBREEDNAME"], ["patches"]
     ###
-    selection: { currentScreen: 'categories', selectedPaths: [[]] }
+    selections: { selectedPaths: [[]], selectedAgents: null }
+
+    detailedAgents: [] # Array[Agent]; agents for which there is an opened detail window
+    # can be shared with inspection windows
 
     # Consts
-
-    # Returns whether, in its current state, the inspection pane should show a command input.
-    # (Unit) -> Unit
-    hasCommandInput: ->
-      switch @get('selection.currentScreen')
-        when 'agents', 'details' then true
-        when 'categories' then false
 
     # Returns whether to display a category as being "selected" based on its selection state.
     # ('exact' | 'partial' | 'inherit' | 'none') -> boolean
     getDisplayAsSelected: (categoryPath) ->
-      switch calcPathMatchMultiple(@get('selection.selectedPaths'), categoryPath)
+      switch calcPathMatchMultiple(@get('selections.selectedPaths'), categoryPath)
         when 'exact', 'partial' then true
         else false
 
-    # Only makes sense if 'selection.currentScreen' is 'agents'.
     # (Agent) -> boolean
-    getAgentSelectionState: (agent) -> @get('selection.selectedAgents').includes(agent)
+    getAgentSelectionState: (agent) ->
+      selectedAgents = @get('selections.selectedAgents')
+      selectedAgents? and selectedAgents.includes(agent)
 
     # (Array[string]) -> Array[Agent]
     getAgentsInPath: (path) ->
       flattenObject(@get(['inspectedAgents'].concat(path).join('.')), Array.isArray)
 
-    # (CategoryPath) -> Unit
-    goToPath: (categoryPath) ->
-      @selectCategory({ mode: 'replace', categoryPath })
+    # (Unit) -> Array[Agent]
+    getAgentsInSelectedPaths: ->
+      @get("selections.selectedPaths")?.flatMap(@get('getAgentsInPath')) ? []
 
-    # Only makes sense of 'selection.currentScreen' is 'categories'.
-    # Returns a 2D array where each row represents the children of the (most-recently) selected
-    # category of the previous row; if nothing is selected then the major categories ('turtles',
-    # 'patches', 'links') are shown. Doesn't show leaves (i.e. `Agent`s) in the 'inspectedAgents' tree.
+    # Returns a 2D array where each row represents the children of the
+    # (most-recently) selected category of the previous row; if nothing is
+    # selected then the major categories ('turtles', 'patches', 'links') are
+    # shown. Doesn't show leaves (i.e. `Agent`s) in the 'inspectedAgents' tree.
     # (Unit) -> Array[Array[CategoryPath]]
     getCategoryRows: ->
       # First get the paths that will make up the backbone of the grid.
-      paths = calcPartialPaths(@get('selection.selectedPaths').at(-1) ? [])
+      paths = calcPartialPaths(@get('selections.selectedPaths').at(-1) ? [])
 
       # Each category path will correspond to a row
       for path in paths
@@ -285,30 +233,25 @@ RactiveInspectionPane = Ractive.extend({
   computed: {
     targetedAgentObj: {
       get: ->
-        selection = @get('selection')
-        switch selection.currentScreen
-          when 'categories'
+        { selectedPaths, selectedAgents } = @get('selections')
+        console.assert(selectedPaths.length > 0)
+        if selectedAgents?
+          if selectedAgents.length == 0
+            { agentType: "observer", agents: [] }
+          else
+            # target all the agents of the same type as the most recently selected agent
+            agentType = getKeypathFor(selectedAgents.at(-1))[0]
             {
-              agentType: 'observer',
-              agents: selection.selectedPaths.flatMap(@get('getAgentsInPath'))
+              agentType,
+              agents: selectedAgents.filter((agent) -> getKeypathFor(agent)[0] == agentType)
             }
-          when 'agents'
-            inspected = @get('getAgentsInPath')(selection.currentPath)
-            selected = selection.selectedAgents
-            # For the second branch, we use `inspected` with `selected` as a filter instead of just `selected` directly
-            # because agents that stopped being inspected can still show up as selected if the user doesn't
-            # deselect them before `stop-inspecting` them. If/when this is no longer the case, we can iterate over
-            # `selected` directly.
-            targeted = if selected.length is 0 then inspected else inspected.filter((agent) -> selected.includes(agent))
-            {
-              agentType: selection.currentPath[0],
-              agents: targeted
-            }
-          when 'details'
-            {
-              agentType: selection.currentPath[0]
-              agents: [selection.currentAgent]
-            }
+        else
+          # target all the agents in selected paths
+          # TODO is this correct? it was copied from the previous prototype
+          {
+            agentType: 'observer',
+            agents: @get('getAgentsInSelectedPaths')()
+          }
       set: (targetedAgentObj) ->
         if not @get('updateTargetedAgentsInHistory')
           # ignore the set operation and force the targeted agent obj to remain the same
@@ -318,31 +261,22 @@ RactiveInspectionPane = Ractive.extend({
         # that the getter would return something equivalent to the value passed to this setter.
 
         { agentType, agents } = targetedAgentObj
-        if agents? and agents.length is 1 and @get('selection.currentScreen') is 'details'
-          # use 'details' screen
-          @openAgent(agents[0])
-        else
-          # use 'agents' screen
-          @openCategory([agentType])
-          @selectAgent({ mode: 'replace', agents })
+
+        @selectAgents({ mode: 'replace', agents })
     }
 
     # string
     commandPlaceholderText: ->
-      { agents } = @get('targetedAgentObj')
-      selection = @get('selection')
-      "Input command for " + switch selection.currentScreen
-        when 'categories'
-          # In the 'categories' screen, the command center is invisible anyway, so it doesn't matter what we return.
-          "selected categories"
-        when 'agents'
-          collectiveName = calcCategoryPathDetails(selection.currentPath).display
-          if not agents? or selection.selectedAgents.length is 0 # recall no selected agents means target all of them
-            "all #{collectiveName}"
-          else
-            "selected #{collectiveName}"
-        when 'details'
-          agents[0].getName()
+      { selectedPaths, selectedAgents } = @get('selections')
+      collectiveName = calcCategoryPathDetails(selectedPaths[0]).display
+      nounPhrase = if selectedAgents?
+        "selected #{collectiveName}"
+      else if selectedPaths.length == 1
+        # there is only one path selected
+        "all #{collectiveName}"
+      else
+        "agents in selected categories"
+      "Input command for #{nounPhrase}"
   }
 
   observe: {
@@ -363,7 +297,6 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   components: {
-    breadcrumbs: RactiveBreadcrumbs,
     miniAgentCard: RactiveMiniAgentCard,
     inspectionWindow: RactiveInspectionWindow,
     commandInput: RactiveCommandInput
@@ -373,24 +306,24 @@ RactiveInspectionPane = Ractive.extend({
     'clicked-category-card': (context, categoryPath) ->
       ctrl = context.event.ctrlKey
       @selectCategory({ mode: (if ctrl then 'toggle' else 'replace'), categoryPath })
-    'dblclicked-category-card': (context, categoryPath) ->
-      # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
-      if not context.event.ctrlKey
-        @openCategory(categoryPath)
     'miniAgentCard.clicked-agent-card': (context, agent) ->
       ctrl = context.event.ctrlKey
-      @selectAgent(if ctrl then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
+      @selectAgents(if ctrl then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
     'miniAgentCard.dblclicked-agent-card': (context, agent) ->
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
-        @openAgent(agent)
+        @toggleAgentDetails(agent)
     'miniAgentCard.closed-agent-card': (_, agent) ->
       @setInspect({ type: 'remove', agents: [agent] })
       false
-    'inspectionWindow.closed-inspection-window': ->
-      @setInspect({ type: 'remove', agents: [@get('selection.currentAgent')] })
+    'inspectionWindow.closed-inspection-window': (_, agent) ->
+      @set(
+        'detailedAgents',
+        @get('detailedAgents').filter((a) -> a != agent),
+        { shuffle: true }
+      )
     'inspectionWindow.switch-agent': (_, agent) ->
-      @openAgent(agent)
+      console.log("TODO detailed window wants to switch agent")
       false
     'commandInput.command-input-tabbed': -> false # ignore and block event
     unrender: ->
@@ -435,25 +368,26 @@ RactiveInspectionPane = Ractive.extend({
           @get('inspectedAgents'),
           (obj) -> if isAgent(obj) then false else null
         )
+        @set('selections.selectedAgents', null)
         @update('inspectedAgents')
       when 'clear-dead'
         pruneTree(
           @get('inspectedAgents'),
           (obj) -> if isAgent(obj) then not obj.isDead() else null
         )
+        @set('selections.selectedAgents', null)
         @update('inspectedAgents')
 
-  # Selects the specified category, entering the 'categories' screen if not already in it.
-  # 'replace' mode removes all other selected categories (single-clicking an item), while 'toggle' mode toggles whether
-  # the item is selected (ctrl-clicking an item). 'toggle' mode requires that the we already be in the 'categories'
-  # screen.
+  # Selects the specified category. 'replace' mode removes all other selected
+  # categories (single-clicking an item), while 'toggle' mode toggles whether
+  # the item is selected (ctrl-clicking an item).
   # ({ mode: 'replace' | 'toggle', categoryPath: CategoryPath }) -> Unit
   selectCategory: ({ mode, categoryPath }) ->
     selectedPaths = switch mode
       when 'replace'
         [categoryPath]
       when 'toggle'
-        paths = togglePresence(@get('selection.selectedPaths'), categoryPath, arrayEquals)[0]
+        [paths, _] = togglePresence(@get('selections.selectedPaths'), categoryPath, arrayEquals)
         if paths.length is 0 then paths.push([])
         paths
     ### @set('selection', { currentScreen: 'categories', selectedPaths }) ###
@@ -464,50 +398,47 @@ RactiveInspectionPane = Ractive.extend({
     # priority" (see https://ractive.js.org/concepts/#dependents), bunch of lying bastards. This complaining doesn't
     # cause any material issues, but it clogs up the console output. Therefore, we do a deep merge of the data, leaving
     # the keypath 'selection.currentAgent' valid even while 'selection.currentScreen' is 'categories'. However, the
-    # option `deep: true` doesn't even work correctly either :P so we just manually do the deep merge. This same problem
-    # should apply to other methods like `openCategory` but only seems to manifest when navigating away from the details
-    # screen.
+    # option `deep: true` doesn't even work correctly either :P so we just manually do the deep merge.
     # --Andre C. (2023-08-23)
     # begin kludgy bandaid
-    selection = @get('selection')
-    selection.currentScreen = 'categories'
-    selection.selectedPaths = selectedPaths
-    @update('selection')
+    selections = @get('selections')
+    selections.selectedPaths = selectedPaths
+    selections.selectedAgents = null
+    @update('selections')
     # end kludgy bandaid
 
-  # Enters 'agents' screen mode, displaying the set of agents in the specified category.
-  # (CategoryPath) -> Unit
-  openCategory: (categoryPath) ->
-    @set('selection', { currentScreen: 'agents', currentPath: categoryPath, selectedAgents: [] })
-
-  # Only makes sense if 'selection.currentScreen' is 'agents'.
-  # Selects the specified agents.
-  # 'replace' mode removes all other selected agents (single-clicking an item), while 'toggle' mode toggles whether
-  # the item is selected (ctrl-clicking an item).
+  # Selects the specified agents. 'replace' mode removes all other selected
+  # agents (single-clicking an item), while 'toggle' mode toggles whether the
+  # item is selected (ctrl-clicking an item).
   # ({ mode: 'replace', agents: Array[Agent] } | { mode: 'toggle', agent: Agent}) -> Unit
-  selectAgent: (arg) ->
-    selectedAgents = switch arg.mode
+  selectAgents: (arg) ->
+    { selectedAgents: oldSelectedAgents } = @get('selections')
+
+    newSelectedAgents = switch arg.mode
       when 'replace'
         arg.agents
       when 'toggle'
-        togglePresence(@get('selection.selectedAgents'), arg.agent, (a) -> (b) -> a is b)[0]
-    @set('selection.selectedAgents', selectedAgents)
+        if oldSelectedAgents?
+          togglePresence(oldSelectedAgents, arg.agent, (a) -> (b) -> a is b)[0]
+        else
+          [arg.agent]
 
-  # Enters 'details' screen mode, displaying detailed information and a mini view of the specified agent.
+    # keep the selected paths the same. if this method is called by the user
+    # clicking a mini agent card, then that means that the currently selected
+    # categories must have included the agents in this call
+
+    @set('selections.selectedAgents', newSelectedAgents)
+
+  # Opens or closese a details pane showing detailed information and a mini view of the specified agent.
   # (Agent) -> Unit
-  openAgent: (agent) ->
-    @set('selection', { currentScreen: 'details', currentPath: getKeypathFor(agent), currentAgent: agent })
+  toggleAgentDetails: (agent) ->
+    [newDetailedAgents, deleted] = togglePresence(@get('detailedAgents'), agent, (a) -> (b) -> a is b)
+    @set('detailedAgents', newDetailedAgents)
 
   # (Array[Agent]) -> Unit
   unselectAgents: (agentsToUnselect) ->
-    switch @get('selection.currentScreen')
-      when 'agents'
-        filtered = @get('selection.selectedAgents').filter((selected) -> not agentsToUnselect.includes(selected))
-        @set('selection.selectedAgents', filtered)
-      when 'details'
-        if agentsToUnselect.includes(@get('selection.currentAgent'))
-          @selectCategory({ mode: 'replace', categoryPath: [] })
-      # ignore other cases
+    filtered = @get('selections.selectedAgents')?.filter((selected) -> not agentsToUnselect.includes(selected))
+    @set('selections.selectedAgents', filtered)
 
   template: """
     <div class='netlogo-tab-content netlogo-inspection-pane'>
@@ -517,24 +448,16 @@ RactiveInspectionPane = Ractive.extend({
       <div on-click="@.toggle('updateTargetedAgentsInHistory')">
         Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
       </div>
-      {{#with selection}}
-        {{#if currentScreen == 'categories'}}
-          {{#if getAgentsInPath([]).length === 0}}
-            {{#if dragToSelectEnabled}}
-              Click or drag in the view to select agents.
-            {{else}}
-              To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
-              turn on drag select to activate inspection mode.
-            {{/if}}
-          {{else}}
-            {{>categoriesScreen}}
-          {{/if}}
-        {{elseif currentScreen == 'agents'}}
-          {{>agentsScreen}}
-        {{elseif currentScreen == 'details'}}
-          {{>detailsScreen}}
+      {{#with selections}}
+        {{#if dragToSelectEnabled}}
+          Click or drag in the view to select agents.
+        {{else}}
+          To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
+          turn on drag select to activate inspection mode.
         {{/if}}
-        <div style="{{#if !hasCommandInput()}}display: none; {{/if}}">
+        {{>categoriesScreen}}
+        {{>agentsScreen}}
+        <div>
           <commandInput
             isReadOnly={{isEditing}}
             source="inspection-pane"
@@ -544,13 +467,14 @@ RactiveInspectionPane = Ractive.extend({
             parentEditor={{parentEditor}}
           />
         </div>
+        {{>detailsScreen}}
       {{/with}}
     </div>
   """
 
   partials: {
     'categoriesScreen': """
-      categories screen<br/>
+      <h3>categories screen</h3>
       {{#each getCategoryRows() as categoryRow}}
         <div style="display: flex;">
           {{#each categoryRow as categoryPath}}
@@ -565,7 +489,6 @@ RactiveInspectionPane = Ractive.extend({
         <div
           style="min-width: 150px; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
           on-click="['clicked-category-card', path]"
-          on-dblclick="['dblclicked-category-card', path]"
         >
             {{display}} ({{getAgentsInPath(path).length}})
         </div>
@@ -573,27 +496,25 @@ RactiveInspectionPane = Ractive.extend({
     """
 
     'agentsScreen': """
-      agents screen<br/>
-      <breadcrumbs path="{{currentPath}}" goToPath="{{goToPath.bind(@this)}}"/>
+      <h3>agents screen</h3>
       <div style="display: flex; flex-wrap: wrap; width: 100%;">
-        {{#each getAgentsInPath(currentPath) as agent}}
+        {{#each getAgentsInSelectedPaths() as agent}}
           <miniAgentCard agent={{agent}} selected={{getAgentSelectionState(agent)}}/>
         {{/each}}
       </div>
     """
 
+    # TODO add a proper screen for detailed agents
     'detailsScreen': """
-      details screen<br/>
-      <breadcrumbs
-        path="{{currentPath}}"
-        goToPath="{{goToPath.bind(@this)}}"
-        optionalLeaf="{{currentAgent.getName()}}"
-      />
-      <inspectionWindow
-        viewController={{viewController}}
-        agent={{currentAgent}}
-        setInspect="{{@this.setInspect.bind(@this)}}"
-      />
+      <h3>details screen</h3>
+      {{#each detailedAgents as agent}}
+        {{agent.getName()}}
+        <inspectionWindow
+          viewController={{viewController}}
+          agent={{agent}}
+          setInspect="{{@this.setInspect.bind(@this)}}"
+        />
+      {{/each}}
     """
   }
 })
