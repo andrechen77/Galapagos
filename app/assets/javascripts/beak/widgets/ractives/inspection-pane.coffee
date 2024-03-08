@@ -215,7 +215,8 @@ RactiveInspectionPane = Ractive.extend({
       paths = calcPartialPaths(@get('selections.selectedPaths').at(-1) ? [])
 
       # Each category path will correspond to a row
-      for path in paths
+      rootLevel = [[]] # a list of just one path, the root path
+      nonRootLevels = for path in paths
         # Get this category's contents.
         contents = @get(['inspectedAgents'].concat(path).join('.'))
         # Don't display leaves or deeper
@@ -226,6 +227,7 @@ RactiveInspectionPane = Ractive.extend({
         childrenKeys = Object.keys(contents)
         # Return the path to these children.
         childrenKeys.map((key) -> path.concat([key]))
+      [rootLevel, nonRootLevels...]
 
     calcCategoryPathDetails
   }
