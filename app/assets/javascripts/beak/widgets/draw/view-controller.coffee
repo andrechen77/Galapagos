@@ -345,7 +345,7 @@ class View
   # See "./window-generators.coffee" for type info on "Rectangle"
   _updateDimensionsAndClear: ({ x: @_windowCornerX, y: @_windowCornerY, w, h, canvasHeight }) ->
     # See if the height has changed.
-    if not h? or h is @_windowHeight
+    if not h? or (h is @_windowHeight and w is @_windowWidth)
       # The new rectangle has the same dimensions as the old.
       @_setCanvasDimensionsAndClear(canvasHeight, false)
       return
