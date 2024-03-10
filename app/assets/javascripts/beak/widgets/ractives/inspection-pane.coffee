@@ -344,7 +344,7 @@ RactiveInspectionPane = Ractive.extend({
         array = @get(keypathStr)
         if not array? or not array.includes(agent)
           @push(keypathStr, agent)
-        @openAgent(agent)
+        @toggleAgentDetails(agent)
       when 'add'
         inspectedAgents = @get('inspectedAgents')
         for agent in action.agents
