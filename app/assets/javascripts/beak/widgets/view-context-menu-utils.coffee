@@ -1,28 +1,42 @@
+import { getEquivalentAgent } from "./draw/agent-conversion.js"
+
 # Given a world and a view into that world, returns a list of all the agents around the specified point. The point is
 # specified in DOM coordinates relative to the given view.
-# (World, View, number, number) -> [Agent]
-getClickedAgents = (world, view, xPix, yPix) ->
+# (AgentModel) -> (World, View, number, number) -> [Agent]
+getClickedAgents = (agentModel) -> (world, view, xPix, yPix) ->
   { left, top } = view.getBoundingClientRect()
   agentList = []
-  xPcor = view.xPixToPcor(xPix - left)
-  yPcor = view.yPixToPcor(yPix - top)
+  mouseX = view.xPixToPcor(xPix - left)
+  mouseY = view.yPixToPcor(yPix - top)
 
-  patchHere = world.getPatchAt(xPcor, yPcor)
+  patchHere = world.getPatchAt(mouseX, mouseY)
   if patchHere? then agentList.push(patchHere)
 
-  # TODO what follows is a rudimentary implementation that does not reflect NetLogo JVM's behavior. Whether the agents
-  # are hidden has to be taken into account, and the turtle calculations are more complicated.
-  # coffeelint: disable=max_line_length
-  # https://github.com/NetLogo/NetLogo/blob/c328d9663de7efc07184bde971dd22e162acfea4/netlogo-gui/src/main/window/View.java#L440
-  # coffeelint: enable=max_line_length
+  # converts an agent to its equivalent agent in the ViewController's AgentModel
+  getEquiv = getEquivalentAgent(agentModel)
 
   world.links().iterator().forEach((link) ->
-    if world.topology.distance(xPcor, yPcor, link) < 0.5
+    [modelLink, _] = getEquiv(link)
+    if modelLink['hidden?']
+      # don't add hidden links
+      return
+
+    [{ xcor: x1, ycor: y1 }, { xcor: x2, ycor: y2 }] = [link.end1, link.end2]
+    if world.topology.distanceToLine(x1, y1, x2, y2, mouseX, mouseY) < modelLink.thickness + 0.5
       agentList.push(link)
   )
 
   world.turtles().iterator().forEach((turtle) ->
-    if world.topology.distance(xPcor, yPcor, turtle) < 0.5
+    [modelTurtle, _] = getEquiv(turtle)
+    if modelTurtle['hidden?']
+      # don't add hidden turtles
+      return
+
+    offset = modelTurtle.size * 0.5
+    if offset * agentModel.world.patchsize < 3
+      offset += 3 / agentModel.world.patchsize
+
+    if world.topology.distance(mouseX, mouseY, turtle) <= offset
       agentList.push(turtle)
   )
 
