@@ -151,7 +151,7 @@ RactiveCommandInput = Ractive.extend({
     return
 
   template: """
-    <div class="netlogo-command-center-editor">
+    <div class="netlogo-command-center-editor" style="min-height:40px; width: 90%;">
       <codeContainer
         codeContainerType="command"
         onKeyUp={{onKeyUp}}

@@ -441,12 +441,10 @@ RactiveInspectionPane = Ractive.extend({
 
   template: """
     <div class='netlogo-tab-content netlogo-inspection-pane'>
-      <div on-click="@.toggle('dragToSelectEnabled')">
+      <button class="netlogo-ugly-button" on-click="@.toggle('dragToSelectEnabled')">
         DRAG SELECT ({{#if dragToSelectEnabled}}on{{else}}off{{/if}})
-      </div>
-      <div on-click="@.toggle('updateTargetedAgentsInHistory')">
-        Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
-      </div>
+      </button>
+      <br/>
       {{#with selections}}
         {{#if dragToSelectEnabled}}
           Click or drag in the view to select agents.
@@ -454,9 +452,15 @@ RactiveInspectionPane = Ractive.extend({
           To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
           turn on drag select to activate inspection mode.
         {{/if}}
+        <h3>inspected agents</h3>
         {{>categoriesScreen}}
+        <br/>
         {{>agentsScreen}}
         <div>
+          <button class="netlogo-ugly-button" on-click="@.toggle('updateTargetedAgentsInHistory')">
+            Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
+          </button>
+          <br/>
           <commandInput
             isReadOnly={{isEditing}}
             source="inspection-pane"
@@ -466,6 +470,7 @@ RactiveInspectionPane = Ractive.extend({
             parentEditor={{parentEditor}}
           />
         </div>
+        <h3>inspection windows</h3>
         {{>detailsScreen}}
       {{/with}}
     </div>
@@ -473,7 +478,6 @@ RactiveInspectionPane = Ractive.extend({
 
   partials: {
     'categoriesScreen': """
-      <h3>categories screen</h3>
       {{#each getCategoryRows() as categoryRow}}
         <div style="display: flex;">
           {{#each categoryRow as categoryPath}}
@@ -486,8 +490,9 @@ RactiveInspectionPane = Ractive.extend({
     'categoryCard': """
       {{#with calcCategoryPathDetails(this) }}
         <div
-          style="min-width: 150px; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
+          style="width: 150px; height: 15px; overflow: clip; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
           on-click="['clicked-category-card', path]"
+          title="{{display}} ({{getAgentsInPath(path).length}})"
         >
             {{display}} ({{getAgentsInPath(path).length}})
         </div>
@@ -495,8 +500,7 @@ RactiveInspectionPane = Ractive.extend({
     """
 
     'agentsScreen': """
-      <h3>agents screen</h3>
-      <div style="display: flex; flex-wrap: wrap; width: 100%;">
+      <div style="display: flex; flex-wrap: wrap; width: 90%; min-height: 50px; border: 1px solid black;">
         {{#each getAgentsInSelectedPaths() as agent}}
           <miniAgentCard agent={{agent}} selected={{getAgentSelectionState(agent)}}/>
         {{/each}}
@@ -504,7 +508,6 @@ RactiveInspectionPane = Ractive.extend({
     """
 
     'detailsScreen': """
-      <h3>details screen</h3>
       {{#each detailedAgents as agent}}
         <inspectionWindow
           viewController={{viewController}}
