@@ -4,6 +4,7 @@ import RactiveCommandInput from "./command-input.js"
 import { attachDragSelector } from "../drag-selector.js"
 
 { arrayEquals } = tortoise_require('brazier/equals')
+{ unique } = tortoise_require('brazier/array')
 Turtle = tortoise_require('engine/core/turtle')
 Patch = tortoise_require('engine/core/patch')
 Link = tortoise_require('engine/core/link')
@@ -180,6 +181,8 @@ RactiveInspectionPane = Ractive.extend({
     ###
     selections: { selectedPaths: [[]], selectedAgents: null }
 
+    commandPlaceholderText: "" # string
+
     detailedAgents: [] # Array[Agent]; agents for which there is an opened detail window
     # can be shared with inspection windows
 
@@ -233,27 +236,29 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   computed: {
+    # computing this value also the command placeholder text
     targetedAgentObj: {
       get: ->
         { selectedPaths, selectedAgents } = @get('selections')
         console.assert(selectedPaths.length > 0)
-        if selectedAgents?
-          if selectedAgents.length == 0
-            { agentType: "observer", agents: [] }
-          else
-            # target all the agents of the same type as the most recently selected agent
-            agentType = getKeypathFor(selectedAgents.at(-1))[0]
-            {
-              agentType,
-              agents: selectedAgents.filter((agent) -> getKeypathFor(agent)[0] == agentType)
-            }
+
+        [targetedAgents, quantifierText] = if selectedAgents?
+          [selectedAgents, "selected"]
         else
-          # target all the agents in selected paths
-          # TODO is this correct? it was copied from the previous prototype
-          {
-            agentType: 'observer',
-            agents: @get('getAgentsInSelectedPaths')()
-          }
+          [@get('getAgentsInSelectedPaths')(), "all"]
+
+        # check whether the selected paths are all of the same agent type
+        # (i.e. turtles, patches, or links).
+        selectedAgentTypes = unique(selectedPaths.map((path) -> path[0] ? 'root'))
+        if selectedAgentTypes.length == 1 and selectedAgentTypes[0] != 'root'
+          categoriesText = selectedPaths.map((path) -> calcCategoryPathDetails(path).display).join(", ")
+          @set('commandPlaceholderText', "Input command for #{quantifierText} #{categoriesText}")
+          { agentType: selectedAgentTypes[0], agents: targetedAgents }
+        else
+          # the agents are not of the same type (mix of turtles, patches, links)
+          # so just send the commands to the observer
+          @set('commandPlaceholderText', "Input command for OBSERVER")
+          { agentType: 'observer', agents: targetedAgents }
       set: (targetedAgentObj) ->
         if not @get('updateTargetedAgentsInHistory')
           # ignore the set operation and force the targeted agent obj to remain the same
@@ -266,19 +271,6 @@ RactiveInspectionPane = Ractive.extend({
 
         @selectAgents({ mode: 'replace', agents })
     }
-
-    # string
-    commandPlaceholderText: ->
-      { selectedPaths, selectedAgents } = @get('selections')
-      collectiveName = calcCategoryPathDetails(selectedPaths[0]).display
-      nounPhrase = if selectedAgents?
-        "selected #{collectiveName}"
-      else if selectedPaths.length == 1
-        # there is only one path selected
-        "all #{collectiveName}"
-      else
-        "agents in selected categories"
-      "Input command for #{nounPhrase}"
   }
 
   observe: {
