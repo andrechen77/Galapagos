@@ -504,6 +504,9 @@ RactiveInspectionPane = Ractive.extend({
         <inspectionWindow
           viewController={{viewController}}
           agent={{agent}}
+          isEditing={{isEditing}}
+          checkIsReporter={{checkIsReporter}}
+          parentEditor={{parentEditor}}
           setInspect="{{@this.setInspect.bind(@this)}}"
         />
       {{/each}}

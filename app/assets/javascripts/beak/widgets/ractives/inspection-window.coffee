@@ -3,18 +3,23 @@ import { getDimensions } from "../draw/perspective-utils.js"
 import { getClickedAgents, agentToContextMenuOption } from "../view-context-menu-utils.js"
 import { getEquivalentAgent } from "../draw/agent-conversion.js"
 import RactiveAgentVarField from './agent-var-field.js'
+import RactiveCommandInput from "./command-input.js"
 
 { Perspective: { Ride, Follow, Watch } } = tortoise_require('engine/core/observer')
 
 RactiveInspectionWindow = Ractive.extend({
   components: {
-    agentVarField: RactiveAgentVarField
+    agentVarField: RactiveAgentVarField,
+    commandInput: RactiveCommandInput
   }
 
   data: -> {
     # Props
 
     agent: undefined, # Agent; a reference to the actual agent from the engine
+    isEditing: undefined, # boolean
+    checkIsReporter: undefined, # (string) -> boolean
+    parentEditor: null, # GalapagosEditor | null
     setInspect: undefined, # (SetInspectAction) -> Unit
     viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
 
@@ -66,6 +71,15 @@ RactiveInspectionWindow = Ractive.extend({
   computed: {
     # Array[string]
     varNames: -> @get('agent').varNames()
+
+    # { agentType: AgentType, agents?: Array[Agent] }
+    targetedAgentObj: ->
+      agentType = switch @get('agentType')
+        when 'turtle' then 'turtles'
+        when 'patch' then 'patches'
+        when 'link' then 'links'
+      agent = @get('agent')
+      { agentType, agents: [agent] }
   }
 
   onrender: ->
@@ -163,6 +177,14 @@ RactiveInspectionWindow = Ractive.extend({
       {{#each varNames as varName}}
         <agentVarField agent={{agent}} varName={{varName}}/>
       {{/each}}
+      <commandInput
+        isReadOnly={{isEditing}}
+        source="inspection-window"
+        checkIsReporter={{checkIsReporter}}
+        targetedAgentObj={{targetedAgentObj}}
+        placeholderText="Input command for {{agent.getName()}}"
+        parentEditor={{parentEditor}}
+      />
     </div>
     """
 })
