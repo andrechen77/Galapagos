@@ -420,11 +420,17 @@ RactiveInspectionPane = Ractive.extend({
 
     @set('selections.selectedAgents', newSelectedAgents)
 
-  # Opens or closese a details pane showing detailed information and a mini view of the specified agent.
+  # Opens or closes a details pane showing detailed information and a mini view of the specified agent.
   # (Agent) -> Unit
   toggleAgentDetails: (agent) ->
-    [newDetailedAgents, deleted] = togglePresence(@get('detailedAgents'), agent, (a) -> (b) -> a is b)
-    @set('detailedAgents', newDetailedAgents)
+    # use `ractive.unshift` and `ractive.splice` methods instead of the existing
+    # `togglePresence` and `ractive.update` because the former two are smarter
+    # about recognizing when elements have shifted rather than simply changed
+    index = @get('detailedAgents').indexOf(agent)
+    if index == -1
+      @unshift('detailedAgents', agent)
+    else
+      @splice('detailedAgents', index, 1)
 
   # (Array[Agent]) -> Unit
   unselectAgents: (agentsToUnselect) ->
