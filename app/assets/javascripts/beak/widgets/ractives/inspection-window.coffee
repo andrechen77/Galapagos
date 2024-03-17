@@ -164,7 +164,7 @@ RactiveInspectionWindow = Ractive.extend({
   template:
     """
     <div style="border: 1px solid black;">
-      <b>{{agent.getName()}}</b><span style="float: right;" on-click=["closed-inspection-window", agent]>(-)</span>
+      <b>{{agent.getName()}}</b><span style="float: right;" on-click=["closed-inspection-window", agent]><b>(X)</b></span>
       <div
         class="inspection-window-view-container"
         style="width: fit-content;"

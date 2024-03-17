@@ -17,7 +17,7 @@ RactiveMiniAgentCard = Ractive.extend({
       on-dblclick="['dblclicked-agent-card', agent]"
     >
       <b>{{agent.getName()}}</b>
-      <span style="float: right;" on-click="['closed-agent-card', agent]">(-)</span>
+      <span style="float: right;" on-click="['closed-agent-card', agent]"><b>(X)</b></span>
     </div>
   """
 })
