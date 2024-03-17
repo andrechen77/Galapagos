@@ -30,7 +30,7 @@ RactiveInspectionWindow = Ractive.extend({
     agentType: undefined # 'turtle' | 'patch' | 'link'; This should be kept in sync with the `agent` data.
     viewWindow: undefined # View; a reference to the View associated with the current agent
     windowGenerator: undefined # result of `followAgentWithZoom`; see "window-generators.coffee"
-    zoomLevel: 0.7 # number
+    zoomLevel: 0.7 # number; represents how much of the screen the agent takes up
 
     # Consts
 
@@ -38,8 +38,15 @@ RactiveInspectionWindow = Ractive.extend({
     replaceView: ->
       if @get('viewWindow')?
         @get('viewWindow').destructor()
-      windowGenerator = followAgentWithZoom(300, @get('viewModelAgent'), @get('zoomLevel'))
-      viewWindow = @get('viewController').getNewView(
+      viewController = @get('viewController')
+      { worldWidth, worldHeight } = viewController.getWorldShape()
+      windowGenerator = followAgentWithZoom(
+        300,
+        @get('viewModelAgent'),
+        @get('zoomLevel'),
+        Math.min(worldWidth, worldHeight) / 2
+      )
+      viewWindow = viewController.getNewView(
         @find('.inspection-window-view-container'),
         'world',
         windowGenerator
@@ -51,13 +58,7 @@ RactiveInspectionWindow = Ractive.extend({
 
     # (number) -> Unit
     zoomView: (zoomLevel) ->
-      [_, _, size] = getDimensions(@get('viewModelAgent'))
-      size = size / 2
-      maxRadius = Math.max(50, size * 10)
-      # Simple linear function mapping zoomLevel to zoomRadius, where zoomLevel of 0 maps to maxRadius and
-      # zoomLevel of 1 maps to half the agent's size. Might want to revisit this.
-      r = size + (size - maxRadius) * (zoomLevel - 1)
-      @get('windowGenerator').zoomRadius = r
+      @get('windowGenerator').zoomLevel = zoomLevel
       @get('viewWindow').repaint()
       return
 

@@ -28,18 +28,22 @@ followObserver = (getModel, getWorldShape) ->
 
     yield { x, y, w, h, canvasHeight: h * patchsize }
 
-# Returns an iterator that generates windows following the specified agent. If the zoomRadius is specified during
-# construction or later set to a number, that will be the Moore radius of the window. Otherwise, the zoomRadius will
-# depend on the size of the agent (TODO how?).
-# (number, Agent, number | null) -> Iterator<Rectangle>
+# Returns an iterator that generates windows following the specified agent.
+# `zoomLevel` is a number representing how much of the screen the agent takes up
+# where 1 means the agent fills up the whole screen and values close to 0 mean
+# the agent is infinitesimally small
+# (number, Agent, number) -> Iterator<Rectangle>
 # where Rectangle is defined above in the comment;
-# can also safely set the public properties `agent` and `zoomRadius`
-followAgentWithZoom = (canvasHeight, agent, zoomRadius = null) -> return {
+# can also safely set the public properties `agent` and `zoomLevel`
+followAgentWithZoom = (canvasHeight, agent, zoomLevel, maxRadius) -> return {
   agent,
-  zoomRadius,
+  zoomLevel,
+  maxRadius,
   next: ->
     [x, y, size] = getDimensions(@agent) # note that for some reason this is actually twice the agent size
-    r = @zoomRadius ? size
+    size = size / 2
+    if size == 0 then size = 0.5
+    r = Math.min(size / @zoomLevel / 2, maxRadius)
     return {
       value: {
         x: x - r,
