@@ -30,16 +30,17 @@ RactiveContextMenu = Ractive.extend({
       mouseY: pageY
     })
 
-    # while we want the context menu to be positioned relative to the page, its
-    # closest positioned ancestor is out of the Ractive's control and does not
-    # have a bounding box that coincides with the page, so do some math to
-    # convert to absolute position (i.e. relative to nearest positioned
-    # ancestor)
-    offsetParent = @find('#netlogo-widget-context-menu').offsetParent
-    @set({
-      mouseX: pageX - offsetParent.offsetLeft,
-      mouseY: pageY - offsetParent.offsetTop
-    })
+    if visible
+      # while we want the context menu to be positioned relative to the page, its
+      # closest positioned ancestor is out of the Ractive's control and does not
+      # have a bounding box that coincides with the page, so do some math to
+      # convert to absolute position (i.e. relative to nearest positioned
+      # ancestor)
+      offsetParent = @find('#netlogo-widget-context-menu').offsetParent
+      @set({
+        mouseX: pageX - offsetParent.offsetLeft,
+        mouseY: pageY - offsetParent.offsetTop
+      })
 
     visible
 
