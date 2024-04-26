@@ -1,4 +1,5 @@
-import { netlogoColorToHexString, hexStringToNetlogoColor } from "/colors.js"
+import { netlogoColorToHexString, hexStringToNetlogoColor, netlogoColorToRGB } from "/colors.js"
+import ColorPicker from '@netlogo/netlogo-color-picker';
 
 RactiveColorInput = Ractive.extend({
 
@@ -13,15 +14,30 @@ RactiveColorInput = Ractive.extend({
 
   on: {
     'click': ->
-      console.log("clicked!")
-      # color =
-      #   try hexStringToNetlogoColor(hexValue)
-      #   catch ex
-      #     0
-      # @set('value', color)
-      # @fire('change')
-      # false
-      return
+      # Check if the ColorPicker is already open
+      if document.querySelector('#colorPickerDiv')
+        return
+
+      cpDiv = document.createElement('div')
+      cpDiv.id = 'colorPickerDiv'
+      @find(".color-picker-temporary-holder").appendChild(cpDiv)
+
+      currentRgba = [netlogoColorToRGB(@get('value'))..., 255]
+      new ColorPicker(
+        cpDiv,
+        currentRgba,
+        ([selectedColor, savedColors]) =>
+          [r, g, b, _a] = selectedColor
+          netlogoColor = ColorModel.nearestColorNumberOfRGB(r, g, b)
+          @set('value', netlogoColor)
+          @fire('change')
+          cpDiv.remove()
+          return
+        []
+      )
+      @fire('popup-window', {}, cpDiv)
+
+      false
 
     render: ->
       @observe('value', (newValue, oldValue) ->
@@ -41,6 +57,7 @@ RactiveColorInput = Ractive.extend({
 
   template:
     """
+    <div class="color-picker-temporary-holder" style="display: none;"></div>
     <div
       id="{{id}}"
       class="color-display {{class}}"
