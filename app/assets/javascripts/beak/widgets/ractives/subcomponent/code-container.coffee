@@ -64,6 +64,13 @@ RactiveCodeContainer = Ractive.extend({
         OnBlurred: (_view) =>
           @fire('change')
           return
+        OnColorPickerCreate: (cpDiv) =>
+          # Check if the ColorPicker is already open
+          if document.querySelector('#colorPickerDiv')
+            return
+
+          @fire('popup-window', {}, cpDiv)
+          return
       })
       editor.SetCode(@get('initialCode'))
       @set('editor', editor)
