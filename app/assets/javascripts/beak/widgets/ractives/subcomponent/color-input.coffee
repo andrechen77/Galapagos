@@ -23,18 +23,18 @@ RactiveColorInput = Ractive.extend({
       @find(".color-picker-temporary-holder").appendChild(cpDiv)
 
       currentRgba = [netlogoColorToRGB(@get('value'))..., 255]
-      new ColorPicker(
-        cpDiv,
-        currentRgba,
-        ([selectedColor, savedColors]) =>
+      new ColorPicker({
+        parent: cpDiv,
+        initColor: currentRgba,
+        onColorSelect: ([selectedColor, savedColors]) =>
           [r, g, b, _a] = selectedColor
           netlogoColor = ColorModel.nearestColorNumberOfRGB(r, g, b)
           @set('value', netlogoColor)
           @fire('change')
           cpDiv.remove()
           return
-        []
-      )
+        savedColors: []
+      })
       @fire('popup-window', {}, cpDiv)
 
       false
