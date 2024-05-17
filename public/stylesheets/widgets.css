@@ -437,6 +437,17 @@
   height: 15px;
 }
 
+.netlogo-color-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.netlogo-color-display span {
+  color: white;
+  mix-blend-mode: difference;
+}
+
 .netlogo-button {
   border: inherit;
   color: black;

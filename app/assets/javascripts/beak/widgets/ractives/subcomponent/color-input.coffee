@@ -46,7 +46,7 @@ RactiveColorInput = Ractive.extend({
             try netlogoColorToHexString(@get('value'))
             catch ex
               "#000000"
-          div = @find('.color-display')
+          div = @find('.netlogo-color-display')
           div.style.backgroundColor = hexValue
         return
       )
@@ -60,12 +60,14 @@ RactiveColorInput = Ractive.extend({
     <div class="color-picker-temporary-holder" style="display: none;"></div>
     <div
       id="{{id}}"
-      class="color-display {{class}}"
+      class="netlogo-color-display {{class}}"
       name="{{name}}"
       style="{{style}}"
       on-click="click"
       {{# !isEnabled }}disabled{{/}}
-    ></div>
+    >
+      <span>{{value}}</span>
+    </div>
     """
 
 })
