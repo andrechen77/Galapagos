@@ -445,7 +445,7 @@
 
 .netlogo-color-display span {
   color: white;
-  mix-blend-mode: difference;
+  text-shadow: 0px 0px 5px black;
 }
 
 .netlogo-button {
