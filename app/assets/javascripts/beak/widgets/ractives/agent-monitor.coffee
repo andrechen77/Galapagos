@@ -7,7 +7,7 @@ import RactiveCommandInput from "./command-input.js"
 
 { Perspective: { Ride, Follow, Watch } } = tortoise_require('engine/core/observer')
 
-RactiveInspectionWindow = Ractive.extend({
+RactiveAgentMonitor = Ractive.extend({
   components: {
     agentVarField: RactiveAgentVarField,
     commandInput: RactiveCommandInput
@@ -21,7 +21,7 @@ RactiveInspectionWindow = Ractive.extend({
     checkIsReporter: undefined, # (string) -> boolean
     parentEditor: null, # GalapagosEditor | null
     setInspect: undefined, # (SetInspectAction) -> Unit
-    viewController: undefined, # ViewController; from which this inspection window is taking its ViewWindow
+    viewController: undefined, # ViewController; from which this agent monitor is taking its ViewWindow
 
     # State
 
@@ -47,7 +47,7 @@ RactiveInspectionWindow = Ractive.extend({
         Math.min(worldWidth, worldHeight) / 2
       )
       viewWindow = viewController.getNewView(
-        @find('.inspection-window-view-container'),
+        @find('.agent-monitor-view-container'),
         'world',
         windowGenerator
       )
@@ -164,9 +164,9 @@ RactiveInspectionWindow = Ractive.extend({
   template:
     """
     <div style="border: 1px solid black;">
-      <b>{{agent.getName()}}</b><span style="float: right;" on-click=["closed-inspection-window", agent]><b>(X)</b></span>
+      <b>{{agent.getName()}}</b><span style="float: right;" on-click=["closed-agent-monitor", agent]><b>(X)</b></span>
       <div
-        class="inspection-window-view-container"
+        class="agent-monitor-view-container"
         style="width: fit-content;"
         on-contextmenu="show-context-menu"
       ></div>
@@ -180,7 +180,7 @@ RactiveInspectionWindow = Ractive.extend({
       {{/each}}
       <commandInput
         isReadOnly={{isEditing}}
-        source="inspection-window"
+        source="agent-monitor"
         checkIsReporter={{checkIsReporter}}
         targetedAgentObj={{targetedAgentObj}}
         placeholderText="Input command for {{agent.getName()}}"
@@ -190,4 +190,4 @@ RactiveInspectionWindow = Ractive.extend({
     """
 })
 
-export default RactiveInspectionWindow
+export default RactiveAgentMonitor

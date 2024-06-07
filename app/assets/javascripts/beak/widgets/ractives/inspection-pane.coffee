@@ -1,5 +1,5 @@
 import RactiveMiniAgentCard from "./mini-agent-card.js"
-import RactiveInspectionWindow from "./inspection-window.js"
+import RactiveAgentMonitor from "./agent-monitor.js"
 import RactiveCommandInput from "./command-input.js"
 import { attachDragSelector } from "../drag-selector.js"
 
@@ -99,8 +99,8 @@ togglePresence = (array, testItem, comparator) ->
     filtered.push(testItem)
   [filtered, matchFound]
 
-# Given an agent, returns the keypath with respect to the 'inspectedAgents' data to the array where that agent would go
-# if it were inspected.
+# Given an agent, returns the keypath with respect to the 'stagedAgents' data to
+# the array where that agent would go if it were staged.
 # (Agent) -> string
 getKeypathFor = (agent) ->
   switch
@@ -153,7 +153,7 @@ RactiveInspectionPane = Ractive.extend({
     # Props
 
     isEditing: undefined # boolean
-    viewController: undefined # ViewController; from which this inspection window is taking its ViewWindow
+    viewController: undefined # ViewController; from which the agent monitors take their ViewWindows
     checkIsReporter: undefined # (string) -> boolean
     parentEditor: null # GalapagosEditor | null
 
@@ -165,13 +165,13 @@ RactiveInspectionPane = Ractive.extend({
     updateTargetedAgentsInHistory: true # boolean; whether scrolling through history will also change what
     # agents are selected
 
-    # type InspectedAgents = {
+    # type StagedAgents = {
     #   turtles: Object<string, Array[Turtle]>,
     #   patches: Array[Patch],
     #   links: Object<string, Array[Link]>,
     # }
     # The `turtles` and `links` properties map breed names to lists of agents.
-    inspectedAgents: { 'turtles': {}, 'patches': [], 'links': {} } # InspectedAgents
+    stagedAgents: { 'turtles': {}, 'patches': [], 'links': {} } # StagedAgents
 
     ###
     type Selections = {
@@ -179,12 +179,13 @@ RactiveInspectionPane = Ractive.extend({
       selectedAgents: Array[Agent] | null # null means to consider the categories as the main selections, not the agents
     }
     ###
+    # represent everything in the staging area that are selected
     selections: { selectedPaths: [[]], selectedAgents: null }
 
     commandPlaceholderText: "" # string
 
-    detailedAgents: [] # Array[Agent]; agents for which there is an opened detail window
-    # can be shared with inspection windows
+    inspectedAgents: [] # Array[Agent]; agents for which there is an opened agent monitor
+    # can be shared with agent monitor components
 
     # Consts
 
@@ -202,7 +203,7 @@ RactiveInspectionPane = Ractive.extend({
 
     # (Array[string]) -> Array[Agent]
     getAgentsInPath: (path) ->
-      flattenObject(@get(['inspectedAgents'].concat(path).join('.')), Array.isArray)
+      flattenObject(@get(['stagedAgents'].concat(path).join('.')), Array.isArray)
 
     # (Unit) -> Array[Agent]
     getAgentsInSelectedPaths: ->
@@ -211,7 +212,7 @@ RactiveInspectionPane = Ractive.extend({
     # Returns a 2D array where each row represents the children of the
     # (most-recently) selected category of the previous row; if nothing is
     # selected then the major categories ('turtles', 'patches', 'links') are
-    # shown. Doesn't show leaves (i.e. `Agent`s) in the 'inspectedAgents' tree.
+    # shown. Doesn't show leaves (i.e. `Agent`s) in the 'stagedAgents' tree.
     # (Unit) -> Array[Array[CategoryPath]]
     getCategoryRows: ->
       # First get the paths that will make up the backbone of the grid.
@@ -221,7 +222,7 @@ RactiveInspectionPane = Ractive.extend({
       rootLevel = [[]] # a list of just one path, the root path
       nonRootLevels = for path in paths
         # Get this category's contents.
-        contents = @get(['inspectedAgents'].concat(path).join('.'))
+        contents = @get(['stagedAgents'].concat(path).join('.'))
         # Don't display leaves or deeper
         if Array.isArray(contents)
           # This is the penultimate layer; `contents` must only have leaves.
@@ -292,7 +293,7 @@ RactiveInspectionPane = Ractive.extend({
 
   components: {
     miniAgentCard: RactiveMiniAgentCard,
-    inspectionWindow: RactiveInspectionWindow,
+    agentMonitor: RactiveAgentMonitor,
     commandInput: RactiveCommandInput
   }
 
@@ -306,14 +307,14 @@ RactiveInspectionPane = Ractive.extend({
     'miniAgentCard.dblclicked-agent-card': (context, agent) ->
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
-        @toggleAgentDetails(agent)
+        @toggleAgentMonitor(agent)
     'miniAgentCard.closed-agent-card': (_, agent) ->
       @setInspect({ type: 'remove', agents: [agent] })
       false
-    'inspectionWindow.closed-inspection-window': (_, agent) ->
+    'agentMonitor.closed-agent-monitor': (_, agent) ->
       @set(
-        'detailedAgents',
-        @get('detailedAgents').filter((a) -> a != agent),
+        'inspectedAgents',
+        @get('inspectedAgents').filter((a) -> a != agent),
         { shuffle: true }
       )
     'commandInput.command-input-tabbed': -> false # ignore and block event
@@ -332,42 +333,42 @@ RactiveInspectionPane = Ractive.extend({
       when 'add-focus'
         { agent } = action
         keypath = getKeypathFor(agent)
-        keypathStr = "inspectedAgents.#{keypath.join('.')}"
+        keypathStr = "stagedAgents.#{keypath.join('.')}"
         array = @get(keypathStr)
         if not array? or not array.includes(agent)
           @push(keypathStr, agent)
-        @toggleAgentDetails(agent)
+        @toggleAgentMonitor(agent)
       when 'add'
-        inspectedAgents = @get('inspectedAgents')
+        stagedAgents = @get('stagedAgents')
         for agent in action.agents
-          array = traverseKeypath(inspectedAgents, getKeypathFor(agent), [])
+          array = traverseKeypath(stagedAgents, getKeypathFor(agent), [])
           if not array.includes(agent)
             array.push(agent)
-        @update('inspectedAgents')
+        @update('stagedAgents')
       when 'remove'
-        inspectedAgents = @get('inspectedAgents')
+        stagedAgents = @get('stagedAgents')
         for agent in action.agents
           keypath = getKeypathFor(agent)
-          arr = traverseKeypath(inspectedAgents, keypath, [])
+          arr = traverseKeypath(stagedAgents, keypath, [])
           index = arr.indexOf(agent) ? -1
           if index isnt -1
             arr.splice(index, 1)
         @unselectAgents(action.agents)
-        @update('inspectedAgents')
+        @update('stagedAgents')
       when 'clear-all'
         pruneTree(
-          @get('inspectedAgents'),
+          @get('stagedAgents'),
           (obj) -> if isAgent(obj) then false else null
         )
         @set('selections.selectedAgents', null)
-        @update('inspectedAgents')
+        @update('stagedAgents')
       when 'clear-dead'
         pruneTree(
-          @get('inspectedAgents'),
+          @get('stagedAgents'),
           (obj) -> if isAgent(obj) then not obj.isDead() else null
         )
         @set('selections.selectedAgents', null)
-        @update('inspectedAgents')
+        @update('stagedAgents')
 
   # Selects the specified category. 'replace' mode removes all other selected
   # categories (single-clicking an item), while 'toggle' mode toggles whether
@@ -420,17 +421,18 @@ RactiveInspectionPane = Ractive.extend({
 
     @set('selections.selectedAgents', newSelectedAgents)
 
-  # Opens or closes a details pane showing detailed information and a mini view of the specified agent.
+  # Opens or closes an agent monitor showing detailed information and a mini
+  # view of the specified agent.
   # (Agent) -> Unit
-  toggleAgentDetails: (agent) ->
+  toggleAgentMonitor: (agent) ->
     # use `ractive.unshift` and `ractive.splice` methods instead of the existing
     # `togglePresence` and `ractive.update` because the former two are smarter
     # about recognizing when elements have shifted rather than simply changed
-    index = @get('detailedAgents').indexOf(agent)
+    index = @get('inspectedAgents').indexOf(agent)
     if index == -1
-      @unshift('detailedAgents', agent)
+      @unshift('inspectedAgents', agent)
     else
-      @splice('detailedAgents', index, 1)
+      @splice('inspectedAgents', index, 1)
 
   # (Array[Agent]) -> Unit
   unselectAgents: (agentsToUnselect) ->
@@ -450,7 +452,7 @@ RactiveInspectionPane = Ractive.extend({
           To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
           turn on drag select to activate inspection mode.
         {{/if}}
-        <h3>inspected agents</h3>
+        <h3>staging area</h3>
         {{>categoriesScreen}}
         <br/>
         {{>agentsScreen}}
@@ -468,8 +470,8 @@ RactiveInspectionPane = Ractive.extend({
             parentEditor={{parentEditor}}
           />
         </div>
-        <h3>inspection windows</h3>
-        {{>detailsScreen}}
+        <h3>agent monitors</h3>
+        {{>agentMonitorsScreen}}
       {{/with}}
     </div>
   """
@@ -505,9 +507,9 @@ RactiveInspectionPane = Ractive.extend({
       </div>
     """
 
-    'detailsScreen': """
-      {{#each detailedAgents as agent}}
-        <inspectionWindow
+    'agentMonitorsScreen': """
+      {{#each inspectedAgents as agent}}
+        <agentMonitor
           viewController={{viewController}}
           agent={{agent}}
           isEditing={{isEditing}}
