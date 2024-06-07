@@ -282,9 +282,9 @@ RactiveInspectionPane = Ractive.extend({
         @set('unsubscribeDragSelector', attachDragSelector(
           @get('viewController'),
           @root.findComponent('dragSelectionBox'),
-          ((isShiftOrCtrlDrag) => if not isShiftOrCtrlDrag then @setInspect({ type: 'clear-all' })),
+          ((isShiftOrCtrlDrag) => if not isShiftOrCtrlDrag then @setInspect({ type: 'unstage-all' })),
           (agents) =>
-            @setInspect({ type: 'add', agents })
+            @setInspect({ type: 'add', agents, monitor: false })
             return
         ))
       else
@@ -309,7 +309,7 @@ RactiveInspectionPane = Ractive.extend({
       if not context.event.ctrlKey
         @toggleAgentMonitor(agent)
     'miniAgentCard.closed-agent-card': (_, agent) ->
-      @setInspect({ type: 'remove', agents: [agent] })
+      @setInspect({ type: 'remove', agents: [agent], monitor: false })
       false
     'agentMonitor.closed-agent-monitor': (_, agent) ->
       @set(
@@ -323,27 +323,20 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   ### type SetInspectAction =
-    { type: 'add-focus', agent: Agent }
-    | { type: 'add' | 'remove' | 'replace', agents: Array[Agent] }
-    | { type: 'clear-all', 'clear-dead' }
+    { type: 'add' | 'remove', agents: Array[Agent], monitor: boolean }
+    | { type: 'unstage-all', 'clear-dead' }
   ###
   # (SetInspectAction) -> Unit
   setInspect: (action) ->
     switch action.type
-      when 'add-focus'
-        { agent } = action
-        keypath = getKeypathFor(agent)
-        keypathStr = "stagedAgents.#{keypath.join('.')}"
-        array = @get(keypathStr)
-        if not array? or not array.includes(agent)
-          @push(keypathStr, agent)
-        @toggleAgentMonitor(agent)
       when 'add'
         stagedAgents = @get('stagedAgents')
         for agent in action.agents
           array = traverseKeypath(stagedAgents, getKeypathFor(agent), [])
           if not array.includes(agent)
             array.push(agent)
+          if action.monitor and not @get('inspectedAgents').includes(agent)
+            @toggleAgentMonitor(agent)
         @update('stagedAgents')
       when 'remove'
         stagedAgents = @get('stagedAgents')
@@ -353,9 +346,11 @@ RactiveInspectionPane = Ractive.extend({
           index = arr.indexOf(agent) ? -1
           if index isnt -1
             arr.splice(index, 1)
+          if action.monitor and @get('inspectedAgents').includes(agent)
+            @toggleAgentMonitor(agent)
         @unselectAgents(action.agents)
         @update('stagedAgents')
-      when 'clear-all'
+      when 'unstage-all'
         pruneTree(
           @get('stagedAgents'),
           (obj) -> if isAgent(obj) then false else null
@@ -369,6 +364,9 @@ RactiveInspectionPane = Ractive.extend({
         )
         @set('selections.selectedAgents', null)
         @update('stagedAgents')
+        for agent in [@get('inspectedAgents')...]
+          if agent.isDead()
+            @toggleAgentMonitor(agent)
 
   # Selects the specified category. 'replace' mode removes all other selected
   # categories (single-clicking an item), while 'toggle' mode toggles whether

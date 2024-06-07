@@ -127,7 +127,7 @@ genInspectionConfig = (ractive) ->
     # shouldn't be an issue.
     if toAdd.length is 0
       requestAnimationFrame(->
-        ractive.setInspect({ type: 'add', agents: toAdd })
+        ractive.setInspect({ type: 'add', agents: toAdd, monitor: true })
         toAdd.splice(0, toAdd.length)
         return
       )
@@ -137,7 +137,7 @@ genInspectionConfig = (ractive) ->
     # see comment on `inspect` function above
     if toRemove.length is 0
       requestAnimationFrame(->
-        ractive.setInspect({ type: 'remove', agents: toRemove })
+        ractive.setInspect({ type: 'remove', agents: toRemove, monitor: true })
         toRemove.splice(0, toRemove.length)
         return
       )

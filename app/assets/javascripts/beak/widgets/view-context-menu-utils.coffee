@@ -47,7 +47,7 @@ getClickedAgents = (agentModel) -> (world, view, xPix, yPix) ->
 agentToContextMenuOption = (setInspect) -> (agent) -> {
   text: "inspect #{agent.getName()}"
   isEnabled: true,
-  action: -> setInspect({ type: 'add-focus', agent })
+  action: -> setInspect({ type: 'add', agents: [agent], monitor: true })
 }
 
 export {
