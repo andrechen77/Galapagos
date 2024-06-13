@@ -7,7 +7,7 @@ RactiveModelTitle = RactiveContextable.extend({
     title:              undefined # String
   }
 
-  getContextMenuOptions: (x, y) ->
+  getContextMenuOptions: (clientX, clientY) ->
     if @get('isEditing')
       [{ text: "Edit", isEnabled: true, action: => @fire('edit-title') }]
     else

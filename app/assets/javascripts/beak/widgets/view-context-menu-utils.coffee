@@ -3,11 +3,11 @@ import { getEquivalentAgent } from "./draw/agent-conversion.js"
 # Given a world and a view into that world, returns a list of all the agents around the specified point. The point is
 # specified in DOM coordinates relative to the given view.
 # (AgentModel) -> (World, View, number, number) -> [Agent]
-getClickedAgents = (agentModel) -> (world, view, xPix, yPix) ->
+getClickedAgents = (agentModel) -> (world, view, clientX, clientY) ->
   { left, top } = view.getBoundingClientRect()
   agentList = []
-  mouseX = view.xPixToPcor(xPix - left)
-  mouseY = view.yPixToPcor(yPix - top)
+  mouseX = view.xPixToPcor(clientX - left)
+  mouseY = view.yPixToPcor(clientY - top)
 
   patchHere = world.getPatchAt(mouseX, mouseY)
   if patchHere? then agentList.push(patchHere)

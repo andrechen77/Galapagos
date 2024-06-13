@@ -45,12 +45,12 @@ handleContextMenu =
 
     handleContextMenu = (context) ->
       component = context.component ? this
-      { pageX, pageY } = context.event
+      { pageX, pageY, clientX, clientY } = context.event
 
       @fire('deselect-widgets')
       if @get('isEditing') and component instanceof RactiveWidget
         @fire('lock-selection', component)
-      menuOpened = @findComponent('contextMenu').reveal(component, pageX, pageY)
+      menuOpened = @findComponent('contextMenu').reveal(component, pageX, pageY, clientX, clientY)
       not menuOpened # keep propagating the event if the menu didn't open
 
     ractive.on('*.show-context-menu', handleContextMenu)

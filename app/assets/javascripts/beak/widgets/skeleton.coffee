@@ -161,7 +161,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
       }
     },
 
-    getContextMenuOptions: (x, y) ->
+    getContextMenuOptions: (clientX, clientY) ->
       if @get('isEditing')
         widgetCreationOptions
       else

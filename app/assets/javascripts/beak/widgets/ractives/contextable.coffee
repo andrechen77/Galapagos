@@ -15,7 +15,7 @@ RactiveContextable = Ractive.extend({
   }
 
   # (number, number) -> [ContextMenuOption]
-  getContextMenuOptions: (x, y) ->
+  getContextMenuOptions: (clientX, clientY) ->
     isEditing = @get('isEditing') ? false # the Ractive must have the `isEditing` property set to true
     if isEditing
       Object.values(@getStandardOptions())

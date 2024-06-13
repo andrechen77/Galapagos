@@ -146,11 +146,11 @@ RactiveAgentMonitor = Ractive.extend({
     }
   }
 
-  getContextMenuOptions: (x, y) ->
+  getContextMenuOptions: (clientX, clientY) ->
     viewWindow = @get('viewWindow')
     { left, top, bottom, right } = viewWindow.getBoundingClientRect()
-    if left <= x <= right and top <= y <= bottom
-      getClickedAgents(@get('viewController').getModel())(world, viewWindow, x, y).map(agentToContextMenuOption(@get('setInspect')))
+    if left <= clientX <= right and top <= clientY <= bottom
+      getClickedAgents(@get('viewController').getModel())(world, viewWindow, clientX, clientY).map(agentToContextMenuOption(@get('setInspect')))
     else
       # The cursor is not actually inside the bounding box of the canvas (probably on the border)
       []

@@ -19,8 +19,8 @@ RactiveContextMenu = Ractive.extend({
 
   # Returns whether the context menu actually revealed itself, which will not happen if there are no options to display.
   # (Ractive, number, number) -> boolean
-  reveal: (component, pageX, pageY) ->
-    options = component?.getContextMenuOptions(pageX, pageY) ? []
+  reveal: (component, pageX, pageY, clientX, clientY) ->
+    options = component?.getContextMenuOptions(clientX, clientY) ? []
     visible = options.length > 0
     @set({
       target: component,
