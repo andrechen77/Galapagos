@@ -1,4 +1,4 @@
-import { netlogoColorToHexString, hexStringToNetlogoColor, netlogoColorToRGB } from "/colors.js"
+import { netlogoColorToHexString, hexStringToNetlogoColor, netlogoColorToRGBA } from "/colors.js"
 import ColorPicker from '@netlogo/netlogo-color-picker';
 
 RactiveColorInput = Ractive.extend({
@@ -9,7 +9,7 @@ RactiveColorInput = Ractive.extend({
   , isEnabled:  true      # Boolean
   , name:       undefined # String
   , style:      undefined # String
-  , value:      undefined # String; represents a NetLogo color
+  , value:      undefined # [number, number, number, number]; RBGA value
   }
 
   on: {
@@ -22,14 +22,14 @@ RactiveColorInput = Ractive.extend({
       cpDiv.id = 'colorPickerDiv'
       @find(".color-picker-temporary-holder").appendChild(cpDiv)
 
-      currentRgba = [netlogoColorToRGB(@get('value'))..., 255]
+      currentRgba = netlogoColorToRGBA(@get('value'))
       new ColorPicker({
         parent: cpDiv,
         initColor: currentRgba,
         onColorSelect: ([selectedColor, savedColors]) =>
           [r, g, b, _a] = selectedColor
-          netlogoColor = ColorModel.nearestColorNumberOfRGB(r, g, b)
-          @set('value', netlogoColor)
+          # netlogoColor = ColorModel.nearestColorNumberOfRGB(r, g, b)
+          @set('value', selectedColor)
           @fire('change')
           cpDiv.remove()
           return
@@ -42,12 +42,11 @@ RactiveColorInput = Ractive.extend({
     render: ->
       @observe('value', (newValue, oldValue) ->
         if newValue isnt oldValue
-          hexValue =
-            try netlogoColorToHexString(@get('value'))
-            catch ex
-              "#000000"
+          [r, g, b, a] = netlogoColorToRGBA(newValue)
+          a /= 255 # because CSS alpha values are 0.0 - 1.0 instead of 0 - 255
           div = @find('.netlogo-color-display')
-          div.style.backgroundColor = hexValue
+          imageCss = "linear-gradient(to right, rgba(#{r}, #{g}, #{b}, #{a}), rgba(#{r}, #{g}, #{b}, #{a}))"
+          div.style.backgroundImage = imageCss
         return
       )
 
