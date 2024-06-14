@@ -65,7 +65,6 @@ RactiveCodeContainer = Ractive.extend({
           @fire('change')
           return
       })
-      editor.SetCode(@get('initialCode'))
       @set('editor', editor)
 
       # We create the observer here instead of as an initialization option
@@ -92,6 +91,8 @@ RactiveCodeContainer = Ractive.extend({
         if editor.ParentEditor?
           editor.Detach()
       )
+
+      editor.SetCode(@get('initialCode'))
   }
 
   observe: {
