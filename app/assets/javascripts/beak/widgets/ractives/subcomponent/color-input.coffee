@@ -1,5 +1,6 @@
 import { netlogoColorToHexString, hexStringToNetlogoColor, netlogoColorToRGBA } from "/colors.js"
-import ColorPicker from '@netlogo/netlogo-color-picker';
+import ColorPicker from '@netlogo/netlogo-color-picker'
+{ arrayEquals } = tortoise_require("brazier/equals")
 
 RactiveColorInput = Ractive.extend({
 
@@ -27,9 +28,14 @@ RactiveColorInput = Ractive.extend({
         parent: cpDiv,
         initColor: currentRgba,
         onColorSelect: ([selectedColor, savedColors]) =>
-          [r, g, b, _a] = selectedColor
-          # netlogoColor = ColorModel.nearestColorNumberOfRGB(r, g, b)
-          @set('value', selectedColor)
+          { netlogo, rgba } = selectedColor
+          [r, g, b, a] = rgba
+          # replace with netlogo color number if it is an exact match
+          newValue = if a == 255 and arrayEquals([r, g, b])(ColorModel.colorToRGB(netlogo))
+            netlogo
+          else
+            rgba
+          @set('value', newValue)
           @fire('change')
           cpDiv.remove()
           return
