@@ -29,10 +29,9 @@ glowPoint = (ctx, x, y, r, color) ->
   ctx.fill()
 
 # Modifies canvas state
-outlineUnitSquare = (ctx, x, y, onePixel) ->
-  ctx.lineWidth = onePixel
-  ctx.strokeStyle = 'white'
-  ctx.strokeRect(x - 0.5, y - 0.5, 1, 1)
+highlightUnitSquare = (ctx, x, y, onePixel) ->
+  ctx.fillStyle = "rgba(255, 255, 255, 0.5)"
+  ctx.fillRect(x - 0.5, y - 0.5, 1, 1)
 
 # Modifies canvas state
 glowLine = (ctx, x1, y1, x2, y2, thickness, color) ->
@@ -69,7 +68,7 @@ class HighlightLayer extends Layer
               glowPoint(ctx, x, y, radius, netlogoColorToCSS(agent.color))
             )
           when 'patch'
-            outlineUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
+            highlightUnitSquare(ctx, agent.pxcor, agent.pycor, worldShape.onePixel)
           when 'link'
             { end1, end2, color, thickness } = agent
             { xcor: x1, ycor: y1 } = model.turtles[end1]
