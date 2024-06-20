@@ -207,7 +207,7 @@ RactiveInspectionPane = Ractive.extend({
 
     # (Unit) -> Array[Agent]
     getAgentsInSelectedPaths: ->
-      @get("selections.selectedPaths")?.flatMap(@get('getAgentsInPath')) ? []
+      unique(@get("selections.selectedPaths")?.flatMap(@get('getAgentsInPath')) ? [])
 
     # Returns a 2D array where each row represents the children of the
     # (most-recently) selected category of the previous row; if nothing is
@@ -301,13 +301,16 @@ RactiveInspectionPane = Ractive.extend({
     'clicked-category-card': (context, categoryPath) ->
       ctrl = context.event.ctrlKey
       @selectCategory({ mode: (if ctrl then 'toggle' else 'replace'), categoryPath })
+      false
     'miniAgentCard.clicked-agent-card': (context, agent) ->
       ctrl = context.event.ctrlKey
       @selectAgents(if ctrl then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
+      false
     'miniAgentCard.dblclicked-agent-card': (context, agent) ->
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
       if not context.event.ctrlKey
         @toggleAgentMonitor(agent)
+      false
     'miniAgentCard.closed-agent-card': (_, agent) ->
       @setInspect({ type: 'remove', agents: [agent], monitor: false })
       false
@@ -317,6 +320,7 @@ RactiveInspectionPane = Ractive.extend({
         @get('inspectedAgents').filter((a) -> a != agent),
         { shuffle: true }
       )
+      false
     'commandInput.command-input-tabbed': -> false # ignore and block event
     unrender: ->
       @get('viewController').setHighlightedAgents([])
