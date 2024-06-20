@@ -189,13 +189,6 @@ RactiveInspectionPane = Ractive.extend({
 
     # Consts
 
-    # Returns whether to display a category as being "selected" based on its selection state.
-    # ('exact' | 'partial' | 'inherit' | 'none') -> boolean
-    getDisplayAsSelected: (categoryPath) ->
-      switch calcPathMatchMultiple(@get('selections.selectedPaths'), categoryPath)
-        when 'exact', 'partial' then true
-        else false
-
     # (Agent) -> boolean
     getAgentSelectionState: (agent) ->
       selectedAgents = @get('selections.selectedAgents')
@@ -213,13 +206,15 @@ RactiveInspectionPane = Ractive.extend({
     # (most-recently) selected category of the previous row; if nothing is
     # selected then the major categories ('turtles', 'patches', 'links') are
     # shown. Doesn't show leaves (i.e. `Agent`s) in the 'stagedAgents' tree.
-    # (Unit) -> Array[Array[CategoryPath]]
-    getCategoryRows: ->
+    # `combineTopLevels` describes whether to put the root category at the
+    # same level as the level-1 categories.
+    # (boolean) -> Array[Array[CategoryPath]]
+    getCategoryRows: (combineTopLevels) ->
       # First get the paths that will make up the backbone of the grid.
       paths = calcPartialPaths(@get('selections.selectedPaths').at(-1) ? [])
 
       # Each category path will correspond to a row
-      rootLevel = [[]] # a list of just one path, the root path
+      rootPath = [] # the root path
       nonRootLevels = for path in paths
         # Get this category's contents.
         contents = @get(['stagedAgents'].concat(path).join('.'))
@@ -231,7 +226,18 @@ RactiveInspectionPane = Ractive.extend({
         childrenKeys = Object.keys(contents)
         # Return the path to these children.
         childrenKeys.map((key) -> path.concat([key]))
-      [rootLevel, nonRootLevels...]
+      if combineTopLevels
+        [
+          [rootPath, nonRootLevels[0]...],
+          nonRootLevels[1..]...
+        ]
+      else
+        [
+          [rootPath],
+          nonRootLevels...
+        ]
+
+    calcPathMatchType: calcPathMatchMultiple
 
     calcCategoryPathDetails
   }
@@ -298,9 +304,12 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   on: {
-    'clicked-category-card': (context, categoryPath) ->
+    'clicked-category-tab': (context, categoryPath) ->
       ctrl = context.event.ctrlKey
       @selectCategory({ mode: (if ctrl then 'toggle' else 'replace'), categoryPath })
+      false
+    'clicked-staging-help': (_) ->
+      alert("To monitor change, inspect properties, and execute commands to one or multiple agents during simulation, turn on drag select to activate inspection mode. Then, click or drag in the view to select agents.")
       false
     'miniAgentCard.clicked-agent-card': (context, agent) ->
       ctrl = context.event.ctrlKey
@@ -442,71 +451,96 @@ RactiveInspectionPane = Ractive.extend({
     @set('selections.selectedAgents', filtered)
 
   template: """
-    <div class='netlogo-tab-content netlogo-inspection-pane'>
-      <button class="netlogo-ugly-button" on-click="@.toggle('dragToSelectEnabled')">
-        DRAG SELECT ({{#if dragToSelectEnabled}}on{{else}}off{{/if}})
-      </button>
+    <div class='netlogo-tab-content inspection__pane'>
+      {{>stagingArea}}
+
       <br/>
-      {{#with selections}}
-        {{#if dragToSelectEnabled}}
-          Click or drag in the view to select agents.
-        {{else}}
-          To monitor change, inspect properties, and execute commands to one or multiple agents during simulation,
-          turn on drag select to activate inspection mode.
-        {{/if}}
-        <h3>staging area</h3>
-        {{>categoriesScreen}}
+      <div>
+        <button class="netlogo-ugly-button" on-click="@.toggle('updateTargetedAgentsInHistory')">
+          Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
+        </button>
         <br/>
-        {{>agentsScreen}}
-        <div>
-          <button class="netlogo-ugly-button" on-click="@.toggle('updateTargetedAgentsInHistory')">
-            Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
-          </button>
-          <br/>
-          <commandInput
-            isReadOnly={{isEditing}}
-            source="inspection-pane"
-            checkIsReporter={{checkIsReporter}}
-            targetedAgentObj={{targetedAgentObj}}
-            placeholderText={{commandPlaceholderText}}
-            parentEditor={{parentEditor}}
-          />
-        </div>
-        <h3>agent monitors</h3>
-        {{>agentMonitorsScreen}}
-      {{/with}}
+        <commandInput
+          isReadOnly={{isEditing}}
+          source="inspection-pane"
+          checkIsReporter={{checkIsReporter}}
+          targetedAgentObj={{targetedAgentObj}}
+          placeholderText={{commandPlaceholderText}}
+          parentEditor={{parentEditor}}
+        />
+      </div>
+
+      <h3>agent monitors</h3>
+      {{>agentMonitorsScreen}}
     </div>
   """
 
   partials: {
-    'categoriesScreen': """
-      {{#each getCategoryRows() as categoryRow}}
-        <div style="display: flex;">
-          {{#each categoryRow as categoryPath}}
-            {{>categoryCard}}<br/>
-          {{/each}}
+    'stagingArea': """
+      {{#with getCategoryRows(true) as categoryRows}}
+        <div class="inspection__header-row">
+          <div class="inspection__tab-selector-group">
+            {{#each categoryRows[0] as categoryPath}}
+              {{>categoryTab}}
+            {{/each}}
+          </div>
+          <div class="inspection__button-tray">
+            <div
+              class="inspection__button {{#if dragToSelectEnabled}}selected{{/if}}"
+              title="Toggle drag-to-select"
+              on-click="@.toggle('dragToSelectEnabled')"
+            >
+              <img
+                width=25
+                src="https://cdn0.iconfinder.com/data/icons/controls-and-navigation-arrows-1/24/27-512.png"
+              />
+            </div>
+            <div class="inspection__button" title="Help" on-click="clicked-staging-help">
+              <img
+                width=25
+                src="https://static.thenounproject.com/png/61692-200.png"
+              />
+            </div>
+          </div>
         </div>
-      {{/each}}
-    """
-
-    'categoryCard': """
-      {{#with calcCategoryPathDetails(this) }}
-        <div
-          style="width: 150px; height: 15px; overflow: clip; {{#if getDisplayAsSelected(path)}}background-color: lightblue;{{/if}}"
-          on-click="['clicked-category-card', path]"
-          title="{{display}} ({{getAgentsInPath(path).length}})"
-        >
-            {{display}} ({{getAgentsInPath(path).length}})
+        <div class="inspection__tab-content">
+          {{#each categoryRows.slice(1) as categoryRow}}
+            <div class="inspection__card-selector-group">
+              {{#each categoryRow as categoryPath}}
+                {{>categoryTab}}
+              {{/each}}
+            </div>
+          {{/each}}
+          <div class="inspection__agents-area">
+            {{#each getAgentsInSelectedPaths() as agent}}
+              <miniAgentCard
+                agent={{agent}}
+                selected={{getAgentSelectionState(agent)}}
+                opened={{inspectedAgents.includes(agent)}}
+              />
+            {{/each}}
+          </div>
         </div>
       {{/with}}
     """
 
-    'agentsScreen': """
-      <div style="display: flex; flex-wrap: wrap; width: 90%; min-height: 50px; border: 1px solid black;">
-        {{#each getAgentsInSelectedPaths() as agent}}
-          <miniAgentCard agent={{agent}} selected={{getAgentSelectionState(agent)}}/>
-        {{/each}}
+    'categoryTab': """
+      {{#with calcCategoryPathDetails(this) }}
+      <div
+        class="inspection__option {{#with calcPathMatchType(selections.selectedPaths, path) as matchType}}
+          {{#if matchType === 'exact'}}
+            selected
+          {{elseif matchType === 'partial' && path.length > 0}}
+            selected-partial
+          {{/if}}
+        {{/with}}"
+        on-click="['clicked-category-tab', path]"
+        title="{{display}} ({{getAgentsInPath(path).length}})"
+      >
+        <span class="category">{{display}}</span>
+        <span class="count">{{getAgentsInPath(path).length}}</span>
       </div>
+      {{/with}}
     """
 
     'agentMonitorsScreen': """

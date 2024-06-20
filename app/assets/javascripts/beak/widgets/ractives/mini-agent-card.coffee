@@ -8,16 +8,23 @@ RactiveMiniAgentCard = Ractive.extend({
 
     agent: undefined # Agent
     selected: false # boolean
+    opened: false # boolean
   }
 
   template: """
     <div
-      style="border: 1px solid black; padding: 2px; min-width: 100px; height: min-content; {{#selected}}background-color: lightblue;{{/}}"
+      class="inspection__mini-agent-card {{#selected}}selected{{/}} {{#opened}}opened{{/}}"
+      title="{{agent.getName()}}"
       on-click="['clicked-agent-card', agent]"
       on-dblclick="['dblclicked-agent-card', agent]"
     >
-      <b>{{agent.getName()}}</b>
-      <span style="float: right;" on-click="['closed-agent-card', agent]"><b>(X)</b></span>
+      <span>{{agent.getName()}}</span>
+      <div
+        class="inspection__button"
+        on-click="['closed-agent-card', agent]"
+      >
+        <img width=15 src="https://static.thenounproject.com/png/6447-200.png"/>
+      </div>
     </div>
   """
 })
