@@ -453,22 +453,7 @@ RactiveInspectionPane = Ractive.extend({
   template: """
     <div class='netlogo-tab-content inspection__pane'>
       {{>stagingArea}}
-
-      <br/>
-      <div>
-        <button class="netlogo-ugly-button" on-click="@.toggle('updateTargetedAgentsInHistory')">
-          Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})
-        </button>
-        <br/>
-        <commandInput
-          isReadOnly={{isEditing}}
-          source="inspection-pane"
-          checkIsReporter={{checkIsReporter}}
-          targetedAgentObj={{targetedAgentObj}}
-          placeholderText={{commandPlaceholderText}}
-          parentEditor={{parentEditor}}
-        />
-      </div>
+      {{>commandCenter}}
 
       <h3>agent monitors</h3>
       {{>agentMonitorsScreen}}
@@ -541,6 +526,29 @@ RactiveInspectionPane = Ractive.extend({
         <span class="count">{{getAgentsInPath(path).length}}</span>
       </div>
       {{/with}}
+    """
+
+    'commandCenter': """
+      <div class="inspection__cmd-container">
+        <div
+          class="inspection__button {{#if updateTargetedAgentsInHistory}}selected{{/if}}"
+          on-click="@.toggle('updateTargetedAgentsInHistory')"
+          title="Update targeted agents in history: ({{#if updateTargetedAgentsInHistory}}on{{else}}off{{/if}})"
+        >
+          <img
+            width=25
+            src="https://static.thenounproject.com/png/84467-200.png"
+          />
+        </div>
+        <commandInput
+          isReadOnly={{isEditing}}
+          source="inspection-pane"
+          checkIsReporter={{checkIsReporter}}
+          targetedAgentObj={{targetedAgentObj}}
+          placeholderText={{commandPlaceholderText}}
+          parentEditor={{parentEditor}}
+        />
+      </div>
     """
 
     'agentMonitorsScreen': """
