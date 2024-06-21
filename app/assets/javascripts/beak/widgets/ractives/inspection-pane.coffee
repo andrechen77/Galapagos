@@ -503,6 +503,10 @@ RactiveInspectionPane = Ractive.extend({
                 selected={{getAgentSelectionState(agent)}}
                 opened={{inspectedAgents.includes(agent)}}
               />
+            {{else}}
+              To add an agent to the staging area, use the drag-to-select
+              function, or use the inspect option in an agent's context menu,
+              or use the `inspect` command on the agent.
             {{/each}}
           </div>
         </div>
