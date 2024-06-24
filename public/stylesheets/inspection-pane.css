@@ -127,3 +127,54 @@
   border: 2px solid lightgray;
   border-radius: 5px;
 }
+
+.inspection__agent-monitor-container {
+  margin: 1em 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  padding: 0.5em;
+  border-radius: 5px;
+  min-height: 2em;
+  box-shadow: inset 0 0 0.5em gray;
+}
+
+.inspection__agent-monitor {
+  border: 2px solid lightgray;
+  border-radius: 5px;
+  width: 200px;
+  padding: 0.5em;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.inspection__agent-monitor__title-bar {
+  display: grid;
+  grid: auto / auto auto;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.inspection__agent-monitor__title-bar .title {
+  font-weight: 700;
+}
+
+.inspection__agent-monitor__view-controls {
+  display: grid;
+  grid: auto / auto auto;
+  align-items: center;
+}
+
+.inspection__agent-monitor__watch-button {
+  width: min-content;
+  padding: 0.5em;
+  border: 1px solid gray;
+}
+
+.inspection__agent-monitor__property-grid {
+  display: grid;
+  grid: auto-flow / 1fr 2fr;
+
+}

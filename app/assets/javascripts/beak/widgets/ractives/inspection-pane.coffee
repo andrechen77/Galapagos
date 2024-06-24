@@ -454,8 +454,6 @@ RactiveInspectionPane = Ractive.extend({
     <div class='netlogo-tab-content inspection__pane'>
       {{>stagingArea}}
       {{>commandCenter}}
-
-      <h3>agent monitors</h3>
       {{>agentMonitorsScreen}}
     </div>
   """
@@ -556,16 +554,22 @@ RactiveInspectionPane = Ractive.extend({
     """
 
     'agentMonitorsScreen': """
-      {{#each inspectedAgents as agent}}
-        <agentMonitor
-          viewController={{viewController}}
-          agent={{agent}}
-          isEditing={{isEditing}}
-          checkIsReporter={{checkIsReporter}}
-          parentEditor={{parentEditor}}
-          setInspect="{{@this.setInspect.bind(@this)}}"
-        />
-      {{/each}}
+      <div class="inspection__agent-monitor-container">
+        {{#each inspectedAgents as agent}}
+          <agentMonitor
+            viewController={{viewController}}
+            agent={{agent}}
+            isEditing={{isEditing}}
+            checkIsReporter={{checkIsReporter}}
+            parentEditor={{parentEditor}}
+            setInspect="{{@this.setInspect.bind(@this)}}"
+          />
+        {{else}}
+          To open an agent monitor, double-click an agent in the staging area,
+          or use the inspect option in an agent's context menu, or use the
+          `inspect` command on the agent.
+        {{/each}}
+      </div>
     """
   }
 })

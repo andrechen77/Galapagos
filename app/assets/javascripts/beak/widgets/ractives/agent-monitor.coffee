@@ -22,6 +22,7 @@ RactiveAgentMonitor = Ractive.extend({
     parentEditor: null, # GalapagosEditor | null
     setInspect: undefined, # (SetInspectAction) -> Unit
     viewController: undefined, # ViewController; from which this agent monitor is taking its ViewWindow
+    viewSideLength: 200, # number; the side length of the view canvas in pixels
 
     # State
 
@@ -41,13 +42,13 @@ RactiveAgentMonitor = Ractive.extend({
       viewController = @get('viewController')
       { worldWidth, worldHeight } = viewController.getWorldShape()
       windowGenerator = followAgentWithZoom(
-        300,
+        @get('viewSideLength'),
         @get('viewModelAgent'),
         @get('zoomLevel'),
         Math.min(worldWidth, worldHeight) / 2
       )
       viewWindow = viewController.getNewView(
-        @find('.agent-monitor-view-container'),
+        @find('.inspection__agent-monitor__view-container'),
         'world',
         windowGenerator
       )
@@ -163,17 +164,29 @@ RactiveAgentMonitor = Ractive.extend({
 
   template:
     """
-    <div style="border: 1px solid black;">
-      <b>{{agent.getName()}}</b><span style="float: right;" on-click=["closed-agent-monitor", agent]><b>(X)</b></span>
+    <div class="inspection__agent-monitor">
+      <div class="inspection__agent-monitor__title-bar">
+        <span class="title">{{agent.getName()}}</span>
+        <div
+          class="inspection__button"
+          on-click=["closed-agent-monitor", agent]
+        >
+          <img width=15 src="https://static.thenounproject.com/png/6447-200.png"/>
+        </div>
+      </div>
       <div
-        class="agent-monitor-view-container"
-        style="width: fit-content;"
+        class="inspection__agent-monitor__view-container"
         on-contextmenu="show-context-menu"
       ></div>
-      <div>
-        <button on-click="watch-button-clicked">Watch</button>
+      <div class="inspection__agent-monitor__view-controls">
+        <div
+          class="inspection__button inspection__agent-monitor__watch-button"
+          on-click="watch-button-clicked"
+        >Watch</div>
         <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
-        ZOOM LEVEL {{zoomLevel}}
+      </div>
+      <div class="inspection__agent-monitor__property-grid">
+
       </div>
       {{#each varNames as varName}}
         <agentVarField agent={{agent}} varName={{varName}}/>
