@@ -345,22 +345,21 @@
   border-bottom-color: inherit;
 }
 
+.netlogo-command-center-input {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+}
+
 .netlogo-command-center-input select,
 .netlogo-command-center-input button,
-.netlogo-command-center-input .CodeMirror {
+.netlogo-command-center-input .netlogo-command-center-editor {
   border: 1px solid #666;
-  height: 18px;
   line-height: 18px;
 }
 
 .CodeMirror {
   font-family: Consolas, "Courier New", Courier, monospace;
-}
-
-.netlogo-command-center-input .CodeMirror {
-  height: 16px;
-  line-height: 16px;
-  border-width: 1px 0;
 }
 
 .netlogo-command-center-editor {
@@ -409,11 +408,6 @@
   background-color: white;
   margin: 0px;
   overflow: auto;
-}
-
-.netlogo-command-center-input {
-  display: flex;
-  flex-shrink: 0;
 }
 
 .netlogo-speed-slider {
