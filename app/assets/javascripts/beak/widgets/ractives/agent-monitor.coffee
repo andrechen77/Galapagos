@@ -165,6 +165,15 @@ RactiveAgentMonitor = Ractive.extend({
   template:
     """
     <div class="inspection__agent-monitor">
+      {{>titleBar}}
+      {{>viewSection}}
+      {{>propertyGrid}}
+      {{>commandCenter}}
+    </div>
+    """
+
+  partials: {
+    "titleBar": """
       <div class="inspection__agent-monitor__title-bar">
         <span class="title">{{agent.getName()}}</span>
         <div
@@ -174,6 +183,9 @@ RactiveAgentMonitor = Ractive.extend({
           <img width=15 src="https://static.thenounproject.com/png/6447-200.png"/>
         </div>
       </div>
+    """
+
+    "viewSection": """
       <div
         class="inspection__agent-monitor__view-container"
         on-contextmenu="show-context-menu"
@@ -185,12 +197,17 @@ RactiveAgentMonitor = Ractive.extend({
         >Watch</div>
         <input type="range" min=0 max=1 step=0.01 value="{{zoomLevel}}"/>
       </div>
-      <div class="inspection__agent-monitor__property-grid">
+    """
 
+    "propertyGrid": """
+      <div class="inspection__agent-monitor__property-grid">
+        {{#each varNames as varName}}
+          <agentVarField agent={{agent}} varName={{varName}}/>
+        {{/each}}
       </div>
-      {{#each varNames as varName}}
-        <agentVarField agent={{agent}} varName={{varName}}/>
-      {{/each}}
+    """
+
+    "commandCenter": """
       <commandInput
         isReadOnly={{isEditing}}
         source="agent-monitor"
@@ -199,8 +216,8 @@ RactiveAgentMonitor = Ractive.extend({
         placeholderText="Input command for {{agent.getName()}}"
         parentEditor={{parentEditor}}
       />
-    </div>
     """
+  }
 })
 
 export default RactiveAgentMonitor

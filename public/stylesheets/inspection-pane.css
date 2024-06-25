@@ -177,5 +177,15 @@
 .inspection__agent-monitor__property-grid {
   display: grid;
   grid: auto-flow / 1fr 2fr;
+  gap: 0 0.5em;
+}
 
+.inspection__agent-monitor__property-grid .inspection__agent-var-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspection__agent-monitor__property-grid input.inspection__agent-var-value {
+  min-width: 0;
 }
