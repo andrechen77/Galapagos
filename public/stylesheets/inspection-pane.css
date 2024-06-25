@@ -53,6 +53,7 @@
   padding: 0.5em;
   border: 2px solid lightgray;
   cursor: pointer;
+  max-width: 10em;
 }
 
 .inspection__tab-selector-group .inspection__option {
@@ -65,7 +66,7 @@
 }
 
 .inspection__option .category {
-  overflow: clip;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
