@@ -172,6 +172,10 @@
   align-items: center;
 }
 
+.inspection__agent-monitor__view-controls > input {
+  min-width: 0;
+}
+
 .inspection__agent-monitor__watch-button {
   width: min-content;
   padding: 0.5em;
