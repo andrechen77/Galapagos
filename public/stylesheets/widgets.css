@@ -368,6 +368,36 @@
   flex-grow: 1;
 }
 
+.netlogo-command-center-editor .cm-editor {
+	flex: 1 1 auto;
+	height: auto;
+	font-size: 1em;
+	max-height: 2rem;
+	box-sizing: border-box;
+}
+
+.netlogo-command-center-editor .cm-editor .cm-gutters {
+	display: none;
+}
+
+.netlogo-command-center-editor .cm-editor .cm-scroller {
+	line-height: 1.5;
+	overflow-x: scroll;
+	overflow-y: hidden;
+}
+
+.netlogo-command-center-editor .cm-editor span.cm-placeholder .active {
+	color: #cc2200;
+}
+
+.netlogo-command-center-editor .cm-editor .cm-scroller::-webkit-scrollbar {
+	display: none;
+}
+
+.netlogo-command-center-editor .cm-editor .cm-activeLine {
+	background: transparent;
+}
+
 .netlogo-output-widget {
   display: flex;
   padding: 5px;
