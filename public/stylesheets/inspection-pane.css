@@ -105,9 +105,11 @@
   grid: auto / auto auto;
   gap: 0.5em;
   align-items: center;
+  justify-content: space-between;
   border: 2px solid lightgray;
   border-radius: 5px;
   padding: 0.5em;
+  min-width: 8em;
   background-color: lightgray;
   cursor: pointer;
 }
