@@ -225,6 +225,10 @@
   min-width: 100%;
 }
 
+.widget-edit-code-container {
+  border: 1px solid gray;
+}
+
 .widget-edit-fieldset {
   border-radius: 8px;
 }

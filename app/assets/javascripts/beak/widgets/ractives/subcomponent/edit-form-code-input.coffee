@@ -52,7 +52,7 @@ RactiveEditFormCode = Ractive.extend({
       {{/}}
       <label for="{{id}}" class="expander-text">{{label}}</label>
     </div>
-    <div class="{{# isCollapsible && !isExpanded }}hidden{{/}}">
+    <div class="widget-edit-code-container {{# isCollapsible && !isExpanded }}hidden{{/}}">
       <codeContainer
         codeContainerType={{codeContainerType}}
         initialCode={{value}}
