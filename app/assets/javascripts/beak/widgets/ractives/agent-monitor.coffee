@@ -22,7 +22,6 @@ RactiveAgentMonitor = Ractive.extend({
     parentEditor: null, # GalapagosEditor | null
     setInspect: undefined, # (SetInspectAction) -> Unit
     viewController: undefined, # ViewController; from which this agent monitor is taking its ViewWindow
-    viewSideLength: 200, # number; the side length of the view canvas in pixels
 
     # State
 
@@ -42,7 +41,7 @@ RactiveAgentMonitor = Ractive.extend({
       viewController = @get('viewController')
       { worldWidth, worldHeight } = viewController.getWorldShape()
       windowGenerator = followAgentWithZoom(
-        @get('viewSideLength'),
+        @find('.inspection__agent-monitor__view-container').offsetWidth,
         @get('viewModelAgent'),
         @get('zoomLevel'),
         Math.min(worldWidth, worldHeight) / 2

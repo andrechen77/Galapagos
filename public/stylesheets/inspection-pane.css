@@ -2,6 +2,7 @@
   height: calc(100vh - 160px);
   padding: 1em;
   overflow: scroll;
+  min-width: 600px;
 }
 
 .inspection__header-row {
@@ -146,7 +147,7 @@
 .inspection__agent-monitor {
   border: 2px solid lightgray;
   border-radius: 5px;
-  width: 200px;
+  width: 170px;
   padding: 0.5em;
   background-color: lightgray;
   display: flex;
