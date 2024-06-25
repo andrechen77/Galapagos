@@ -19,6 +19,7 @@
 .inspection__button {
   cursor: pointer;
   border-radius: 5px;
+  background-color: white;
 }
 .inspection__button:hover {
   background-color: rgba(211, 211, 211, 0.5);
@@ -107,6 +108,7 @@
   border: 2px solid lightgray;
   border-radius: 5px;
   padding: 0.5em;
+  background-color: lightgray;
   cursor: pointer;
 }
 
@@ -124,7 +126,6 @@
   flex-direction: row;
   align-items: center;
   gap: 0.5em;
-  padding: 0.5em;
   border: 2px solid lightgray;
   border-radius: 5px;
 }
@@ -145,7 +146,7 @@
   border-radius: 5px;
   width: 200px;
   padding: 0.5em;
-
+  background-color: lightgray;
   display: flex;
   flex-direction: column;
   gap: 0.5em;
@@ -186,6 +187,11 @@
   white-space: nowrap;
 }
 
-.inspection__agent-monitor__property-grid input.inspection__agent-var-value {
+.inspection__agent-monitor__property-grid > input {
   min-width: 0;
+}
+
+.inspection__input-container {
+  background-color: white;
+  border: 1px solid gray;
 }
