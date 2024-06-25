@@ -363,24 +363,9 @@
   border-width: 1px 0;
 }
 
-/* I don't actually understand why setting `width` here does what it does.  Without it, if you fill up the Command
- * Center with text, instead of becoming horizontally scrollable, the input grows in width, even if it means becoming
- * larger than the input's container.  So the input (rather than the text) just flows off the side of the screen.
- * If I go down a level in the CSS and set the width on the CodeMirror instance directly, that kind of fixes the
- * problem, but only if I know the expect width that I want (which I don't).  However, if I come here and set the
- * width to *any* numeric value, the input always fits exactly the amount of space it's supposed to use.  Fricken weird.
- * --Jason B. (10/12/17)
- */
 .netlogo-command-center-editor {
-  height: 17px;
   line-height: 17px;
   flex-grow: 1;
-  width: 300px; /* Arbitrary as hell; see comment above. --Jason B. (10/12/17) */
-}
-
-.netlogo-command-center-editor .CodeMirror {
-  border: 1px solid #111;
-  height: auto;
 }
 
 .netlogo-output-widget {
@@ -588,15 +573,6 @@ body {
 
 .netlogo-value {
   overflow: hidden;
-}
-
-.netlogo-code {
-  border: 1px solid black;
-  border-width: 1px 0 0 0;
-}
-
-.netlogo-code .cm-editor {
-  height: 100%;
 }
 
 .netlogo-code .cm-editor .cm-scroller {
