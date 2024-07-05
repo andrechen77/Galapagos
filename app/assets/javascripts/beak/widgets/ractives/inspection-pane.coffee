@@ -462,11 +462,6 @@ RactiveInspectionPane = Ractive.extend({
     'stagingArea': """
       {{#with getCategoryRows(true) as categoryRows}}
         <div class="inspection__header-row">
-          <div class="inspection__tab-selector-group">
-            {{#each categoryRows[0] as categoryPath}}
-              {{>categoryTab}}
-            {{/each}}
-          </div>
           <div class="inspection__button-tray">
             <div
               class="inspection__button {{#if dragToSelectEnabled}}selected{{/if}}"
@@ -484,6 +479,11 @@ RactiveInspectionPane = Ractive.extend({
                 src="https://static.thenounproject.com/png/61692-200.png"
               />
             </div>
+          </div>
+          <div class="inspection__tab-selector-group">
+            {{#each categoryRows[0] as categoryPath}}
+              {{>categoryTab}}
+            {{/each}}
           </div>
         </div>
         <div class="inspection__tab-content">
