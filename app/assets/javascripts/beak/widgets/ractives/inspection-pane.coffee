@@ -516,11 +516,13 @@ RactiveInspectionPane = Ractive.extend({
         </div>
         <div class="inspection__tab-content">
           {{#each categoryRows.slice(1) as categoryRow}}
-            <div class="inspection__card-selector-group">
-              {{#each categoryRow as categoryPath}}
-                {{>categoryTab}}
-              {{/each}}
-            </div>
+            {{#if categoryRow.length > 1}}
+              <div class="inspection__card-selector-group">
+                {{#each categoryRow as categoryPath}}
+                  {{>categoryTab}}
+                {{/each}}
+              </div>
+            {{/if}}
           {{/each}}
           <div class="inspection__agents-area">
             {{#each getAgentsInSelectedPaths() as agent}}
