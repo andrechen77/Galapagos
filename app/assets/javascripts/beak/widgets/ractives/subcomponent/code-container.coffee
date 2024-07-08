@@ -15,7 +15,7 @@ RactiveCodeContainer = Ractive.extend({
     # Props
     codeContainerType: undefined # CodeContainerType
     initialCode: "" # string
-    onKeyUp: -> # (KeyboardEvent) -> Unit
+    keyBindings: [] # Array[KeyBinding]
     isDisabled: false # boolean
     placeholder: "" # string
     parentEditor: null # GalapagosEditor | null
@@ -58,12 +58,10 @@ RactiveCodeContainer = Ractive.extend({
         OnUpdate: (_documentChanged, _viewUpdate) =>
           @update('code')
           return
-        OnKeyUp: (event, _) =>
-          @get('onKeyUp')(event)
-          return
         OnBlurred: (_view) =>
           @fire('change')
           return
+        KeyBindings: @get('keyBindings')
       })
       @set('editor', editor)
 

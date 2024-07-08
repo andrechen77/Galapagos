@@ -91,14 +91,39 @@ RactiveCommandInput = Ractive.extend({
 
     # Consts
 
-    onKeyUp: (event) =>
-      switch event.key
-        when 'Enter' then @run()
-        when 'Tab'
-          @set('input', @get('input').trim()) # kludge to get rid of tab character added (can be beginning or end)
-          @fire('command-input-tabbed')
-        when 'ArrowUp' then @moveInHistory(-1)
-        when 'ArrowDown' then @moveInHistory(1)
+    keyBindings: [
+      {
+        key: 'Enter',
+        run: =>
+          @run()
+          true
+        preventDefault: true,
+      },
+      {
+        key: 'Tab',
+        run: =>
+          if @get('input').length == 0
+            @fire('command-input-tabbed')
+            true
+          else
+            false
+        preventDefault: true,
+      },
+      {
+        key: 'ArrowUp',
+        run: =>
+          @moveInHistory(-1)
+          true
+        preventDefault: true,
+      },
+      {
+        key: 'ArrowDown'
+        run: =>
+          @moveInHistory(1)
+          true
+        preventDefault: true
+      },
+    ]
   }
 
   computed: {
@@ -154,7 +179,7 @@ RactiveCommandInput = Ractive.extend({
     <div class="netlogo-command-center-editor">
       <codeContainer
         codeContainerType="command"
-        onKeyUp={{onKeyUp}}
+        keyBindings={{keyBindings}}
         isDisabled={{isReadOnly}}
         placeholder={{placeholderText}}
         parentEditor={{parentEditor}}
