@@ -124,21 +124,30 @@ traverseKeypath = (obj, keypath, defaultValue = undefined) ->
 # (any) -> boolean
 isAgent = (obj) -> obj instanceof Turtle or obj instanceof Patch or obj instanceof Link
 
-# Treating an object as the root of a tree, prunes certain nodes of the tree (deleting an element of an
-# array shifts the indices of the following elements, while deleting an element of an object simply removes the
-# key-value pair). The provided tester function should return true if the node should be kept as-is (stopping deeper
-# recursion), false if the node should be deleted, and null if the node should be recursively pruned. Returning null on
-# a non-traversable value (i.e. a primitive) causes it to be deleted.
-# (any, (any) -> boolean | null) -> Unit
-pruneTree = (obj, tester) ->
+# Treating an object as the root of a tree, prunes certain nodes of the tree
+# (deleting an element of an array shifts the indices of the following elements,
+# while deleting an element of an object simply removes the key-value pair). The
+# provided tester function is given a pair of (node: any, keypath:
+# Array[string]), and should return true if the node should be kept as-is
+# (stopping deeper recursion), false if the node should be deleted, and null if
+# the node should be recursively pruned. Returning null on a non-traversable
+# value (i.e. a primitive) causes it to be deleted. After a node is recursively
+# pruned, it is then tested again to see if it itself should be pruned.
+#
+# (any, (Array[string], any) -> boolean | null) -> Unit
+pruneTree = (obj, tester, currentKeypath = []) ->
   for key, value of obj
-    switch tester(value)
+    keypath = currentKeypath.concat([key])
+    switch tester(value, keypath)
       when false then delete obj[key]
       when null
         if not value? or typeof value isnt 'object'
           delete obj[key]
         else # we know it must be a traversible object at this point
-          pruneTree(value, tester)
+          pruneTree(value, tester, keypath)
+          if tester(value, keypath) is false # don't delete if null or true
+            delete obj[key]
+      # tester returning true means skip the object without recursion
   if Array.isArray(obj)
     i = 0
     while i < obj.length
@@ -341,6 +350,26 @@ RactiveInspectionPane = Ractive.extend({
   ###
   # (SetInspectAction) -> Unit
   setInspect: (action) ->
+    # prunes the `stagedAgents` tree, removing empty arrays (except for the
+    # array for patches), and using the provided `agentTester` function to
+    # determine whether to keep an agent
+    #
+    # (StagedAgents (Agent) -> boolean) -> Unit
+    pruneAgents = (agentTester) =>
+      stagedAgents = @get('stagedAgents')
+      pruneTree(
+        stagedAgents,
+        (obj, keypath) =>
+          if isAgent(obj)
+            agentTester(obj) # either keep or delete the agent
+          else if Array.isArray(obj) and obj.length == 0 and not arrayEquals(["patches"])(keypath)
+            @selectCategory({ mode: 'remove', categoryPath: keypath })
+            false # delete childless intermediate arrays except for the array for patches
+          else
+            null # recurse into all other nodes
+      )
+      @update('stagedAgents')
+
     switch action.type
       when 'add'
         stagedAgents = @get('stagedAgents')
@@ -361,22 +390,16 @@ RactiveInspectionPane = Ractive.extend({
             arr.splice(index, 1)
           if action.monitor and @get('inspectedAgents').includes(agent)
             @toggleAgentMonitor(agent)
+        @update('stagedAgents')
+        # remove empty arrays
+        pruneAgents((_) -> true)
         @unselectAgents(action.agents)
-        @update('stagedAgents')
       when 'unstage-all'
-        pruneTree(
-          @get('stagedAgents'),
-          (obj) -> if isAgent(obj) then false else null
-        )
         @set('selections.selectedAgents', null)
-        @update('stagedAgents')
+        pruneAgents((_) -> false)
       when 'clear-dead'
-        pruneTree(
-          @get('stagedAgents'),
-          (obj) -> if isAgent(obj) then not obj.isDead() else null
-        )
         @set('selections.selectedAgents', null)
-        @update('stagedAgents')
+        pruneAgents((agent) -> not agent.isDead())
         for agent in [@get('inspectedAgents')...]
           if agent.isDead()
             @toggleAgentMonitor(agent)
@@ -384,15 +407,20 @@ RactiveInspectionPane = Ractive.extend({
   # Selects the specified category. 'replace' mode removes all other selected
   # categories (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item).
-  # ({ mode: 'replace' | 'toggle', categoryPath: CategoryPath }) -> Unit
+  # ({ mode: 'replace' | 'toggle' | 'remove', categoryPath: CategoryPath }) -> Unit
   selectCategory: ({ mode, categoryPath }) ->
     selectedPaths = switch mode
       when 'replace'
         [categoryPath]
-      when 'toggle'
-        [paths, _] = togglePresence(@get('selections.selectedPaths'), categoryPath, arrayEquals)
-        if paths.length is 0 then paths.push([])
-        paths
+      when 'toggle', 'remove'
+        oldPaths = @get('selections.selectedPaths')
+        [newPaths, matchFound] = togglePresence(oldPaths, categoryPath, arrayEquals)
+        if newPaths.length is 0 then newPaths.push([])
+        if mode is 'remove' and not matchFound
+          oldPaths
+        else
+          newPaths
+
     ### @set('selection', { currentScreen: 'categories', selectedPaths }) ###
     # Ideally we'd want to use the concise code above instead of the kludgy bandaid below, but Ractive can't figure out
     # how to update the dependents of 'selection' in the correct order. If the inspection window is open, it will
