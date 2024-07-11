@@ -23,6 +23,16 @@ RactiveCodePane = Ractive.extend({
     # Internal State
     procedureNames: {} # Object<string, number>
     autoCompleteStatus: false # boolean
+
+    # keybindings for the code container
+    keyBindings: [{
+      key: 'Ctrl-s',
+      run: =>
+        if @get('isStale')
+          @fire('recompile', 'user')
+        @findComponent('codeContainer').focus() # prevent the recompilation from losing focus
+        true
+    }]
   }
 
   computed: {
@@ -91,6 +101,7 @@ RactiveCodePane = Ractive.extend({
         <codeContainer
           codeContainerType="full_model"
           initialCode={{initialCode}}
+          keyBindings={{keyBindings}}
           isDisabled={{isReadOnly}}
           setAsParent={{setAsParent}}
           widgetVarNames={{widgetVarNames}}
