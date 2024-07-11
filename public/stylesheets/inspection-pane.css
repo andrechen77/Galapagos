@@ -20,6 +20,7 @@
 
 .inspection__button {
   cursor: pointer;
+  user-select: none;
   border-radius: 5px;
   background-color: white;
 }
@@ -56,6 +57,7 @@
   padding: 0.5em;
   border: 2px solid lightgray;
   cursor: pointer;
+  user-select: none;
   max-width: 10em;
 }
 
@@ -114,6 +116,7 @@
   min-width: 8em;
   background-color: lightgray;
   cursor: pointer;
+  user-select: none;
 }
 
 .inspection__mini-agent-card.selected {
