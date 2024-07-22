@@ -446,6 +446,18 @@
   height: 15px;
 }
 
+.netlogo-color-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+}
+
+.netlogo-color-display span {
+  color: white;
+  text-shadow: 0px 0px 5px black;
+}
+
 .netlogo-button {
   border: inherit;
   color: black;

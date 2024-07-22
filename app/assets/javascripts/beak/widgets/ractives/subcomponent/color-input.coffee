@@ -1,26 +1,6 @@
-import { netlogoColorToHexString, hexStringToNetlogoColor } from "/colors.js"
-
-# This exists to address some trickiness.  Here are the relevant constraints:
-#
-#   1. HTML color pickers have higher color space resolution than the NetLogo color system
-#   2. The color picker must be automatically updated when a color value updates in the engine
-#   3. The engine must be automatically updated when a new color is chosen
-#
-# The logical solution for (2) and (3) is to do the normal two-way binding that we do for the all other
-# NetLogo variables.  However, if we do that, the new color will be continually clobbered by the one from
-# the engine, since the picker won't get updated until the color picker is closed (and you'll never close it,
-# except out of frustration from the fact that your color choice is getting clobbered).  So, okay, we use
-# `on-input` instead of `on-change` to update the color before closing the picker.  But then (1) comes into
-# play.
-#
-# So you have this enormous space for visually choosing colors--tens of thousands of points.  However,
-# only maybe 20 of those points are valid NetLogo colors.  So, with the variables bound together, you
-# pick a color in the picker, and then the picker jumps to the nearest NetLogo-expressible color (which can
-# be a pretty far jump).  NetLogo just keeps doing this, ad infinitum.  The user experience feels awful.
-# So the solution that I've chosen here is to establish kind of a buffer zone, so that we only update the
-# picker when a new value comes in from the engine.
-#
-# --Jason B. (4/11/18)
+import { netlogoColorToHexString, hexStringToNetlogoColor, netlogoColorToRGBA } from "/colors.js"
+import ColorPicker from '@netlogo/netlogo-color-picker'
+{ arrayEquals } = tortoise_require("brazier/equals")
 
 RactiveColorInput = Ractive.extend({
 
@@ -30,37 +10,51 @@ RactiveColorInput = Ractive.extend({
   , isEnabled:  true      # Boolean
   , name:       undefined # String
   , style:      undefined # String
-  , value:      undefined # String
+  , value:      undefined # [number, number, number, number]; RBGA value
   }
 
   on: {
+    'click': ->
+      # Check if the ColorPicker is already open
+      if document.querySelector('#colorPickerDiv')
+        return
 
-    'handle-color-change': ({ node: { value: hexValue } }) ->
-      color =
-        try hexStringToNetlogoColor(hexValue)
-        catch ex
-          0
-      @set('value', color)
-      @fire('change')
+      cpDiv = document.createElement('div')
+      cpDiv.id = 'colorPickerDiv'
+      @find(".color-picker-temporary-holder").appendChild(cpDiv)
+
+      currentRgba = netlogoColorToRGBA(@get('value'))
+      new ColorPicker({
+        parent: cpDiv,
+        initColor: currentRgba,
+        onColorSelect: ([selectedColor, savedColors]) =>
+          { netlogo, rgba } = selectedColor
+          [r, g, b, a] = rgba
+          # replace with netlogo color number if it is an exact match
+          newValue = if a == 255 and arrayEquals([r, g, b])(ColorModel.colorToRGB(netlogo))
+            netlogo
+          else
+            rgba
+          @set('value', newValue)
+          @fire('change')
+          cpDiv.remove()
+          return
+        savedColors: []
+      })
+      @fire('popup-window', {}, cpDiv)
+
       false
 
     render: ->
-
-      observeValue =
-        (newValue, oldValue) ->
-          if newValue isnt oldValue
-            hexValue =
-              try netlogoColorToHexString(@get('value'))
-              catch ex
-                "#000000"
-            input = @find('input')
-            input.value = hexValue
-            # See Safari workaround comment below.  -JMB January 2019
-            if (input.jsc?)
-              input.style.backgroundColor = input.value
-          return
-
-      @observe('value', observeValue)
+      @observe('value', (newValue, oldValue) ->
+        if newValue isnt oldValue
+          [r, g, b, a] = netlogoColorToRGBA(newValue)
+          a /= 255 # because CSS alpha values are 0.0 - 1.0 instead of 0 - 255
+          div = @find('.netlogo-color-display')
+          imageCss = "linear-gradient(to right, rgba(#{r}, #{g}, #{b}, #{a}), rgba(#{r}, #{g}, #{b}, #{a}))"
+          div.style.backgroundImage = imageCss
+        return
+      )
 
       return
 
@@ -68,9 +62,17 @@ RactiveColorInput = Ractive.extend({
 
   template:
     """
-    <input id="{{id}}" class="{{class}}" name="{{name}}" style="{{style}}" type="color"
-           on-change="handle-color-change"
-           {{# !isEnabled }}disabled{{/}} />
+    <div class="color-picker-temporary-holder" style="display: none;"></div>
+    <div
+      id="{{id}}"
+      class="netlogo-color-display {{class}}"
+      name="{{name}}"
+      style="{{style}}"
+      on-click="click"
+      {{# !isEnabled }}disabled{{/}}
+    >
+      <span>{{value}}</span>
+    </div>
     """
 
 })

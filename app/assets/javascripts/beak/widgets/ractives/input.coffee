@@ -166,9 +166,11 @@ RactiveInput = RactiveValueWidget.extend({
     inputType = @get("widget.boxedValue.type")
     valueType = typeof(newValue)
 
-    if ([ "Color", "Number" ].includes(inputType) and valueType isnt "number")
+    if (inputType == "Number" and valueType isnt "number")
       @resetValue("number", oldValue, 0)
       return
+
+    # removed type checking for color variables - Andre C 2024-05-03
 
     if (inputType.startsWith("String") and valueType isnt "string")
       @resetValue("string", oldValue, "")

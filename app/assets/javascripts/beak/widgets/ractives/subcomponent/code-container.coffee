@@ -62,6 +62,13 @@ RactiveCodeContainer = Ractive.extend({
           @fire('change')
           return
         KeyBindings: @get('keyBindings')
+        OnColorPickerCreate: (cpDiv) =>
+          # Check if the ColorPicker is already open
+          if document.querySelector('#colorPickerDiv')
+            return
+
+          @fire('popup-window', {}, cpDiv)
+          return
       })
       @set('editor', editor)
 

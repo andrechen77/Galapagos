@@ -179,6 +179,9 @@ generateRactiveSkeleton = (container, widgets, code, info,
     on: {
       'world-might-change': (context) ->
         @findAllComponents().forEach((component) -> component.fire(context.name, context))
+      '*.popup-window': (_, windowElement) ->
+        @find(".netlogo-widget-container").appendChild(windowElement)
+        false
       'compiler-error': (_, source, errors) ->
         switch source
           when 'recompile', 'compile-recoverable'
