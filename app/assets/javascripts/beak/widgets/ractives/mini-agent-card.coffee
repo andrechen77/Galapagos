@@ -11,10 +11,14 @@ RactiveMiniAgentCard = Ractive.extend({
     opened: false # boolean
   }
 
+  onunrender: -> @fire("unhover-agent-card", {}, @get('agent'))
+
   template: """
     <div
       class="inspection__mini-agent-card {{#selected}}selected{{/}} {{#opened}}opened{{/}}"
       title="{{agent.getName()}}"
+      on-mouseenter="['hover-agent-card', agent]"
+      on-mouseleave="['unhover-agent-card', agent]"
       on-click="['clicked-agent-card', agent]"
       on-dblclick="['dblclicked-agent-card', agent]"
     >

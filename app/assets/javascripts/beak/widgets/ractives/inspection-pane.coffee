@@ -191,6 +191,8 @@ RactiveInspectionPane = Ractive.extend({
     # represent everything in the staging area that are selected
     selections: { selectedPaths: [[]], selectedAgents: null }
 
+    hoveredAgents: [] # Array[Agent]
+
     commandPlaceholderText: "" # string
 
     inspectedAgents: [] # Array[Agent]; agents for which there is an opened agent monitor
@@ -290,8 +292,17 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   observe: {
-    'targetedAgentObj.agents': (newValue) ->
-      @get('viewController').setHighlightedAgents(newValue)
+    'targetedAgentObj.agents hoveredAgents': (newValue, _, path) ->
+      if path is 'hoveredAgents'
+        if newValue.length > 0
+          # highlight all hovered agents
+          @get('viewController').setHighlightedAgents(newValue)
+        else
+          # highlight all targeted agents
+          @get('viewController').setHighlightedAgents(@get('targetedAgentObj.agents'))
+      else if path is 'targetedAgentObj.agents' and @get('hoveredAgents').length is 0
+        # highlight all targeted agents
+        @get('viewController').setHighlightedAgents(newValue)
     dragToSelectEnabled: (enabled) ->
       if enabled
         @set('unsubscribeDragSelector', attachDragSelector(
@@ -319,6 +330,19 @@ RactiveInspectionPane = Ractive.extend({
       false
     'clicked-staging-help': (_) ->
       alert("To monitor change, inspect properties, and execute commands to one or multiple agents during simulation, turn on drag select to activate inspection mode. Then, click or drag in the view to select agents.")
+      false
+    '*.hover-agent-card': (context, agent) ->
+      hoveredAgents = @get('hoveredAgents')
+      if not hoveredAgents.includes(agent)
+        hoveredAgents.push(agent)
+      @update('hoveredAgents')
+      false
+    '*.unhover-agent-card': (context, agent) ->
+      hoveredAgents = @get('hoveredAgents')
+      index = hoveredAgents.indexOf(agent)
+      if index isnt -1
+        hoveredAgents.splice(index, 1)
+      @update('hoveredAgents')
       false
     'miniAgentCard.clicked-agent-card': (context, agent) ->
       ctrl = context.event.ctrlKey
