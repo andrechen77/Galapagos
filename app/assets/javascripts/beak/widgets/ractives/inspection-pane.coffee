@@ -263,7 +263,7 @@ RactiveInspectionPane = Ractive.extend({
         [targetedAgents, quantifierText] = if selectedAgents?
           [selectedAgents, "selected"]
         else
-          [@get('getAgentsInSelectedPaths')(), "all"]
+          [@get('getAgentsInSelectedPaths')(), "all staged"]
 
         # check whether the selected paths are all of the same agent type
         # (i.e. turtles, patches, or links).
