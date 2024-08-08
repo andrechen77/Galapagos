@@ -287,6 +287,7 @@ RactiveInspectionPane = Ractive.extend({
 
         { agentType, agents } = targetedAgentObj
 
+        @setInspect({ type: 'add', agents, monitor: false })
         @selectAgents({ mode: 'replace', agents })
     }
   }
