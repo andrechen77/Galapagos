@@ -303,6 +303,11 @@ RactiveInspectionPane = Ractive.extend({
       else if path is 'targetedAgentObj.agents' and @get('hoveredAgents').length is 0
         # highlight all targeted agents
         @get('viewController').setHighlightedAgents(newValue)
+    'stagedAgents selections inspectedAgents': ->
+      # this observer is intended to make sure that, if a mini agent card or
+      # agent monitor disappears, it is removed from the hovered agents. it's
+      # not easy to do this with an event listener on the mini agent card itself
+      @set('hoveredAgents', [])
     dragToSelectEnabled: (enabled) ->
       if enabled
         @set('unsubscribeDragSelector', attachDragSelector(
