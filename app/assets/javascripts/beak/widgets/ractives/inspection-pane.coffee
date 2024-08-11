@@ -254,30 +254,45 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   computed: {
+    # 'staged' | 'inspected'
+    agentTargetChoice: ->
+      if @get('inspectedAgents').length > 0
+        'inspected'
+      else
+        'staged'
+
     # computing this value also sets the command placeholder text
     targetedAgentObj: {
       get: ->
-        { selectedPaths, selectedAgents } = @get('selections')
-
-        [targetedAgents, quantifierText] = if selectedAgents?
-          [selectedAgents, "selected"]
+        agentTargetChoice = @get('agentTargetChoice')
+        if agentTargetChoice is 'inspected'
+          targetedAgents = @get('inspectedAgents')
+          quantifierText = "inspected"
+          targetingText = "inspected agents \u2193"
         else
-          [@get('getAgentsInSelectedPaths')(), "all staged"]
+          { selectedPaths, selectedAgents } = @get('selections')
+          [targetedAgents, quantifierText] = if selectedAgents?
+            [selectedAgents, "selected"]
+          else
+            [@get('getAgentsInSelectedPaths')(), "all staged"]
+          targetingText = "staged agents \u2191"
+
 
         # check whether the selected agents are all of the same type
         # (i.e. turtles, patches, or links).
         selectedAgentTypes = unique(targetedAgents.map((agent) -> getKeypathFor(agent)[0]))
         if selectedAgentTypes.length == 1
-          categoriesText = selectedPaths.map((path) -> calcCategoryPathDetails(path).display).join(", ")
-          @set('commandPlaceholderText', "Input command for #{quantifierText} #{categoriesText}")
+          if agentTargetChoice is 'inspected'
+            categoriesText = selectedAgentTypes[0]
+          else
+            categoriesText = selectedPaths.map((path) -> calcCategoryPathDetails(path).display).join(", ")
+          @set('commandPlaceholderText', "(Targeting #{targetingText}) Input command for #{quantifierText} #{categoriesText}")
           { agentType: selectedAgentTypes[0], agents: targetedAgents }
         else
           # there are either no agents or the agents are not of the same type
           # (mix of turtles, patches, links) so just send the commands to the
-          # observer. the actual value doesn't matter here, since the command
-          # center will not get shown, but observer is the most sensible valid
-          # value
-          @set('commandPlaceholderText', "Input command for OBSERVER")
+          # observer
+          @set('commandPlaceholderText', "(Targeting #{targetingText}) Input command for OBSERVER")
           { agentType: 'observer', agents: targetedAgents }
       set: (targetedAgentObj) ->
         if not @get('updateTargetedAgentsInHistory')
@@ -289,8 +304,11 @@ RactiveInspectionPane = Ractive.extend({
 
         { agentType, agents } = targetedAgentObj
 
-        @setInspect({ type: 'add', agents, monitor: false })
-        @selectAgents({ mode: 'replace', agents })
+        if @get('agentTargetChoice') is 'inspected'
+          @set('inspectedAgents', agents)
+        else
+          @setInspect({ type: 'add', agents, monitor: false })
+          @selectAgents({ mode: 'replace', agents })
     }
 
     hasTargetedAgents: ->
