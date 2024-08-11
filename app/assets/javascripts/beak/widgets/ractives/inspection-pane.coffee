@@ -337,8 +337,8 @@ RactiveInspectionPane = Ractive.extend({
 
   on: {
     'clicked-category-tab': (context, categoryPath) ->
-      ctrl = context.event.ctrlKey
-      @selectCategory({ mode: (if ctrl then 'toggle' else 'replace'), categoryPath })
+      multi = context.event.ctrlKey or context.event.shiftKey
+      @selectCategory({ mode: (if multi then 'toggle' else 'replace'), categoryPath })
       false
     'clicked-staging-help': (_) ->
       alert("To monitor change, inspect properties, and execute commands to one or multiple agents during simulation, turn on drag select to activate inspection mode. Then, click or drag in the view to select agents.")
@@ -357,12 +357,12 @@ RactiveInspectionPane = Ractive.extend({
       @update('hoveredAgents')
       false
     'miniAgentCard.clicked-agent-card': (context, agent) ->
-      ctrl = context.event.ctrlKey
-      @selectAgents(if ctrl then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
+      multi = context.event.ctrlKey or context.event.shiftKey
+      @selectAgents(if multi then { mode: 'toggle', agent } else { mode: 'replace', agents: [agent] })
       false
     'miniAgentCard.dblclicked-agent-card': (context, agent) ->
       # The conditional is so that when the user clicks and then ctrl-clicks the category card, it does not open.
-      if not context.event.ctrlKey
+      if not (context.event.ctrlKey or context.event.shiftKey)
         @toggleAgentMonitor(agent)
       false
     'miniAgentCard.closed-agent-card': (_, agent) ->
