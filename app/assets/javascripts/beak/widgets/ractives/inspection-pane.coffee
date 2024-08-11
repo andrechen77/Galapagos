@@ -198,6 +198,9 @@ RactiveInspectionPane = Ractive.extend({
     inspectedAgents: [] # Array[Agent]; agents for which there is an opened agent monitor
     # can be shared with agent monitor components
 
+    # 'staged' | 'inspected'
+    agentTargetChoice: 'inspected'
+
     # Consts
 
     # (Agent) -> boolean
@@ -254,13 +257,6 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   computed: {
-    # 'staged' | 'inspected'
-    agentTargetChoice: ->
-      if @get('inspectedAgents').length > 0
-        'inspected'
-      else
-        'staged'
-
     # computing this value also sets the command placeholder text
     targetedAgentObj: {
       get: ->
@@ -310,10 +306,6 @@ RactiveInspectionPane = Ractive.extend({
           @setInspect({ type: 'add', agents, monitor: false })
           @selectAgents({ mode: 'replace', agents })
     }
-
-    hasTargetedAgents: ->
-      targetedAgentObj = @get('targetedAgentObj')
-      targetedAgentObj.agentType isnt 'observer' and targetedAgentObj.agents.length > 0
   }
 
   observe: {
@@ -532,12 +524,14 @@ RactiveInspectionPane = Ractive.extend({
     filtered = @get('selections.selectedAgents')?.filter((selected) -> not agentsToUnselect.includes(selected))
     @set('selections.selectedAgents', filtered)
 
+  # (Unit) -> Unit
+  toggleAgentTargetChoice: ->
+    @set('agentTargetChoice', if @get('agentTargetChoice') is 'inspected' then 'staged' else 'inspected')
+
   template: """
     <div class='netlogo-tab-content inspection__pane'>
       {{>stagingArea}}
-      {{#if hasTargetedAgents}}
-        {{>commandCenter}}
-      {{/if}}
+      {{>commandCenter}}
       {{>agentMonitorsScreen}}
     </div>
   """
@@ -626,6 +620,16 @@ RactiveInspectionPane = Ractive.extend({
           <img
             width=25
             src="https://static.thenounproject.com/png/84467-200.png"
+          />
+        </div>
+        <div
+          class="inspection__button"
+          title="Toggle which agents to target (staged agents \u2191 or inspected agents \u2193)"
+          on-click="@.toggleAgentTargetChoice()"
+        >
+          <img
+            width=25
+            src="https://static.thenounproject.com/png/2506-200.png"
           />
         </div>
         <commandInput
