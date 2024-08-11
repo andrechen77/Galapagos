@@ -254,27 +254,29 @@ RactiveInspectionPane = Ractive.extend({
   }
 
   computed: {
-    # computing this value also the command placeholder text
+    # computing this value also sets the command placeholder text
     targetedAgentObj: {
       get: ->
         { selectedPaths, selectedAgents } = @get('selections')
-        console.assert(selectedPaths.length > 0)
 
         [targetedAgents, quantifierText] = if selectedAgents?
           [selectedAgents, "selected"]
         else
           [@get('getAgentsInSelectedPaths')(), "all staged"]
 
-        # check whether the selected paths are all of the same agent type
+        # check whether the selected agents are all of the same type
         # (i.e. turtles, patches, or links).
-        selectedAgentTypes = unique(selectedPaths.map((path) -> path[0] ? 'root'))
-        if selectedAgentTypes.length == 1 and selectedAgentTypes[0] != 'root'
+        selectedAgentTypes = unique(targetedAgents.map((agent) -> getKeypathFor(agent)[0]))
+        if selectedAgentTypes.length == 1
           categoriesText = selectedPaths.map((path) -> calcCategoryPathDetails(path).display).join(", ")
           @set('commandPlaceholderText', "Input command for #{quantifierText} #{categoriesText}")
           { agentType: selectedAgentTypes[0], agents: targetedAgents }
         else
-          # the agents are not of the same type (mix of turtles, patches, links)
-          # so just send the commands to the observer
+          # there are either no agents or the agents are not of the same type
+          # (mix of turtles, patches, links) so just send the commands to the
+          # observer. the actual value doesn't matter here, since the command
+          # center will not get shown, but observer is the most sensible valid
+          # value
           @set('commandPlaceholderText', "Input command for OBSERVER")
           { agentType: 'observer', agents: targetedAgents }
       set: (targetedAgentObj) ->
@@ -290,6 +292,10 @@ RactiveInspectionPane = Ractive.extend({
         @setInspect({ type: 'add', agents, monitor: false })
         @selectAgents({ mode: 'replace', agents })
     }
+
+    hasTargetedAgents: ->
+      targetedAgentObj = @get('targetedAgentObj')
+      targetedAgentObj.agentType isnt 'observer' and targetedAgentObj.agents.length > 0
   }
 
   observe: {
@@ -511,7 +517,9 @@ RactiveInspectionPane = Ractive.extend({
   template: """
     <div class='netlogo-tab-content inspection__pane'>
       {{>stagingArea}}
-      {{>commandCenter}}
+      {{#if hasTargetedAgents}}
+        {{>commandCenter}}
+      {{/if}}
       {{>agentMonitorsScreen}}
     </div>
   """
