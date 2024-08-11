@@ -440,6 +440,11 @@ RactiveInspectionPane = Ractive.extend({
           if agent.isDead()
             @toggleAgentMonitor(agent)
 
+  stageOnlyInspectedAgents: ->
+    inspectedAgents = @get('inspectedAgents')
+    @setInspect({ type: 'unstage-all' })
+    @setInspect({ type: 'add', agents: inspectedAgents, monitor: false })
+
   # Selects the specified category. 'replace' mode removes all other selected
   # categories (single-clicking an item), while 'toggle' mode toggles whether
   # the item is selected (ctrl-clicking an item).
@@ -537,6 +542,16 @@ RactiveInspectionPane = Ractive.extend({
               <img
                 width=25
                 src="https://cdn0.iconfinder.com/data/icons/controls-and-navigation-arrows-1/24/27-512.png"
+              />
+            </div>
+            <div
+              class="inspection__button"
+              title="Stage only the agents with an agent monitor"
+              on-click="@.stageOnlyInspectedAgents(), @.set('dragToSelectEnabled', false)"
+            >
+              <img
+                width=25
+                src="https://static.thenounproject.com/png/2506-200.png"
               />
             </div>
             <div class="inspection__button" title="Help" on-click="clicked-staging-help">
