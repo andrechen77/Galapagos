@@ -138,7 +138,6 @@
 }
 
 .inspection__agent-monitor-container {
-  margin: 1em 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5em;

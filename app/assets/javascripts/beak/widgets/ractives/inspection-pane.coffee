@@ -617,7 +617,7 @@ RactiveInspectionPane = Ractive.extend({
     """
 
     'commandCenter': """
-      <div class="inspection__cmd-container">
+      <div class="inspection__cmd-container" style="{{#if agentTargetChoice === 'inspected'}}margin-bottom: 0;{{else}}margin-top: 0;{{/if}}">
         <div
           class="inspection__button {{#if updateTargetedAgentsInHistory}}selected{{/if}}"
           on-click="@.toggle('updateTargetedAgentsInHistory')"
