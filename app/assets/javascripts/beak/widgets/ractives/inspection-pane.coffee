@@ -257,19 +257,13 @@ RactiveInspectionPane = Ractive.extend({
     # computing this value also sets the command placeholder text
     targetedAgentObj: {
       get: ->
-        { selectedPaths, selectedAgents } = @get('selections')
-
-        [targetedAgents, quantifierText] = if selectedAgents?
-          [selectedAgents, "selected"]
-        else
-          [@get('getAgentsInSelectedPaths')(), "all staged"]
+        targetedAgents = @get('inspectedAgents')
 
         # check whether the selected agents are all of the same type
         # (i.e. turtles, patches, or links).
         selectedAgentTypes = unique(targetedAgents.map((agent) -> getKeypathFor(agent)[0]))
         if selectedAgentTypes.length == 1
-          categoriesText = selectedPaths.map((path) -> calcCategoryPathDetails(path).display).join(", ")
-          @set('commandPlaceholderText', "Input command for #{quantifierText} #{categoriesText}")
+          @set('commandPlaceholderText', "Input command for inspected #{selectedAgentTypes[0]}")
           { agentType: selectedAgentTypes[0], agents: targetedAgents }
         else
           # there are either no agents or the agents are not of the same type
@@ -289,8 +283,7 @@ RactiveInspectionPane = Ractive.extend({
 
         { agentType, agents } = targetedAgentObj
 
-        @setInspect({ type: 'add', agents, monitor: false })
-        @selectAgents({ mode: 'replace', agents })
+        @set('inspectedAgents', agents)
     }
 
     hasTargetedAgents: ->
