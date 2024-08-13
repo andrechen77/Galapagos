@@ -555,6 +555,13 @@ RactiveInspectionPane = Ractive.extend({
                 src="https://static.thenounproject.com/png/2506-200.png"
               />
             </div>
+            <div
+              class="inspection__button"
+              title="Unstage all agents"
+              on-click="@.setInspect({ type: 'unstage-all' })"
+            >
+              <img width=25 src="https://static.thenounproject.com/png/6447-200.png"/>
+            </div>
             <div class="inspection__button" title="Help" on-click="clicked-staging-help">
               <img
                 width=25
