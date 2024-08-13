@@ -444,6 +444,7 @@ RactiveInspectionPane = Ractive.extend({
     inspectedAgents = @get('inspectedAgents')
     @setInspect({ type: 'unstage-all' })
     @setInspect({ type: 'add', agents: inspectedAgents, monitor: false })
+    @selectCategory({ mode: 'replace', categoryPath: [] })
 
   # Selects the specified category. 'replace' mode removes all other selected
   # categories (single-clicking an item), while 'toggle' mode toggles whether
@@ -546,7 +547,7 @@ RactiveInspectionPane = Ractive.extend({
             </div>
             <div
               class="inspection__button"
-              title="Stage only the agents with an agent monitor"
+              title="Stage and target only agents with an agent monitor"
               on-click="@.stageOnlyInspectedAgents(), @.set('dragToSelectEnabled', false)"
             >
               <img
