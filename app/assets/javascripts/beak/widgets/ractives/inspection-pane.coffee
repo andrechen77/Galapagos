@@ -551,6 +551,23 @@ RactiveInspectionPane = Ractive.extend({
                 src="https://cdn0.iconfinder.com/data/icons/controls-and-navigation-arrows-1/24/27-512.png"
               />
             </div>
+            <div
+              class="inspection__button"
+              title="Stage and target only agents with an agent monitor"
+              on-click="@.stageOnlyInspectedAgents(), @.set('dragToSelectEnabled', false)"
+            >
+              <img
+                width=25
+                src="https://static.thenounproject.com/png/2506-200.png"
+              />
+            </div>
+            <div
+              class="inspection__button"
+              title="Unstage all agents"
+              on-click="@.setInspect({ type: 'unstage-all' })"
+            >
+              <img width=25 src="https://static.thenounproject.com/png/6447-200.png"/>
+            </div>
             <div class="inspection__button" title="Help" on-click="clicked-staging-help">
               <img
                 width=25
