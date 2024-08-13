@@ -662,20 +662,33 @@ RactiveInspectionPane = Ractive.extend({
 
     'agentMonitorsScreen': """
       <div class="inspection__agent-monitor-container">
-        {{#each inspectedAgents as agent}}
-          <agentMonitor
-            viewController={{viewController}}
-            agent={{agent}}
-            isEditing={{isEditing}}
-            checkIsReporter={{checkIsReporter}}
-            parentEditor={{parentEditor}}
-            setInspect="{{@this.setInspect.bind(@this)}}"
-          />
-        {{else}}
-          To open an agent monitor, double-click an agent in the staging area,
-          or use the inspect option in an agent's context menu, or use the
-          `inspect` command on the agent.
-        {{/each}}
+        {{#if inspectedAgents.length > 0}}
+          <div class="inspection__button-tray" style="margin-bottom: 0.5em; flex-direction: row-reverse;">
+            <div
+              class="inspection__button"
+              title="Remove all agent monitors"
+              on-click="@.set('inspectedAgents', [])"
+            >
+              <img width=25 src="https://static.thenounproject.com/png/6447-200.png"/>
+            </div>
+          </div>
+        {{/if}}
+        <div class="inspection__agent-monitor-container__inner">
+          {{#each inspectedAgents as agent}}
+            <agentMonitor
+              viewController={{viewController}}
+              agent={{agent}}
+              isEditing={{isEditing}}
+              checkIsReporter={{checkIsReporter}}
+              parentEditor={{parentEditor}}
+              setInspect="{{@this.setInspect.bind(@this)}}"
+            />
+          {{else}}
+            To open an agent monitor, double-click an agent in the staging area,
+            or use the inspect option in an agent's context menu, or use the
+            `inspect` command on the agent.
+          {{/each}}
+        </div>
       </div>
     """
   }
