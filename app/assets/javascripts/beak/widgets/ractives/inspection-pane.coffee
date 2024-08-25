@@ -593,6 +593,7 @@ RactiveInspectionPane = Ractive.extend({
                 opened={{inspectedAgents.includes(agent)}}
               />
             {{else}}
+              <b>Staging Area</b>
               To add an agent to the staging area, use the drag-to-select
               function, or use the inspect option in an agent's context menu,
               or use the `inspect` command on the agent.
@@ -647,7 +648,8 @@ RactiveInspectionPane = Ractive.extend({
     'agentMonitorsScreen': """
       <div class="inspection__agent-monitor-container">
         {{#if inspectedAgents.length > 0}}
-          <div class="inspection__button-tray" style="margin-bottom: 0.5em; flex-direction: row-reverse;">
+          <div class="inspection__button-tray" style="margin-bottom: 0.5em; justify-content: space-between;">
+            <b>Agent Monitors</b>
             <div
               class="inspection__button"
               title="Remove all agent monitors"
@@ -668,6 +670,8 @@ RactiveInspectionPane = Ractive.extend({
               setInspect="{{@this.setInspect.bind(@this)}}"
             />
           {{else}}
+            <b>Agent Monitors</b>
+
             To open an agent monitor, double-click an agent in the staging area,
             or use the inspect option in an agent's context menu, or use the
             `inspect` command on the agent.
