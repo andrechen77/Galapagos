@@ -647,7 +647,8 @@ RactiveInspectionPane = Ractive.extend({
         >
           <img
             width=25
-            src="https://static.thenounproject.com/png/2506-200.png"
+            style="{{#if agentTargetChoice === 'inspected'}}transform: scaleY(-1);{{/if}}"
+            src="https://static.thenounproject.com/png/1098841-200.png"
           />
         </div>
         <commandInput
