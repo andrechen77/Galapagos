@@ -199,7 +199,7 @@ RactiveInspectionPane = Ractive.extend({
     # can be shared with agent monitor components
 
     # 'staged' | 'inspected'
-    agentTargetChoice: 'inspected'
+    agentTargetChoice: 'staged'
 
     # Consts
 
