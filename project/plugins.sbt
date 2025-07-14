@@ -1,20 +1,15 @@
 // Comment to get more information during initialization
 logLevel := Level.Warn
 
-scalacOptions ++= Seq(
-  "-encoding", "UTF-8",
-  "-deprecation",
-  "-unchecked",
-  "-feature",
-  "-Xfatal-warnings"
-)
-
 resolvers ++= Seq(
-  "play-scraper" at "https://dl.cloudsmith.io/public/netlogo/play-scraper/maven/"
+  "play-scraper-workaround" at "https://dl.cloudsmith.io/public/netlogo/play-scraper-workaround/maven/"
 )
 
-addSbtPlugin("com.typesafe.play" %  "sbt-plugin"            % "2.8.19")
-addSbtPlugin("org.scalastyle"    %% "scalastyle-sbt-plugin" % "1.0.0")
-addSbtPlugin("com.typesafe.sbt"  %  "sbt-digest"            % "1.1.4")
-addSbtPlugin("org.nlogo"         %  "play-scraper"          % "1.0.1")
-addSbtPlugin("com.timushev.sbt"  %  "sbt-updates"           % "0.3.4")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin"   % "2.9.7")
+addSbtPlugin("com.github.sbt"    % "sbt-digest"   % "2.1.0")
+addSbtPlugin("org.nlogo"         % "play-scraper" % "1.2.0-a9c7c58")
+addSbtPlugin("com.timushev.sbt"  % "sbt-updates"  % "0.5.0")
+
+// Conflict with a common dependency of Play/Twirl.  No updates in a long time, so maybe time to switch.  -Jeremy B June
+// 2025
+// addSbtPlugin("org.scalastyle"    %% "scalastyle-sbt-plugin" % "1.0.0")

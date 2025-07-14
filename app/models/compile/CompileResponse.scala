@@ -2,12 +2,10 @@
 
 package models.compile
 
-import
-  org.nlogo.{ core, tortoise },
-    core.{ CompilerException, model },
-      model.ModelReader,
-    tortoise.compiler.{ CompiledModel, CompiledWidget },
-      CompiledModel.CompileResult
+import org.nlogo.core.CompilerException
+import org.nlogo.tortoise.compiler.{ CompiledModel, CompiledWidget }
+import org.nlogo.tortoise.compiler.CompiledModel.CompileResult
+import org.nlogo.tortoise.compiler.xml.TortoiseModelLoader
 
 import
   CompileResponse.Statements
@@ -29,15 +27,16 @@ object CompileResponse {
                 commands:    IDedValues[String],
                 reporters:   IDedValues[String]): CompileResponse =
     CompileResponse(
-      modelResult map       (_.compiledCode),
-      modelResult map       (_.model.info)                                       getOrElse FailureMessage,
-      modelResult map       (_.model.code)                                       getOrElse FailureMessage,
-      modelResult map       (m => m.widgets)                                     getOrElse Seq(),
-      commands    mapValues (s => modelResult     map (_.compileCommand (s))     getOrElse FailureExceptionNel),
-      reporters   mapValues (s => modelResult     map (_.compileReporter(s))     getOrElse FailureExceptionNel))
+      modelResult.map(_.compiledCode),
+      modelResult.map(_.model.info  ).getOrElse(FailureMessage),
+      modelResult.map(_.model.code  ).getOrElse(FailureMessage),
+      modelResult.map(m => m.widgets).getOrElse(Seq()),
+      commands.mapValues( s => modelResult.map(_.compileCommand(s) ).getOrElse(FailureExceptionNel)),
+      reporters.mapValues(s => modelResult.map(_.compileReporter(s)).getOrElse(FailureExceptionNel))
+    )
 
-  def exportNlogo(modelResult: CompileResult[CompiledModel]): CompileResult[String] =
-    modelResult.map(cm => ModelReader.formatModel(cm.model))
+  def exportNlogoXML(modelResult: CompileResult[CompiledModel]): CompileResult[String] =
+    modelResult.map(cm => TortoiseModelLoader.write(cm.model))
 
   private val FailureMessage      = "Model failed to compile"
   private val FailureExceptionNel = new CompilerException(FailureMessage, 0, 0, "").failureNel[String]
@@ -54,7 +53,7 @@ sealed trait IDedValues[T] {
 }
 
 case class IDedValuesMap[T](map: Map[String, T]) extends IDedValues[T] {
-  override def mapValues[U](f: (T) => U): IDedValues[U] = IDedValuesMap(map.mapValues(f))
+  override def mapValues[U](f: (T) => U): IDedValues[U] = IDedValuesMap(map.view.mapValues(f).toMap)
 }
 
 case class IDedValuesSeq[T](seq: Seq[T]) extends IDedValues[T] {

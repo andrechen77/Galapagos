@@ -10,7 +10,7 @@ import
     ModelsLibrary.{ allModels, prettyFilepath }
 
 import
-  play.api.{ Environment, libs, Logger, mvc },
+  play.api.{ Environment, libs, Logger, Mode, mvc },
     libs.json.Json,
     mvc.{ AbstractController, Action, AnyContent, ControllerComponents, Request }
 
@@ -22,19 +22,19 @@ class Application @Inject() (
 , env: Environment
 ) extends AbstractController(components) {
 
-  private implicit val environment = env
-  private implicit val mode = env.mode
+  private implicit val environment: Environment = env
+  private implicit val mode:        Mode        = environment.mode
   private val logger = Logger("application")
 
   // scalastyle:off public.methods.have.type
-  def authoring    = themedPage((_)   => views.html.authoring()    , "NetLogo Web Docs - Authoring", "../")
-  def differences  = themedPage((_)   => views.html.differences()  , "NetLogo Web vs. NetLogo"     , "../", None            , differencesExtraHead)
-  def faq          = themedPage((req) => views.html.faq()(req)     , "NetLogo Web FAQ"             , "../")
-  def attributions = themedPage((_)   => views.html.attributions() , "NetLogo Web Attributions"    , "../")
-  def index        = themedPage((req) => views.html.index()(req)   , "NetLogo Web")
-  def settings     = themedPage((req) => views.html.settings(OutsourceTagBuilder)(req, environment), "NetLogo Web Settings")
-  def serverError  = themedPage((_)   => views.html.serverError()  , "NetLogo Web - Error")
-  def whatsNew     = themedPage((req) => views.html.whatsNew()(req), "What's New in NetLogo Web"   , ""   , Option("updates"))
+  def authoring    = themedPage((_)   => views.html.authoring(),           "NetLogo Web Docs - Authoring", "../")
+  def differences  = themedPage((_)   => views.html.differences(),         "NetLogo Web vs. NetLogo"     , "../", None            , differencesExtraHead)
+  def faq          = themedPage((req) => views.html.faq()(using req),      "NetLogo Web FAQ"             , "../")
+  def attributions = themedPage((_)   => views.html.attributions(),        "NetLogo Web Attributions"    , "../")
+  def index        = themedPage((req) => views.html.index()(using req),    "NetLogo Web")
+  def settings     = themedPage((req) => views.html.settings(OutsourceTagBuilder)(using req, environment), "NetLogo Web Settings")
+  def serverError  = themedPage((_)   => views.html.serverError(),         "NetLogo Web - Error")
+  def whatsNew     = themedPage((req) => views.html.whatsNew()(using req), "What's New in NetLogo Web"   , ""   , Option("updates"))
   // scalastyle:on public.methods.have.type
 
   def model(modelName: String): Action[AnyContent] = {
@@ -56,7 +56,7 @@ class Application @Inject() (
   def favicon: Action[AnyContent] =
     assets.versioned(path = "/public/images", file = "favicon.ico")
 
-  private def themedPage( html: (Request[_]) => Html, title: String, relativizer: String = "", selectedTopLink: Option[String] = None
+  private def themedPage( html: (Request[?]) => Html, title: String, relativizer: String = "", selectedTopLink: Option[String] = None
                         , extraHead: Html = Html("")): Action[AnyContent] =
     Action { implicit request => Ok(views.html.mainTheme(html(request), title, selectedTopLink, extraHead, Html(""), relativizer)) }
 

@@ -23,11 +23,11 @@ class ModelCollectionCompilerSpec extends AnyFlatSpec with AkkaTestHelper with T
   }
 
   lazy val observer = genInbox
-  val collectionCompiler = TestActorRef(Props(classOf[ModelCollectionCompiler], () => modelsCollection.allModels(Mode.Test), observer.ref))
+  val collectionCompiler = TestActorRef(Props(classOf[ModelCollectionCompiler], () => modelsCollection.allModels(using Mode.Test), observer.ref))
 
   it should "send an AllModels message with a list of all files" in {
     collectionCompiler ! CheckBuiltInModels
-    assertInboxReceivedInOrder(observer, AllBuiltInModels(modelsCollection.allModels(Mode.Test)))
+    assertInboxReceivedInOrder(observer, AllBuiltInModels(modelsCollection.allModels(using Mode.Test)))
   }
 
   // If this test fails, perhaps Oil Cartel now compiles (because HubNet is
@@ -54,21 +54,21 @@ trait AkkaTestHelper extends Assertions {
 
   self: TestKitBase =>
 
-  override implicit val system = ActorSystem("TestActorSystem")
+  override implicit val system: ActorSystem = ActorSystem("TestActorSystem")
 
   class TestSource(val path: String) {
     def file:     File   = new File(path)
     def contents: String = Source.fromFile(file).mkString
   }
 
-  val OilCartel    = new TestSource("public/modelslib/Sample Models/Social Science/Economics/Oil Cartel HubNet.nlogo")
-  val TeamAssembly = new TestSource("public/modelslib/Sample Models/Networks/Team Assembly.nlogo")
-  val Scatter      = new TestSource("public/modelslib/Sample Models/Social Science/Scatter.nlogo")
-  val BirdBreeder  = new TestSource("public/modelslib/Curricular Models/BEAGLE Evolution/Bird Breeder.nlogo")
+  val OilCartel    = new TestSource("public/modelslib/Sample Models/Social Science/Economics/Oil Cartel HubNet.nlogox")
+  val TeamAssembly = new TestSource("public/modelslib/Sample Models/Networks/Team Assembly.nlogox")
+  val Scatter      = new TestSource("public/modelslib/Sample Models/Social Science/Scatter.nlogox")
+  val BirdBreeder  = new TestSource("public/modelslib/Curricular Models/BEAGLE Evolution/Bird Breeder.nlogox")
 
   val StandardDuration = 4000.millis
 
-  val skipMessages = receiveMessagesCount _
+  val skipMessages = receiveMessagesCount
 
   def receiveMessagesCount(i: TestProbe, count: Int): Seq[Any] =
     Seq.fill(count)(i.receiveOne(StandardDuration))
@@ -95,7 +95,7 @@ trait AkkaTestHelper extends Assertions {
   // that could and just keep on a-tryin'! --Jason B. (11/11/14)
   @annotation.tailrec
   final protected def genInbox(implicit system: ActorSystem): TestProbe =
-    try TestProbe()(system)
+    try TestProbe()(using system)
     catch {
       case ex: ClassCastException => genInbox
     }

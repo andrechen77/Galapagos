@@ -1,5 +1,6 @@
 import { toNetLogoMarkdown }              from "/beak/tortoise-utils.js"
 import { synchroDecoder, synchroEncoder } from "@netlogo/synchrodecoder/synchrodecoder.mjs"
+import { serializeResources }             from "/beak/external-resources.js"
 import { MouseTracker } from "./mouse-tracker.js"
 
 # (Ractive) => OutputWidget?
@@ -87,12 +88,13 @@ genImportExportConfig = (ractive, viewController, compiler) ->
     getNlogo: ->
 
       { result, success } =
-        compiler.exportNlogo({
+        compiler.exportNlogoXML({
           info:         toNetLogoMarkdown(ractive.get('info')),
           code:         ractive.get('code'),
           widgets:      (v for _, v of ractive.get('widgetObj')),
           turtleShapes: turtleShapes,
-          linkShapes:   linkShapes
+          linkShapes:   linkShapes,
+          resources:    serializeResources()
         })
 
       if success

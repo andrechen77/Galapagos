@@ -16,7 +16,7 @@ import
 import
   play.api.{ cache, Environment, mvc },
     cache.{ NamedCache, SyncCacheApi },
-    mvc.{ AbstractController, ControllerComponents }
+    mvc.{ AbstractController, ControllerComponents, Request }
 import controllers.{ Assets => PlayAssets }
 
 import CompilerService.{ ArgMap, CodeKey, CommandsKey, ModelKey, ModelResultV, ReportersKey }
@@ -52,7 +52,7 @@ class CompilerService @Inject() (
 
   val compiler = new Compiler()
 
-  private val generateFromUrl = (argMap: ArgMap, url: String) => gfu(argMap, url)(environment, assetsFinder)
+  private val generateFromUrl = (argMap: ArgMap, url: String) => gfu(argMap, url)(using environment, assetsFinder)
 
   def compileURL:   ActionType[AnyContent] = genCompileAction(generateFromUrl,   jsonResult)
   def compileCode:  ActionType[AnyContent] = genCompileAction(generateFromCode,  jsonResult)
@@ -65,14 +65,15 @@ class CompilerService @Inject() (
   def tortoiseCompilerJsMap: ActionType[AnyContent] = Action { replyWithResource(environment)("tortoise-compiler.js.map")("application/octet-stream") }
 
   private def genCompileAction(generateModel: (ArgMap, String) => ModelResult, generateResult: (ArgMap, ModelResultV) => Result) =
-    Action { implicit request =>
-      val argMap = toStringMap(request.extractBundle)
-      val model = generateModel(argMap, request.host).flatMap {
-        case ModelObject(m)  => CompiledModel.fromModel(m, compiler).successNel[String]
-        case ModelText(text) => stringifyNonCompilerExceptions(CompiledModel.fromNlogoContents(text, compiler))
-      }
-      generateResult(argMap, model)
-    }
+    Action({
+      implicit request: Request[AnyContent] =>
+        val argMap = toStringMap(request.extractBundle)
+        val model = generateModel(argMap, request.host).flatMap {
+          case ModelObject(m)  => CompiledModel.fromModel(m, compiler).successNel[String]
+          case ModelText(text) => stringifyNonCompilerExceptions(CompiledModel.fromNlogoXMLContents(text, compiler))
+        }
+        generateResult(argMap, model)
+    })
 
   private def stringifyNonCompilerExceptions(v: ValidationNel[Exception, CompiledModel]): ModelResultV = {
     def liftCompilerExceptions(nel: NonEmptyList[Exception]): ModelResultV = {
@@ -83,17 +84,17 @@ class CompilerService @Inject() (
         }
       val messages = es.map(_.getMessage)
       messages.headOption.map {
-        h => NonEmptyList(h, messages.tail: _*).failure
+        h => NonEmptyList(h, messages.tail*).failure
       }.getOrElse {
-        NonEmptyList(ces.head, ces.tail: _*).failure.successNel[String]
+        NonEmptyList(ces.head, ces.tail*).failure.successNel[String]
       }
     }
     v.fold(liftCompilerExceptions, _.successNel[CompilerException].successNel[String])
   }
 
   private def toStringMap(bundle: ParamBundle): ArgMap = {
-    val fileMap = bundle.byteParams mapValues (str => new String(str, "ISO-8859-1"))
-    bundle.stringParams ++ fileMap
+    val fileMap = bundle.byteParams.view.mapValues(str => new String(str, "ISO-8859-1"))
+    (bundle.stringParams ++ fileMap).toMap
   }
 }
 
@@ -162,8 +163,8 @@ private[controllers] object CompilationRequestHandler {
     val info = argMap.getOrElse("info", "")
     for {
       widgets      <- CompileWidgets(argMap.getOrElse("widgets", "[]"))
-      turtleShapes <- extractShapes[VectorShape]("turtleShapes", readVectorShapes, Model.defaultShapes    )(argMap)
-      linkShapes   <- extractShapes[LinkShape](  "linkShapes",   readLinkShapes,   Model.defaultLinkShapes)(argMap)
+      turtleShapes <- extractShapes[VectorShape]("turtleShapes", readVectorShapes, Model.defaultTurtleShapes)(argMap)
+      linkShapes   <- extractShapes[LinkShape](  "linkShapes",   readLinkShapes,   Model.defaultLinkShapes  )(argMap)
       code         <- (argMap get CodeKey).fold(codeMissingMsg.failureNel[String])(_.successNel[String])
       model        <- Validation.fromTryCatchThrowable[Model, RuntimeException](
         Model(code, widgets, info = info, turtleShapes = turtleShapes, linkShapes = linkShapes))
@@ -197,8 +198,8 @@ private[controllers] object CompilationRequestHandler {
   private val codeMissingMsg  = s"You must provide a `$CodeKey` parameter that contains the code from a NetLogo model."
   private val nlogoMissingMsg = s"You must provide a `$ModelKey` parameter that contains the contents of an nlogo file."
 
-  private def extractShapes[T](key: String, parseShapes: TortoiseJson => ValidationNel[String, Seq[T]], default: List[T])
-                              (argMap: Map[String, String]): ValidationNel[String, List[T]] = {
+  private def extractShapes[T](key: String, parseShapes: TortoiseJson => ValidationNel[String, Seq[T]], default: Seq[T])
+                              (argMap: Map[String, String]): ValidationNel[String, Seq[T]] = {
     val parsedJson = argMap.get(key) map Json.parse map toTortoiseJson map parseShapes map(_.map(_.toList))
     parsedJson getOrElse default.successNel
   }
@@ -206,7 +207,7 @@ private[controllers] object CompilationRequestHandler {
 
 private[controllers] trait RequestResultGenerator {
 
-  self: AbstractController with EnvironmentHolder =>
+  self: AbstractController & EnvironmentHolder =>
 
   import
     java.net.URL
@@ -250,7 +251,7 @@ private[controllers] trait RequestResultGenerator {
         .map(name => if (name.endsWith(".nlogo")) name else s"$name.nlogo")
         .getOrElse("export.nlogo")
 
-    val compiledModelV = modelV flatMap CompileResponse.exportNlogo leftMap (_.map(ex => ex: JSerializable))
+    val compiledModelV = modelV flatMap CompileResponse.exportNlogoXML leftMap (_.map(ex => ex: JSerializable))
 
     compiledModelV.fold(
       nelResult(BadRequest),
@@ -310,7 +311,7 @@ private[controllers] trait RequestResultGenerator {
 
 private[controllers] trait ModelStatusHandler {
 
-  self: AbstractController with CacheProvider =>
+  self: AbstractController & CacheProvider =>
 
   import
     play.api.{ libs, mvc },
@@ -325,7 +326,7 @@ private[controllers] trait ModelStatusHandler {
   def modelStatuses: ActionType[AnyContent] = Action {
     implicit request =>
       val resultJson =
-        cache.get(AllBuiltInModelsCacheKey).getOrElse(Seq[String]())
+        cache.get[Seq[String]](AllBuiltInModelsCacheKey).getOrElse(Seq[String]())
           .map(genStatusJson)
           .foldLeft(Json.obj())(_ ++ _)
       Ok(Json.stringify(resultJson))

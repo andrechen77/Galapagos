@@ -9,6 +9,7 @@ import { toNetLogoMarkdown }    from "./tortoise-utils.js"
 import initializeUI             from "./widgets/initialize-ui.js"
 import { runWithErrorHandling } from "./widgets/set-up-widgets.js"
 import { cloneWidget }          from "./widgets/widget-properties.js"
+import { serializeResources }   from "./external-resources.js"
 
 MAX_UPDATE_DELAY     = 1000
 FAST_UPDATE_EXP      = 0.5
@@ -67,7 +68,7 @@ class SessionLite
     ractive.on('*.recompile'     , (_, source)         => @recompile(source))
     ractive.on('*.recompile-sync', (_, source)         => @recompileSync(source, "", "", {}))
     ractive.on('*.recompile-for-plot', (_, source, oldName, newName, renamings) => @recompile(source, oldName, newName, renamings))
-    ractive.on('export-nlogo'    , (_, event)          => @exportNlogo(event))
+    ractive.on('export-nlogo'    , (_, event)          => @exportNlogoXML(event))
     ractive.on('export-html'     , (_, event)          => @exportHtml(event))
     ractive.on('open-new-file'   , (_)                 => @openNewFile())
     ractive.on('*.revert-wip'    , (_)                 => @revertWorkInProgress())
@@ -241,6 +242,7 @@ class SessionLite
       oldWidgets    = @widgetController.widgets()
       rewritten     = @rewriteCode(code)
       extraCommands = @rewriterCommands()
+      resources     = serializeResources()
 
       compileParams = {
         code:         rewritten
@@ -249,6 +251,7 @@ class SessionLite
       , reporters:    []
       , turtleShapes: turtleShapes ? []
       , linkShapes:   linkShapes ? []
+      , resources:    resources
       }
 
       @widgetController.ractive.fire('recompile-start', source, rewritten, code)
@@ -330,19 +333,21 @@ class SessionLite
     toNetLogoMarkdown(@widgetController.ractive.get('info'))
 
   getNlogo: ->
-    info    = @getInfo()
-    code    = @rewriteExport(@widgetController.code())
-    widgets = @widgetController.widgets().map(cloneWidget)
-    @compiler.exportNlogo({
+    info      = @getInfo()
+    code      = @rewriteExport(@widgetController.code())
+    widgets   = @widgetController.widgets().map(cloneWidget)
+    resources = serializeResources()
+    @compiler.exportNlogoXML({
       info:         info,
       code:         code,
       widgets:      widgets,
       turtleShapes: turtleShapes,
-      linkShapes:   linkShapes
+      linkShapes:   linkShapes,
+      resources:    resources
     })
 
-  exportNlogo: ->
-    exportName = @promptFilename('.nlogo')
+  exportNlogoXML: ->
+    exportName = @promptFilename('.nlogox')
     if exportName?
       exportedNlogo = @getNlogo()
       if (exportedNlogo.success)
@@ -367,7 +372,7 @@ class SessionLite
           dom = parser.parseFromString(htmlString, 'text/html')
           nlogoScript = dom.querySelector('#nlogo-code')
           nlogoScript.textContent = nlogo.result
-          nlogoScript.dataset.filename = exportName.replace(/\.html$/, '.nlogo')
+          nlogoScript.dataset.filename = exportName.replace(/\.html$/, '.nlogox')
           wrapper = document.createElement('div')
           wrapper.appendChild(dom.documentElement)
           exportBlob = new Blob([wrapper.innerHTML], {type: 'text/html:charset=utf-8'})

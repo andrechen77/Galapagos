@@ -9,7 +9,7 @@ import
   play.api.mvc.{ AnyContent, Request }
 
 import
-  models.Util.{ noneIfEmpty, usingSource }
+  models.Util.usingSource
 
 object PlayUtil {
 
@@ -27,14 +27,14 @@ object PlayUtil {
                 if (file.length > 20E6.toLong)
                   "UPLOADED FILE TOO LARGE".getBytes
                 else
-                  usingSource(_.fromFile(file)(Codec.ISO8859))(_.map(_.toByte).toArray)
+                  usingSource(_.fromFile(file)(using Codec.ISO8859))(_.map(_.toByte).toArray)
               (formFile.key, arr)
           }
           ParamBundle(formData.asFormUrlEncoded, fileKVs.toMap)
       } orElse {
-        request.body.asFormUrlEncoded flatMap (noneIfEmpty(_)) map (i => ParamBundle(Map(i.toSeq: _*)))
+        request.body.asFormUrlEncoded.flatMap( (b) => if (b.isEmpty) { None } else { Some(b) } ).map( i => ParamBundle(Map(i.toSeq*)) )
       } orElse {
-        Option(request.queryString) map (ParamBundle(_))
+        Option(request.queryString).map(ParamBundle(_))
       } getOrElse {
         ParamBundle(Map(), Map())
       }
@@ -44,6 +44,5 @@ object PlayUtil {
 }
 
 case class ParamBundle(stringSeqParams: Map[String, Seq[String]], byteParams: Map[String, Array[Byte]] = Map()) {
-  lazy val stringParams = stringSeqParams mapValues (_.head)
+  lazy val stringParams = stringSeqParams.view.mapValues(_.head)
 }
-

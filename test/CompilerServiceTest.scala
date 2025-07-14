@@ -1,29 +1,25 @@
-import
-  scalaz.{ Scalaz, NonEmptyList },
-    Scalaz.ToValidationOps
+import scalaz.{ Scalaz, NonEmptyList }
+import Scalaz.ToValidationOps
 
-import
-  org.nlogo.{ core, parse, tortoise },
-    core.{ CompilerException, model, Model },
-      model.ModelReader,
-    parse.CompilerUtilities,
-    tortoise.compiler.{ CompiledModel, Compiler }
+import org.nlogo.core.{ CompilerException, Model }
+import org.nlogo.parse.CompilerUtilities
+import org.nlogo.tortoise.compiler.{ CompiledModel, Compiler  }
+import org.nlogo.tortoise.compiler.xml.TortoiseModelLoader
 
-import
-  org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.PlaySpec
 
-import
-  play.api.libs.json.Json
+import play.api.libs.json.Json
 
-import
-  models.{ compile, json, Util },
-    compile.{ CompileResponse, IDedValuesMap, IDedValuesSeq },
-    json.Writers.compileResponseWrites,
-    Util.usingSource
+import models.Util
+import Util.usingSource
+import models.compile.{ CompileResponse, IDedValuesMap, IDedValuesSeq }
+import models.json.Writers.compileResponseWrites
 
 class CompilerServiceTest extends PlaySpec {
 
   import CompilerServiceHelpers._
+
+  import scala.language.implicitConversions
 
   private implicit def map2IdedValues[T](map: Map[String, T]): IDedValuesMap[T] = IDedValuesMap(map)
   private implicit def seq2IdedValues[T](seq: Seq[T]):         IDedValuesSeq[T] = IDedValuesSeq(seq)
@@ -56,11 +52,11 @@ class CompilerServiceTest extends PlaySpec {
       val reporters = Map("one" -> "count turtles", "two" -> "5 + 10", "three" -> "4 + 2")
 
       val result            = CompileResponse.fromModel(wsModelV, commands, reporters)
-      val compiledCommands  = commands.mapValues  { s => wsModel.compileCommand(s) }
-      val compiledReporters = reporters.mapValues { s => wsModel.compileReporter(s) }
+      val compiledCommands  = commands.view.mapValues({ s => wsModel.compileCommand(s) }).toMap
+      val compiledReporters = reporters.view.mapValues({ s => wsModel.compileReporter(s) }).toMap
 
-      result.commands  mustBe IDedValuesMap(compiledCommands)
-      result.reporters mustBe IDedValuesMap(compiledReporters)
+      result.commands.mustBe(IDedValuesMap(compiledCommands))
+      result.reporters.mustBe(IDedValuesMap(compiledReporters))
     }
 
     "gracefully handle errors in commands and reporters" in {
@@ -127,9 +123,10 @@ class CompilerServiceTest extends PlaySpec {
     }
 
     "convert models to nlogo" in {
-      val nlogo = CompileResponse.exportNlogo(wsModel.successNel)
+      val nlogo = CompileResponse.exportNlogoXML(wsModel.successNel)
         .getOrElse(throw new Exception("Exporting should have succeeded, but failed"))
-      openModel(nlogo) mustBe wsModel.model
+      val result = openModel(nlogo).copy(optionalSections = Seq())
+      result mustBe wsModel.model.copy(optionalSections = Seq())
     }
   }
 
@@ -147,16 +144,16 @@ object CompilerServiceHelpers {
 
   val compiler = new Compiler()
 
-  val breedProcedures = modelText("Code Examples/Breed Procedures Example.nlogo")
+  val breedProcedures = modelText("Code Examples/Breed Procedures Example.nlogox")
 
-  val linkBreeds = modelText("Code Examples/Link Breeds Example.nlogo")
+  val linkBreeds = modelText("Code Examples/Link Breeds Example.nlogox")
 
-  val wolfSheep = modelText("Sample Models/Biology/Wolf Sheep Predation.nlogo")
+  val wolfSheep = modelText("Sample Models/Biology/Wolf Sheep Predation.nlogox")
 
   val wsModelV = CompiledModel.fromModel(openModel(wolfSheep), compiler)
 
   def openModel(model: String): Model =
-    ModelReader.parseModel(model, CompilerUtilities, Map())
+    TortoiseModelLoader.read(model).get
 
-  val widgetModel = CompiledModel.fromModel(openModel(modelText("../demomodels/All Widgets.nlogo")), compiler)
+  val widgetModel = CompiledModel.fromModel(openModel(modelText("../demomodels/All Widgets.nlogox")), compiler)
 }

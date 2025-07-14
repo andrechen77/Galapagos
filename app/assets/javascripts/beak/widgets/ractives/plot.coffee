@@ -244,7 +244,8 @@ HNWPenForm = PenForm.extend({
 PlotEditForm = EditForm.extend({
 
   data: -> {
-    autoPlotOn: undefined # Boolean
+    autoPlotX:  undefined # Boolean
+  , autoPlotY:  undefined # Boolean
   , display:    undefined # String
   , guiPens:    undefined # Array[Pen]
   , legendOn:   undefined # Boolean
@@ -312,19 +313,21 @@ PlotEditForm = EditForm.extend({
 
     replaceIfEmpty = (str, replace) -> if str is '' then replace else str
 
-    {  autoPlotOn: form.autoPlotOn.checked
-    ,     display: name
-    ,    legendOn: form.legendOn.checked
-    ,        pens
-    ,   setupCode: getCode(this)("#{@get('id')}-setup-code" )
-    ,  updateCode: getCode(this)("#{@get('id')}-update-code")
-    ,       xAxis: replaceIfEmpty(form.xLabel.value, null)
-    ,        xmax: form.xMax.valueAsNumber
-    ,        xmin: form.xMin.valueAsNumber
-    ,       yAxis: replaceIfEmpty(form.yLabel.value, null)
-    ,        ymax: form.yMax.valueAsNumber
-    ,        ymin: form.yMin.valueAsNumber
-    ,    __extras: extras
+    {
+       autoPlotX: form.autoPlotX.checked
+    ,  autoPlotY: form.autoPlotY.checked
+    ,    display: name
+    ,   legendOn: form.legendOn.checked
+    ,       pens
+    ,  setupCode: getCode(this)("#{@get('id')}-setup-code" )
+    , updateCode: getCode(this)("#{@get('id')}-update-code")
+    ,      xAxis: replaceIfEmpty(form.xLabel.value, null)
+    ,       xmax: form.xMax.valueAsNumber
+    ,       xmin: form.xMin.valueAsNumber
+    ,      yAxis: replaceIfEmpty(form.yLabel.value, null)
+    ,       ymax: form.yMax.valueAsNumber
+    ,       ymin: form.yMin.valueAsNumber
+    ,   __extras: extras
     }
 
   on: {
@@ -488,6 +491,10 @@ PlotEditForm = EditForm.extend({
               <label for="{{id}}-x-max" class="widget-edit-input-label" style="margin-right: 0px; min-width: 70px;">X max:</label>
               <input id="{{id}}-x-max" name="xMax" class="widget-edit-text widget-edit-input widget-edit-inputbox" type="number" value="{{xMax}}" step="any">
             </div>
+            <space height="5px" />
+            <div class="flex-row">
+              <formCheckbox id="{{id}}-auto-scale-x" isChecked={{autoPlotX}} labelText="Auto scale X-axis?" name="autoPlotX" />
+            </div>
           </div>
           <spacer width="20px" />
           <div class="flex-column">
@@ -505,12 +512,15 @@ PlotEditForm = EditForm.extend({
               <label for="{{id}}-y-max" class="widget-edit-input-label" style="margin-right: 0px; min-width: 70px;">Y max:</label>
               <input id="{{id}}-y-max" name="yMax" class="widget-edit-text widget-edit-input widget-edit-inputbox" type="number" value="{{yMax}}" step="any">
             </div>
+            <space height="5px" />
+            <div class="flex-row">
+              <formCheckbox id="{{id}}-auto-scale-y" isChecked={{autoPlotY}} labelText="Auto scale Y-axis?" name="autoPlotY" />
+            </div>
           </div>
         </div>
         <spacer height="10px" />
         <div class="flex-row" style="justify-content: space-evenly; width: 100%;">
-          <formCheckbox id="{{id}}-auto-scale"  isChecked={{autoPlotOn}} labelText="Auto scale?"     name="autoPlotOn" />
-          <formCheckbox id="{{id}}-show-legend" isChecked={{legendOn}}   labelText="Display legend?" name="legendOn"   />
+          <formCheckbox id="{{id}}-show-legend" isChecked={{legendOn}} labelText="Display legend?" name="legendOn"  />
         </div>
         <spacer height="10px" />
         {{>plotSetupInput}}
@@ -540,7 +550,8 @@ HNWPlotEditForm = PlotEditForm.extend({
   }
 
   data: -> {
-    autoPlotOn: undefined # Boolean
+    autoPlotX:  undefined # Boolean
+  , autoPlotY:  undefined # Boolean
   , display:    undefined # String
   , guiPens:    undefined # Array[Pen]
   , legendOn:   undefined # Boolean
@@ -584,18 +595,20 @@ HNWPlotEditForm = PlotEditForm.extend({
 
     replaceIfEmpty = (str, replace) -> if str is "" then replace else str
 
-    {  autoPlotOn: form.autoPlotOn.checked
-    ,     display: name
-    ,    legendOn: form.legendOn.checked
-    ,        pens
-    ,   setupCode: form.setupCode.value
-    ,  updateCode: form.updateCode.value
-    ,       xAxis: replaceIfEmpty(form.xLabel.value, null)
-    ,        xmax: form.xMax.valueAsNumber
-    ,        xmin: form.xMin.valueAsNumber
-    ,       yAxis: replaceIfEmpty(form.yLabel.value, null)
-    ,        ymax: form.yMax.valueAsNumber
-    ,        ymin: form.yMin.valueAsNumber
+    {
+       autoPlotX: form.autoPlotX.checked
+    ,  autoPlotY: form.autoPlotY.checked
+    ,    display: name
+    ,   legendOn: form.legendOn.checked
+    ,       pens
+    ,  setupCode: form.setupCode.value
+    , updateCode: form.updateCode.value
+    ,      xAxis: replaceIfEmpty(form.xLabel.value, null)
+    ,       xmax: form.xMax.valueAsNumber
+    ,       xmin: form.xMin.valueAsNumber
+    ,      yAxis: replaceIfEmpty(form.yLabel.value, null)
+    ,       ymax: form.yMax.valueAsNumber
+    ,       ymin: form.yMin.valueAsNumber
     }
 
   partials: {
@@ -637,7 +650,9 @@ RactivePlot = RactiveWidget.extend({
   }
 
   eventTriggers: ->
-    { autoPlotOn: [@_weg.recompileForPlot]
+    {
+       autoPlotX: [@_weg.recompileForPlot]
+    ,  autoPlotY: [@_weg.recompileForPlot]
     ,    display: [@_weg.recompileForPlot]
     ,   legendOn: [@_weg.recompileForPlot]
     ,       pens: [@_weg.recompileForPlot]
@@ -652,8 +667,8 @@ RactivePlot = RactiveWidget.extend({
     }
 
   observe: {
-    'left right top bottom': ->
-      @get('resizeCallback')(@get('right') - @get('left'), @get('bottom') - @get('top'))
+    'width height': ->
+      @get('resizeCallback')(@get('width'), @get('height'))
       return
   }
 
@@ -715,7 +730,8 @@ RactivePlot = RactiveWidget.extend({
   partials: {
     editForm:
       """
-      <editForm autoPlotOn={{widget.autoPlotOn}} display="{{widget.display}}" idBasis="{{id}}"
+      <editForm autoPlotOn={{widget.autoPlotOn}} autoPlotY={{widget.autoPlotY}}
+                display="{{widget.display}}" idBasis="{{id}}"
                 legendOn={{widget.legendOn}} pens="{{widget.pens}}"
                 setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
                 xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
@@ -737,12 +753,14 @@ RactiveHNWPlot = RactivePlot.extend({
   partials: {
     editForm:
       """
-      <editForm autoPlotOn={{widget.autoPlotOn}} display="{{widget.display}}" idBasis="{{id}}"
-                legendOn={{widget.legendOn}} pens="{{widget.pens}}"
-                setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
-                xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
-                yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
-                procedures="{{procedures}}" />
+      <editForm
+        autoPlotX={{widget.autoPlotX}} autoPlotY={{widget.autoPlotY}}
+        display="{{widget.display}}" idBasis="{{id}}"
+        legendOn={{widget.legendOn}} pens="{{widget.pens}}"
+        setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
+        xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
+        yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
+        procedures="{{procedures}}" />
       """
   }
   # coffeelint: enable=max_line_length
