@@ -113,45 +113,61 @@ defaultShape = {
   ]
 }
 
-drawTurtle = (worldShape, shapelist, ctx, turtle, isStamp, fontSize, font) ->
+drawTurtle = (worldShape, shapelist, ctx, turtle, isStamp, fontSize, font,
+              isHighlighted = false, highlightColor = "008000") ->
+
   if not turtle['hidden?']
-    { xcor, ycor, size } = turtle
+    { label, xcor, ycor, size } = turtle
     useWrapping(
       worldShape, ctx, xcor, ycor, size,
-      ((ctx, x, y) => drawTurtleAt(shapelist, ctx, worldShape.onePixel, turtle, x, y))
+      ((ctx, x, y) => drawTurtleAt(shapelist, ctx, worldShape.onePixel, turtle, x, y, isHighlighted, highlightColor))
     )
     if not isStamp
       drawLabel(
         worldShape,
         ctx,
-        xcor + turtle.size / 2,
-        ycor - turtle.size / 2,
-        turtle.label,
+        xcor + size / 2,
+        ycor - size / 2,
+        label,
         turtle['label-color'],
         fontSize,
         font
       )
 
-drawTurtleAt = (shapelist, ctx, onePixel, turtle, xcor, ycor) ->
+drawTurtleAt = (shapelist, ctx, onePixel, turtle, xcor, ycor, isHighlighted, highlightColor) ->
   heading = turtle.heading
   scale = turtle.size
   angle = (180-heading)/360 * 2*Math.PI
   shapeName = turtle.shape
   shape = shapelist[shapeName] or defaultShape
+
   ctx.save()
   ctx.translate(xcor, ycor)
+
   if shape.rotate
     ctx.rotate(angle)
   else
     ctx.rotate(Math.PI)
+
   ctx.scale(scale, scale)
+
+  if isHighlighted
+      ctx.save()
+      ctx.strokeStyle = highlightColor
+      ctx.lineWidth   = 0.1
+      ctx.beginPath()
+      ctx.arc(0, 0, scale * 1.5, 0, 2 * Math.PI)
+      ctx.stroke()
+      ctx.restore()
+
   drawShape(ctx, onePixel, turtle.color, shape, 1 / scale)
   ctx.restore()
+  return
 
 drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize, font = '"Lucida Grande", sans-serif') ->
   label = if label? then label.toString() else ''
   if label.length > 0
-    useWrapping(worldShape, ctx, xcor, ycor, label.length * fontSize / worldShape.onePixel, (ctx, x, y) =>
+    useWrapping(worldShape, ctx, xcor, ycor + 0.18, label.length * fontSize / worldShape.onePixel, (ctx, x, y) =>
       ctx.save()
       ctx.translate(x, y)
       ctx.scale(worldShape.onePixel, -worldShape.onePixel)
@@ -163,11 +179,14 @@ drawLabel = (worldShape, ctx, xcor, ycor, label, color, fontSize, font = '"Lucid
       lineHeight   = ctx.measureText("M").width * 1.2
       lines        = label.split("\n")
       lineWidths   = lines.map( (line) -> ctx.measureText(line).width )
-      maxLineWidth = Math.max(lineWidths...)
       # This magic 1.5 value is to get the alignment to mirror what happens in desktop relatively closely.  Without
       # it, labels are too far out to the "right" of the agent since the origin of the text drawing is calculated
       # differently there.  -Jeremy B April 2023
-      xOffset      = -1 * (maxLineWidth + 1) / 1.5
+      #
+      # That magic '1.5' value was removed.  Sorry, Jeremy, I have no idea what you're talking about, and removing
+      # it at least gets `ask patches [ sprout 1 [ set color black set label xcor ] ]` looking the same as it does
+      # in desktop.  --Jason B. (8/9/24)
+      xOffset = -Math.max(lineWidths...)
       lines.forEach( (line, i) ->
         yOffset = i * lineHeight
         ctx.fillText(line, xOffset, yOffset)

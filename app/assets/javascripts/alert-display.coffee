@@ -2,7 +2,7 @@
 
 class AlertDisplay
   constructor: (container, isStandalone) ->
-    @findConsole = (-> null)
+    @appendToConsole = (-> null)
 
     isLinkableProcedure = (type, name) => @isLinkableProcedure(type, name)
     isKnownProcedure    = (type, name) => @isKnownProcedure(type, name)
@@ -23,7 +23,7 @@ class AlertDisplay
         show: (_, title, message, frames) ->
           if @get('isActive')
             @set('title', "#{@get('title')} / #{title}")
-            @set('message', "#{@get('message')}<br/><br/>Next message: #{message}")
+            @set('message', "#{message}<br/><br/>Next message: #{@get('message')}")
           else
             @set('title', title)
             @set('message', message)
@@ -47,6 +47,48 @@ class AlertDisplay
       isKnownProcedure:    isKnownProcedure
 
     })
+
+  # This method is for scenarios where an unexpected error occured trying to initialize the basic model/simulation code.
+  # So we don't assume even Ractive or other libraries are usable, we just try some basic HTML/DOM changes to show the
+  # user the error message.  -Jeremy B April 2024
+
+  # (Exception) => Unit
+  @showEarlyInitFailure: (ex) ->
+    alertBox = document.getElementById('alert-container')
+
+    alertOverlay = document.createElement('div')
+    alertOverlay.classList.add('dark-overlay')
+    alertOverlay.classList.add('alert-overlay')
+    alertBox.appendChild(alertOverlay)
+
+    alertDialog = document.createElement('div')
+    alertDialog.id = 'alert-dialog'
+    alertDialog.classList.add('alert-dialog')
+    alertOverlay.appendChild(alertDialog)
+
+    alertTitle = document.createElement('h3')
+    alertTitle.id = 'alert-title'
+    alertTitle.innerText = 'Simulation Initialization Error'
+    alertDialog.appendChild(alertTitle)
+
+    alertText = document.createElement('div')
+    alertText.id = 'alert-message'
+    alertText.classList.add('alert-text')
+    # coffeelint: disable=max_line_length
+    alertText.innerText = """An error has occured while NetLogo Web was initializing the simulaton engine and view.  You can try reloading to see if this resolves the problem.
+
+    If you need additional assistance you can email bugs@ccl.northwestern.edu.  In order to be able to help, please provide us with 1) the error below 2) the full URL of this page from the address bar 3) your web browser (Chrome, Firefox, Safari, Edge) and 4) your operating system (macOS, Windows, Chromebook, Linux).
+
+      #{ex.message}
+
+      Stack: #{ex.stack}
+      """
+    # coffeelint: enable=max_line_length
+    alertDialog.appendChild(alertText)
+
+    loadingOverlay = document.getElementById('loading-overlay')
+    loadingOverlay.style = 'display: none;'
+    return
 
   @makeRemoteLoadErrorMessage: (url) ->
     """Unable to load NetLogo model from #{url}, please ensure:
@@ -106,12 +148,12 @@ class AlertDisplay
   # (String, String, Maybe[Int], Maybe[Int]) => String
   @makeLinkedRuntimeErrorMessage: (message, primitive, sourceStart, sourceEnd) ->
     prim       = if primitive is '' then 'a primitive' else primitive.toUpperCase()
-    linkedPrim = if not (isSomething(sourceStart) and isSomething(sourceEnd)) then prim else
+    linkedPrim = if not (isSomething(sourceStart) and isSomething(sourceEnd)) then "running #{prim}" else
       start       = toArray(sourceStart)[0]
       end         = toArray(sourceEnd)[0]
       onclickCode = "this.parentElement._ractive.proxy.ractive.fire(\"jump-to-code\", #{start}, #{end}); return false;"
-      "<a href='/ignore' onclick='#{onclickCode}'>#{prim}</a>"
-    "#{message}\nerror while running #{linkedPrim}"
+      "<a href='/ignore' onclick='#{onclickCode}'>running #{prim}</a>"
+    "#{message}\nerror while #{linkedPrim}"
 
   # (String) => String
   @makeTypeErrorMessage: (message) ->
@@ -138,8 +180,12 @@ class AlertDisplay
 
   # (WidgetController) => Unit
   setWidgetController: (widgetController) ->
+
     # we have to fetch the console as needed because it can show/hide
-    @findConsole = () -> widgetController.ractive.findComponent('console')
+    @appendToConsole =
+      (msg) ->
+        wcRactive = widgetController.ractive
+        wcRactive.set('consoleOutput', wcRactive.get('consoleOutput') + msg)
 
     # If the session (and so the widgetController) are re-loaded, we need to clear the existing event binding first.
     # -Jeremy B April 2021
@@ -192,19 +238,18 @@ class AlertDisplay
 
       @reportConsoleError(message)
 
-    else if source is 'button' and exception instanceof Exception.RuntimeException and code?
-      message = if exception instanceof Exception.RuntimeException
-        AlertDisplay.makeButtonRuntimeErrorMessage(exception.message, exception.primitive, code)
-      @reportError(message, exception.stackTrace ? [])
-
     else
       message = if exception instanceof Exception.RuntimeException
-        AlertDisplay.makeLinkedRuntimeErrorMessage(
-          exception.message
-        , exception.primitive
-        , exception.sourceStart
-        , exception.sourceEnd
-        )
+        if source is 'button' and exception.stackTrace.length is 0
+          AlertDisplay.makeButtonRuntimeErrorMessage(exception.message, exception.primitive, code)
+
+        else
+          AlertDisplay.makeLinkedRuntimeErrorMessage(
+            exception.message
+          , exception.primitive
+          , exception.sourceStart
+          , exception.sourceEnd
+          )
 
       else if exception instanceof TypeError
         AlertDisplay.makeTypeErrorMessage(exception.message)
@@ -218,6 +263,7 @@ class AlertDisplay
 
   # (CommonEventArgs, { source: String, errors: Array[CompilerError] }) => Unit
   'compiler-error': (_, { source, errors }) ->
+
     switch source
 
       when 'load-from-url'
@@ -233,6 +279,11 @@ class AlertDisplay
         message = AlertDisplay.makeCompilerErrorMessage(errors).join('<br/>')
         if source is 'compile-fatal'
           @_ractive.set('isDismissable', false)
+        message = if not @_ractive.get('isActive') then message else
+          """There was an error compiling the model's code:<br/><br/>
+          #{message}<br/><br/>
+          The below errors were generated by the widgets, but they may be
+          caused by the above compilation issues in the model's code."""
         @reportError(message)
 
     return
@@ -255,10 +306,8 @@ class AlertDisplay
 
   # (String) => Unit
   reportConsoleError: (message) ->
-    netLogoConsole = @findConsole()
-    if netLogoConsole?
-      message = message.replace('\n', ' ')
-      netLogoConsole.appendText("ERROR: #{message}\n")
+    fullMessage = "ERROR: #{message.replace('\n', ' ')}\n"
+    @appendToConsole(fullMessage)
     return
 
   'notify-user': (_1, {message}) ->

@@ -30,13 +30,14 @@ filteredByBreed = (unbreededName, agents, breeds) ->
         yield agent
 
 class TurtleLayer extends Layer
-  # (-> { model: ModelObj, font: FontObj }) -> Unit
+  # (-> { model: ModelObj, font: FontObj, halo: HaloObj }) -> Unit
   # see "./layer.coffee" for type info
   constructor: (@_getDepInfo) ->
     super()
     @_latestDepInfo = {
       model: undefined,
-      font: undefined
+      font: undefined,
+      halo: undefined,
     }
     return
 
@@ -45,7 +46,8 @@ class TurtleLayer extends Layer
   blindlyDrawTo: (context) ->
     {
       model: { model: { world, turtles, links }, worldShape },
-      font: { fontFamily, fontSize }
+      font: { fontFamily, fontSize },
+      halo: { color, turtleID }
     } = @_latestDepInfo
     usePatchCoords(
       worldShape,
@@ -70,7 +72,9 @@ class TurtleLayer extends Layer
             turtle,
             false,
             fontSize,
-            fontFamily
+            fontFamily,
+            turtleID? and turtle.who is turtleID,
+            color
           )
     )
     return

@@ -5,6 +5,7 @@ import { RactiveEditFormCheckbox }      from "./subcomponent/checkbox.js"
 import { RactiveTwoWayCheckbox }        from "./subcomponent/checkbox.js"
 import RactiveEditFormCode              from "./subcomponent/edit-form-code-input.js"
 import RactiveColorInput                from "./subcomponent/color-input.js"
+import { RactiveEditFormDropdown }      from "./subcomponent/dropdown.js"
 import { RactiveEditFormLabeledInput }  from "./subcomponent/labeled-input.js"
 import RactiveEditFormSpacer            from "./subcomponent/spacer.js"
 import RactiveWidget                    from "./widget.js"
@@ -46,6 +47,7 @@ PenForm = Ractive.extend({
     colorInput:   RactiveColorInput
   , formCheckbox: RactiveTwoWayCheckbox
   , formCode:     RactiveEditFormCode
+  , formDropdown: RactiveEditFormDropdown
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
   }
@@ -130,6 +132,38 @@ PenForm = Ractive.extend({
   getTitleElem: ->
     @find("##{@get("id")}-name")
 
+  partials: {
+
+    penSetupInput:
+      """
+        <formCode
+          id="{{id}}-setup-code"
+          name="setupCode"
+          codeContainerType="embedded"
+          onchange={{syncSetupCode}}
+          value="{{setupCode}}"
+          label="Pen setup commands"
+          parentEditor={{parentEditor}}
+          compilerErrors={{setupCodeErrors}}
+        />
+      """
+
+    penUpdateInput:
+      """
+        <formCode
+          id="{{id}}-update-code"
+          name="updateCode"
+          codeContainerType="embedded"
+          onchange={{syncUpdateCode}}
+          value="{{updateCode}}"
+          label="Pen update commands"
+          parentEditor={{parentEditor}}
+          compilerErrors={{updateCodeErrors}}
+        />
+      """
+
+  }
+
   # coffeelint: disable=max_line_length
   template:
     """
@@ -164,32 +198,46 @@ PenForm = Ractive.extend({
           <formCheckbox id="{{id}}-in-legend?" isChecked={{shouldShowInLegend}} labelText="In legend?" name="legend" />
         </div>
         <spacer height="10px" />
-        <formCode
-          id="{{id}}-setup-code"
-          name="setupCode"
-          codeContainerType="embedded"
-          onchange={{syncSetupCode}}
-          value="{{setupCode}}"
-          label="Pen setup commands"
-          parentEditor={{parentEditor}}
-          compilerErrors={{setupCodeErrors}}
-        />
+        {{>penSetupInput}}
         <spacer height="10px" />
-        <formCode
-          id="{{id}}-update-code"
-          name="updateCode"
-          codeContainerType="embedded"
-          onchange={{syncUpdateCode}}
-          value="{{updateCode}}"
-          label="Pen update commands"
-          parentEditor={{parentEditor}}
-          compilerErrors={{updateCodeErrors}}
-        />
+        {{>penUpdateInput}}
         <spacer height="10px" />
       {{/}}
     </div>
     """
   # coffeelint: enable=max_line_length
+
+})
+
+HNWPenForm = PenForm.extend({
+
+  on: {
+    "*.dropdown-changed": ({ component }, newValue) ->
+      cid = component.get("id")
+      if cid.endsWith("setup")
+        @set("setupCode", newValue)
+      else if cid.endsWith("update")
+        @set("updateCode", newValue)
+      else
+        console.warn("Unknown HNW plot pen code container!", component)
+      false
+  }
+
+  partials: {
+
+    penSetupInput:
+      """
+        <formDropdown id="{{id}}-setup" name="setupCode" label="Pen setup procedure"
+                      choices="{{procChoices}}" selected="{{setupCode}}" />
+      """
+
+    penUpdateInput:
+      """
+        <formDropdown id="{{id}}-update" name="updateCode" label="Pen update procedure"
+                      choices="{{procChoices}}" selected="{{updateCode}}" />
+      """
+
+  }
 
 })
 
@@ -217,6 +265,7 @@ PlotEditForm = EditForm.extend({
   components: {
     formCheckbox: RactiveEditFormCheckbox
   , formCode:     RactiveEditFormCode
+  , formDropdown: RactiveEditFormDropdown
   , formPen:      PenForm
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -381,6 +430,38 @@ PlotEditForm = EditForm.extend({
 
     title: "Plot"
 
+    pen:
+      """
+      <formPen color="{{color}}" display="{{display}}" index="{{index}}"
+                     interval="{{interval}}" modeIndex="{{mode}}" setupCode="{{setupCode}}"
+                     shouldShowInLegend="{{inLegend}}" updateCode="{{updateCode}}"
+                     parentEditor={{parentEditor}}/>
+      """
+
+    plotSetupInput:
+      """
+        <div class="flex-column" style="justify-content: left; width: 100%;">
+          <formCode id="{{id}}-setup-code" isCollapsible="true" isExpanded="false"
+                    codeContainerType="embedded"
+                    value="{{setupCode}}" label="Plot setup commands"
+                    style="width: 100%;"
+                    parentEditor={{parentEditor}}
+                    compilerErrors={{setupCodeErrors}}/>
+        </div>
+      """
+
+    plotUpdateInput:
+      """
+        <div class="flex-column" style="justify-content: left; width: 100%;">
+          <formCode id="{{id}}-update-code" isCollapsible="true" isExpanded="false"
+                    codeContainerType="embedded"
+                    value="{{updateCode}}" label="Plot update commands"
+                    style="width: 100%;"
+                    parentEditor={{parentEditor}}
+                    compilerErrors={{updateCodeErrors}}/>
+        </div>
+      """
+
     # coffeelint: disable=max_line_length
     widgetFields:
       """
@@ -432,31 +513,14 @@ PlotEditForm = EditForm.extend({
           <formCheckbox id="{{id}}-show-legend" isChecked={{legendOn}}   labelText="Display legend?" name="legendOn"   />
         </div>
         <spacer height="10px" />
-        <div class="flex-column" style="justify-content: left; width: 100%;">
-          <formCode id="{{id}}-setup-code" isCollapsible="true" isExpanded="false"
-                    codeContainerType="embedded"
-                    value="{{setupCode}}" label="Plot setup commands"
-                    style="width: 100%;"
-                    parentEditor={{parentEditor}}
-                    compilerErrors={{setupCodeErrors}}/>
-        </div>
+        {{>plotSetupInput}}
         <spacer height="10px" />
-        <div class="flex-column" style="justify-content: left; width: 100%;">
-          <formCode id="{{id}}-update-code" isCollapsible="true" isExpanded="false"
-                    codeContainerType="embedded"
-                    value="{{updateCode}}" label="Plot update commands"
-                    style="width: 100%;"
-                    parentEditor={{parentEditor}}
-                    compilerErrors={{updateCodeErrors}}/>
-        </div>
+        {{>plotUpdateInput}}
         <spacer height="10px" />
         <div class="flex-column" style="justify-content: left; margin-left: 18px; width: 100%;">Plot pens</div>
         <div style="border: 2px solid black; overflow-y: auto; width: 95%;">
           {{#each guiPens: index}}
-            <formPen color="{{color}}" display="{{display}}" index="{{index}}"
-                     interval="{{interval}}" modeIndex="{{mode}}" setupCode="{{setupCode}}"
-                     shouldShowInLegend="{{inLegend}}" updateCode="{{updateCode}}"
-                     parentEditor={{parentEditor}}/>
+            {{>pen}}
           {{/each}}
           <input type="button" on-click="@this.fire('add-new')" style="height: 26px; margin: 8px 0 8px 6px;" value="Add Pen" />
         </div>
@@ -464,6 +528,97 @@ PlotEditForm = EditForm.extend({
       <spacer height="10px" />
       """
     # coffeelint: enable=max_line_length
+
+  }
+
+})
+
+HNWPlotEditForm = PlotEditForm.extend({
+
+  components: {
+    formPen: HNWPenForm
+  }
+
+  data: -> {
+    autoPlotOn: undefined # Boolean
+  , display:    undefined # String
+  , guiPens:    undefined # Array[Pen]
+  , legendOn:   undefined # Boolean
+  , pens:       undefined # Array[Pen]
+  , procedures: undefined # Array[Procedure]
+  , setupCode:  undefined # String
+  , updateCode: undefined # String
+  , xLabel:     undefined # String
+  , xMax:       undefined # Number
+  , xMin:       undefined # Number
+  , yLabel:     undefined # String
+  , yMax:       undefined # Number
+  , yMin:       undefined # Number
+  }
+
+  computed: {
+    procChoices: {
+      get: ->
+        @get("procedures").filter(
+          (p) ->
+            (not p.isReporter) and
+            p.argCount is 0 and
+            (p.isUseableByObserver or p.isUseableByTurtles)
+        ).map(
+          (p) ->
+            p.name
+        ).sort()
+      set: ((->))
+    }
+  }
+
+  genProps: (form) ->
+
+    name = if form.name.length? then form.name[0].value else form.name.value
+
+    guiPens = @get("guiPens")
+
+    pens = @_clonePens(guiPens)
+
+    @set("guiPens", [])
+
+    replaceIfEmpty = (str, replace) -> if str is "" then replace else str
+
+    {  autoPlotOn: form.autoPlotOn.checked
+    ,     display: name
+    ,    legendOn: form.legendOn.checked
+    ,        pens
+    ,   setupCode: form.setupCode.value
+    ,  updateCode: form.updateCode.value
+    ,       xAxis: replaceIfEmpty(form.xLabel.value, null)
+    ,        xmax: form.xMax.valueAsNumber
+    ,        xmin: form.xMin.valueAsNumber
+    ,       yAxis: replaceIfEmpty(form.yLabel.value, null)
+    ,        ymax: form.yMax.valueAsNumber
+    ,        ymin: form.yMin.valueAsNumber
+    }
+
+  partials: {
+
+    pen:
+      """
+      <formPen color="{{color}}" display="{{display}}" index="{{index}}"
+               interval="{{interval}}" modeIndex="{{mode}}" setupCode="{{setupCode}}"
+               shouldShowInLegend="{{inLegend}}" updateCode="{{updateCode}}"
+               procChoices="{{procChoices}}" />
+      """
+
+    plotSetupInput:
+      """
+        <formDropdown id="{{id}}-setup" name="setupCode" label="Plot setup procedure"
+                      choices="{{procChoices}}" selected="{{setupCode}}" />
+      """
+
+    plotUpdateInput:
+      """
+        <formDropdown id="{{id}}-update" name="updateCode" label="Plot update procedure"
+                      choices="{{procChoices}}" selected="{{updateCode}}" />
+      """
 
   }
 
@@ -506,29 +661,32 @@ RactivePlot = RactiveWidget.extend({
 
     render: ->
 
-      ractive          = this
-      topLevel         = document.querySelector("##{@get('id')}")
-      topLevelObserver = new MutationObserver(
-        (mutations) -> mutations.forEach(
-          ({ addedNodes }) ->
-            container = Array.from(addedNodes).find((elem) -> elem.classList.contains("highcharts-container"))
-            if container?
-              topLevelObserver.disconnect()
-              containerObserver = new MutationObserver(
-                (mutties) -> mutties.forEach(
-                  ({ addedNodes: addedNodies }) ->
-                    menu = Array.from(addedNodies).find((elem) -> elem.classList.contains("highcharts-contextmenu"))
-                    if menu?
-                      ractive.set('menuIsOpen', true)
-                      containerObserver.disconnect()
-                      menuObserver = new MutationObserver(-> ractive.set('menuIsOpen', menu.style.display isnt "none"))
-                      menuObserver.observe(menu, { attributes: true })
+      ractive  = this
+      topLevel = document.querySelector("##{@get('id')}")
+
+      if topLevel?
+        topLevelObserver = new MutationObserver(
+          (mutations) -> mutations.forEach(
+            ({ addedNodes }) ->
+              container = Array.from(addedNodes).find((elem) -> elem.classList.contains("highcharts-container"))
+              if container?
+                topLevelObserver.disconnect()
+                containerObserver = new MutationObserver(
+                  (mutties) -> mutties.forEach(
+                    ({ addedNodes: addedNodies }) ->
+                      menu = Array.from(addedNodies).find((elem) -> elem.classList.contains("highcharts-contextmenu"))
+                      if menu?
+                        ractive.set('menuIsOpen', true)
+                        containerObserver.disconnect()
+                        toggleMenu   = -> ractive.set('menuIsOpen', menu.style.display isnt "none")
+                        menuObserver = new MutationObserver(toggleMenu)
+                        menuObserver.observe(menu, { attributes: true })
+                  )
                 )
-              )
-              containerObserver.observe(container, { childList: true })
+                containerObserver.observe(container, { childList: true })
+          )
         )
-      )
-      topLevelObserver.observe(topLevel, { childList: true })
+        topLevelObserver.observe(topLevel, { childList: true })
 
   }
 
@@ -545,21 +703,50 @@ RactivePlot = RactiveWidget.extend({
   minWidth:  100
   minHeight: 85
 
-  # coffeelint: disable=max_line_length
   template:
     """
     {{>editorOverlay}}
     <div id="{{id}}" class="netlogo-widget netlogo-plot {{classes}}"
          style="{{dims}}{{#menuIsOpen}}z-index: 10;{{/}}"></div>
-    <editForm autoPlotOn={{widget.autoPlotOn}} display="{{widget.display}}" idBasis="{{id}}"
-              legendOn={{widget.legendOn}} pens="{{widget.pens}}"
-              setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
-              xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
-              yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
-              parentEditor={{parentEditor}}/>
+    {{>editForm}}
     """
+
+  # coffeelint: disable=max_line_length
+  partials: {
+    editForm:
+      """
+      <editForm autoPlotOn={{widget.autoPlotOn}} display="{{widget.display}}" idBasis="{{id}}"
+                legendOn={{widget.legendOn}} pens="{{widget.pens}}"
+                setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
+                xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
+                yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
+                parentEditor={{parentEditor}}/>
+      """
+  }
   # coffeelint: enable=max_line_length
 
 })
 
-export default RactivePlot
+RactiveHNWPlot = RactivePlot.extend({
+
+  components: {
+    editForm: HNWPlotEditForm
+  }
+
+  # coffeelint: disable=max_line_length
+  partials: {
+    editForm:
+      """
+      <editForm autoPlotOn={{widget.autoPlotOn}} display="{{widget.display}}" idBasis="{{id}}"
+                legendOn={{widget.legendOn}} pens="{{widget.pens}}"
+                setupCode="{{widget.setupCode}}" updateCode="{{widget.updateCode}}"
+                xLabel="{{widget.xAxis}}" xMin="{{widget.xmin}}" xMax="{{widget.xmax}}"
+                yLabel="{{widget.yAxis}}" yMin="{{widget.ymin}}" yMax="{{widget.ymax}}"
+                procedures="{{procedures}}" />
+      """
+  }
+  # coffeelint: enable=max_line_length
+
+})
+
+export { RactivePlot, RactiveHNWPlot }

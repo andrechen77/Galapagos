@@ -1,6 +1,7 @@
 import RactiveWidget from "./widget.js"
 import EditForm from "./edit-form.js"
 import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
+import { RactiveEditFormDropdown } from "./subcomponent/dropdown.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import RactiveEditFormFontSize from "./subcomponent/font-size.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
@@ -18,6 +19,7 @@ MonitorEditForm = EditForm.extend({
 
   components: {
     formCode:     RactiveEditFormCode
+  , formDropdown: RactiveEditFormDropdown
   , formFontSize: RactiveEditFormFontSize
   , labeledInput: RactiveEditFormLabeledInput
   , spacer:       RactiveEditFormSpacer
@@ -63,8 +65,7 @@ MonitorEditForm = EditForm.extend({
 
     title: "Monitor"
 
-    # coffeelint: disable=max_line_length
-    widgetFields:
+    sourceForm:
       """
       <formCode
         id="{{id}}-source"
@@ -75,6 +76,12 @@ MonitorEditForm = EditForm.extend({
         parentEditor={{parentEditor}}
         compilerErrors={{compilerErrors}}
       />
+      """
+
+    # coffeelint: disable=max_line_length
+    widgetFields:
+      """
+      {{>sourceForm}}
 
       <spacer height="15px" />
 
@@ -96,6 +103,77 @@ MonitorEditForm = EditForm.extend({
       </div>
       """
     # coffeelint: enable=max_line_length
+
+  }
+
+})
+
+HNWMonitorEditForm = MonitorEditForm.extend({
+
+  computed: {
+    reporterChoices: {
+      get: ->
+
+        { globalVars, myVars, procedures } = @get('metadata')
+
+        globalsNames = globalVars.map((g) -> g.name)
+
+        reporterNames =
+          procedures.filter(
+            (p) ->
+              p.isReporter and
+              p.argCount is 0 and
+              (p.isUseableByObserver or p.isUseableByTurtles)
+          ).map(
+            (p) -> p.name
+          )
+
+        [].concat(globalsNames, myVars, reporterNames).sort()
+
+      set: ((->))
+    }
+  }
+
+  genProps: (form) ->
+
+    source = form.source.value
+
+    reporterStyle =
+      if source is ""
+        "turtle-procedure"
+      else
+        { globalVars, myVars, procedures } = @get('metadata')
+        proc = procedures.find((p) -> p.name is source)
+        if proc?
+          if proc.isUseableByTurtles
+            "turtle-procedure"
+          else
+            "procedure"
+        else if myVars.includes(source)
+          "turtle-var"
+        else if globalVars.includes(source)
+          "global-var"
+        else
+          throw Error("Wat?")
+
+    fontSize = 10
+
+    {
+            display: (if form.display.value isnt "" then form.display.value else source)
+    ,      fontSize
+    ,        bottom: @parent.get('widget.top') + (2 * fontSize) + 23
+    ,     precision: parseInt(form.precision.value)
+    , reporterStyle
+    ,        source
+    }
+
+  partials: {
+
+    sourceForm:
+      """
+      <formDropdown id="{{id}}-source" name="source" selected="{{source}}"
+                    choices="{{reporterChoices}}" label="Reporter" />
+      """
 
   }
 
@@ -129,7 +207,7 @@ RactiveMonitor = RactiveWidget.extend({
     {{>editorOverlay}}
     {{>monitor}}
     <editForm idBasis="{{id}}" display="{{widget.display}}" fontSize="{{widget.fontSize}}"
-              precision="{{widget.precision}}" source="{{widget.source}}" parentEditor={{parentEditor}}/>
+              precision="{{widget.precision}}" source="{{widget.source}}" metadata="{{metadata}}" parentEditor={{parentEditor}}/>
     """
 
   # coffeelint: disable=max_line_length
@@ -151,4 +229,10 @@ RactiveMonitor = RactiveWidget.extend({
 
 })
 
-export default RactiveMonitor
+RactiveHNWMonitor = RactiveMonitor.extend({
+  components: {
+    editForm: HNWMonitorEditForm
+  }
+})
+
+export { RactiveMonitor, RactiveHNWMonitor }

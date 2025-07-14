@@ -35,6 +35,10 @@ Some object types currently in use:
   fontFamily: string,
   fontSize: number
 }
+- HaloObj: {
+  color: string,
+  turtleID: number
+}
 ###
 class Layer
   constructor: ->

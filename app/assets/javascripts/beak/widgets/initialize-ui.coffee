@@ -7,10 +7,28 @@ import controlEventTraffic from "./event-traffic-control.js"
 import genConfigs from "./config-shims.js"
 import ViewController from "./draw/view-controller.js"
 
+defaultView =
+  { dimensions: {
+      maxPxcor:           0
+      maxPycor:           0
+      minPxcor:           0
+      minPycor:           0
+      patchSize:          1
+      wrappingAllowedInX: false
+      wrappingAllowedInY: false
+    }
+    fontSize:         0
+    frameRate:        0
+    showTickCounter:  true
+    tickCounterLabel: "ticks"
+    type:             "dummy-view"
+    updateMode:       "TickBased"
+  }
+
 # (Element|String, Array[Widget], String, String,
-#   Boolean, NlogoSource, String, String, BrowserCompiler) => WidgetController
+#   Boolean, NlogoSource, String, String, BrowserCompiler, () => Unit) => WidgetController
 initializeUI = (containerArg, widgets, code, info,
-  isReadOnly, source, workInProgressState, compiler) ->
+  isReadOnly, source, workInProgressState, compiler, performUpdate) ->
 
   container = if typeof(containerArg) is 'string' then document.querySelector(containerArg) else containerArg
 
@@ -22,7 +40,7 @@ initializeUI = (containerArg, widgets, code, info,
   # BCH 11/10/2014
   controller = null
   updateUI   = ->
-    controller.redraw()
+    performUpdate()
     controller.updateWidgets()
 
   # Same as above, need a way to report errors, but we don't have the controller
@@ -31,7 +49,9 @@ initializeUI = (containerArg, widgets, code, info,
     controller.reportError(time, source, exception, ...args)
 
   window.EditorDictionary.Initialize({}) # required for codemirror-netlogo's dictionary tooltips
-  viewController = new ViewController()
+  viewWidget =
+    widgets.find(({ type }) -> type is 'view' or type is 'hnwView') ? defaultView
+  viewController = new ViewController(viewWidget)
   ractive = generateRactiveSkeleton(
     container,
     widgets,
@@ -48,51 +68,15 @@ initializeUI = (containerArg, widgets, code, info,
     preventScroll: true
   })
 
-  viewModel = widgets.find(({ type }) -> type is 'view')
-  ractive.set('primaryView', viewModel)
-
-  entwineDimensions(viewModel, viewController.getModel().world)
+  ractive.set('primaryView', viewWidget)
 
   configs    = genConfigs(ractive, viewController, container, compiler)
-  controller = new WidgetController(ractive, viewController, configs)
-
+  controller = new WidgetController(ractive, viewController, configs, performUpdate)
   setUpWidgets(reportError, widgets, updateUI, controller.plotSetupHelper())
-
-  controlEventTraffic(controller)
+  controlEventTraffic(controller, performUpdate)
   handleWidgetSelection(ractive)
   handleContextMenu(ractive)
 
   controller
-
-# (Array[(Object[Any], String)], Any) => Unit
-entwine = (objKeyPairs, value) ->
-
-  backingValue = value
-
-  for [obj, key] in objKeyPairs
-    Object.defineProperty(obj, key, {
-      get: -> backingValue
-      set: (newValue) -> backingValue = newValue
-    })
-
-  return
-
-# (Widgets.View, AgentModel.World) => Unit
-entwineDimensions = (viewWidget, modelView) ->
-
-  translations = {
-    maxPxcor:           "maxpxcor"
-  , maxPycor:           "maxpycor"
-  , minPxcor:           "minpxcor"
-  , minPycor:           "minpycor"
-  , patchSize:          "patchsize"
-  , wrappingAllowedInX: "wrappingallowedinx"
-  , wrappingAllowedInY: "wrappingallowediny"
-  }
-
-  for wName, mName of translations
-    entwine([[viewWidget.dimensions, wName], [modelView, mName]], viewWidget.dimensions[wName])
-
-  return
 
 export default initializeUI

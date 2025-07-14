@@ -2,7 +2,7 @@ import newModel from "../new-model.js"
 import { normalizedFileName } from "./tortoise-utils.js"
 
 dropNlogoExtension = (s) ->
-  if s.toLocaleLowerCase().endsWith('.nlogo')?
+  if s.toLocaleLowerCase().endsWith('.nlogo')
     s.slice(0, -6)
   else
     s
@@ -21,6 +21,11 @@ class NlogoSource
   # () => String
   getWipKey: () ->
     'dummy'
+
+  # ((String) => String) => Unit
+  transform: (nlogoTransformer) ->
+    @nlogo = nlogoTransformer(@nlogo)
+    return
 
 class UrlSource extends NlogoSource
   constructor: (url, nlogo) ->

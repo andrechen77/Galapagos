@@ -286,6 +286,10 @@
   height: 14px;
 }
 
+.netlogo-model-container-host {
+  display: inline-block;
+}
+
 .netlogo-codeusage-popup {
   position: absolute;
   z-index: 10;
@@ -335,6 +339,14 @@
   margin-top: 0;
 }
 
+.netlogo-command-center-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
 .netlogo-command-center {
   flex: 1;
   display: flex;
@@ -358,43 +370,80 @@
   line-height: 18px;
 }
 
+.netlogo-command-center-button {
+  height: 30px;
+  min-width: 50px;
+  width: 10vw;
+  border-radius: 8px;
+  background-color: var(--medium-blue);
+}
+
+.netlogo-command-center-button:hover {
+  filter: brightness(0.9);
+}
+
+.netlogo-command-center-button:active {
+  filter: brightness(0.7);
+  box-shadow: 3px 3px rgba(0, 0, 0, 0.8);
+}
+
+.join-body {
+  margin: 0;
+}
+
+.netlogo-model-container-join {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  min-width: 900px;
+  margin: 0 auto;
+  background-color: var(--light-gray);
+}
+
 .CodeMirror {
   font-family: Consolas, "Courier New", Courier, monospace;
 }
 
 .netlogo-command-center-editor {
   line-height: 17px;
+  margin: 0 10px;
   flex-grow: 1;
 }
 
+.netlogo-command-center-select {
+  height: 27px;
+  min-width: 75px;
+  width: 10vw;
+}
+
 .netlogo-command-center-editor .cm-editor {
-	flex: 1 1 auto;
-	height: auto;
-	font-size: 1em;
-	max-height: 2rem;
-	box-sizing: border-box;
+  flex: 1 1 auto;
+  height: auto;
+  font-size: 1em;
+  max-height: 2rem;
+  box-sizing: border-box;
 }
 
 .netlogo-command-center-editor .cm-editor .cm-gutters {
-	display: none;
+  display: none;
 }
 
 .netlogo-command-center-editor .cm-editor .cm-scroller {
-	line-height: 1.5;
-	overflow-x: scroll;
-	overflow-y: hidden;
+  line-height: 1.5;
+  overflow-x: scroll;
+  overflow-y: hidden;
 }
 
 .netlogo-command-center-editor .cm-editor span.cm-placeholder .active {
-	color: #cc2200;
+  color: #cc2200;
 }
 
 .netlogo-command-center-editor .cm-editor .cm-scroller::-webkit-scrollbar {
-	display: none;
+  display: none;
 }
 
 .netlogo-command-center-editor .cm-editor .cm-activeLine {
-	background: transparent;
+  background: transparent;
 }
 
 .netlogo-output-widget {
@@ -636,6 +685,12 @@ body {
   resize: none;
 }
 
+.netlogo-singleline-input {
+  flex-grow: 1;
+  margin: 4px;
+  resize: none;
+}
+
 .netlogo-chooser {
   padding: 2px 4px;
   display: flex;
@@ -674,6 +729,15 @@ body {
   display: flex;
   flex-grow: 0;
   white-space: nowrap;
+}
+
+.netlogo-code-compile-error {
+  color: red;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin: 5px 0 -5px 0;
+  font-weight: bold;
 }
 
 .netlogo-widget-error {
@@ -759,6 +823,7 @@ body {
 .async-dialog-message {
   font-size: 16px;
   margin-top: 20px;
+  white-space: break-spaces;
   word-break: break-word;
 }
 

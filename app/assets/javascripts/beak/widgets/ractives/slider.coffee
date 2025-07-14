@@ -2,6 +2,7 @@ import RactiveValueWidget from "./value-widget.js"
 import EditForm from "./edit-form.js"
 import { RactiveEditFormCheckbox } from "./subcomponent/checkbox.js"
 import RactiveEditFormCode from "./subcomponent/edit-form-code-input.js"
+import { RactiveEditFormDropdown } from "./subcomponent/dropdown.js"
 import RactiveEditFormVariable from "./subcomponent/variable.js"
 import RactiveEditFormSpacer from "./subcomponent/spacer.js"
 import { RactiveEditFormLabeledInput } from "./subcomponent/labeled-input.js"
@@ -101,9 +102,14 @@ SliderEditForm = EditForm.extend({
 
     title: "Slider"
 
+    variableForm:
+      """
+      <formVariable id="{{id}}-varname" name="variable" label="Global variable" value="{{variable}}"/>
+      """
+
     widgetFields:
       """
-      <formVariable id="{{id}}-varname" name="variable" value="{{variable}}"/>
+      {{>variableForm}}
 
       <spacer height="15px" />
 
@@ -150,10 +156,49 @@ SliderEditForm = EditForm.extend({
 
 })
 
+HNWSliderEditForm = SliderEditForm.extend({
+
+  components: {
+    formDropdown: RactiveEditFormDropdown
+  }
+
+  computed: {
+    sortedBreedVars: {
+      get: -> @get('breedVars').slice(0).sort()
+      set: (x) -> @set('breedVars', x)
+    }
+  }
+
+  data: -> {
+    breedVars: undefined # Array[String]
+  }
+
+  on: {
+    'use-new-var': (_, varName) ->
+      @set('variable', varName)
+      return
+  }
+
+  partials: {
+
+    variableForm:
+      """
+      <div class="flex-row">
+        <formDropdown id="{{id}}-varname" name="variable" label="Turtle variable"
+                      choices="{{sortedBreedVars}}" selected="{{variable}}" />
+        <button on-click="@this.fire('add-breed-var', @this)" type="button" style="height: 30px;">Define New Variable</button>
+      </div>
+      """
+
+  }
+
+})
+
 RactiveSlider = RactiveValueWidget.extend({
 
   data: -> {
     errorClass:         undefined # String
+  , breedVars:          undefined # Array[String]
   , internalValue:      0         # Number
   , parentEditor:       null      # GalapagosEditor | null
   }
@@ -209,6 +254,7 @@ RactiveSlider = RactiveValueWidget.extend({
               minCode="{{widget.min}}" stepCode="{{widget.step}}" units="{{widget.units}}"
               top="{{widget.top}}" right="{{widget.right}}" bottom="{{widget.bottom}}"
               left="{{widget.left}}" value="{{widget.default}}" variable="{{widget.variable}}"
+              breedVars="{{breedVars}}"
               parentEditor={{parentEditor}}/>
     """
 
@@ -258,4 +304,10 @@ RactiveSlider = RactiveValueWidget.extend({
 })
 # coffeelint: enable=max_line_length
 
-export default RactiveSlider
+RactiveHNWSlider = RactiveSlider.extend({
+  components: {
+    editForm: HNWSliderEditForm
+  }
+})
+
+export { RactiveSlider, RactiveHNWSlider }

@@ -60,18 +60,39 @@ class DrawingLayer extends Layer
 
     { model: { model, worldShape }, quality: { quality } } = @_latestDepInfo
     resizeCanvas(@_canvas, worldShape, quality)
-    for event in model.drawingEvents
-      switch event.type
-        when 'clear-drawing' then @_clearDrawing()
-        when 'line' then @_drawLine(event)
-        when 'stamp-image'
-          switch event.agentType
-            when 'turtle' then @_drawTurtleStamp(event.stamp)
-            when 'link' then @_drawLinkStamp(event.stamp)
-        when 'import-drawing' then @_importDrawing(event.imageBase64)
+    @handleDrawingEvents(model)
     # For those who still remember, `model.drawingEvents` is now reset by the ViewController after
     # every layer has finished repainting.
     true
+
+  # (AgentModel) => Unit
+  handleDrawingEvents: (model) ->
+    if model.drawingEvents.length > @_lastAppliedIndex
+
+      obIndex = @_findLastObliteratorIndex(model.drawingEvents, @_lastAppliedIndex)
+      if obIndex isnt -1
+        obliterator         = model.drawingEvents[obIndex]
+        model.drawingEvents = model.drawingEvents.slice(obIndex)
+        switch obliterator.type
+          when 'clear-drawing'  then @_clearDrawing()
+          when 'import-drawing'
+            @_importDrawing(obliterator.imageBase64, obliterator.x, obliterator.y)
+        @_lastAppliedIndex = 0
+
+      model.drawingEvents.slice(@_lastAppliedIndex + 1).forEach((event) =>
+        switch event.type
+          when 'line'        then @_drawLine(event)
+          when 'stamp-image'
+            switch event.agentType
+              when 'turtle' then @_drawTurtleStamp(event.stamp)
+              when 'link' then @_drawLinkStamp(event.stamp)
+      )
+
+      @_lastAppliedIndex = model.drawingEvents.length - 1
+
+    @_ctx.drawImage(@_canvas, 0, 0)
+
+    return
 
   _clearDrawing: ->
     @_ctx.clearRect(0, 0, @_canvas.width, @_canvas.height)
@@ -135,8 +156,9 @@ class DrawingLayer extends Layer
     )
     return
 
-  _importDrawing: (base64) ->
-    _clearDrawing()
+  _importDrawing: (base64, x = null, y = null) ->
+    if not (x? or y?)
+      @_clearDrawing()
     image = new Image()
     image.onload = () =>
       canvasRatio = @_canvas.width / @_canvas.height
@@ -150,7 +172,7 @@ class DrawingLayer extends Layer
         # canvas is "thinner" than the image, use full image width and partial height
         height = (canvasRatio / imageRatio) * @_canvas.height
 
-      @_ctx.drawImage(image, (@_canvas.width - width) / 2, (@_canvas.height - height) / 2, width, height)
+      @_ctx.drawImage(image, x + (@_canvas.width - width) / 2, y + (@_canvas.height - height) / 2, width, height)
     image.src = base64
     return
 
@@ -169,6 +191,16 @@ class DrawingLayer extends Layer
         resolve()
       image.src = base64 # What's the reason this line comes *after* setting image.onload? --Andre C
     )
+
+  # (Array[DrawingEvent], Number) => Number
+  _findLastObliteratorIndex: (events, lastCheckedIndex) ->
+    i = events.length - 1
+    while i > lastCheckedIndex
+      if events[i].type in ["clear-drawing", "import-drawing"]
+        return i
+      else
+        i--
+    -1
 
 export {
   DrawingLayer

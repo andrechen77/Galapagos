@@ -4,6 +4,79 @@
 
 <div class="inner-content" style="margin: 0 10%; text-align: justify;">
 
+  <h2 id="v2.11.4">June 5th 2024 - v2.11.4</h2>
+
+  <p>This release includes a few small improvements and bugfixes.</p>
+
+  <ul>
+    <li>Single line code input will now only allow single lines to be entered.</li>
+    <li>Support a small performance optimization when using code like <code>any? breeds-on [...]</code>.</li>
+    <li>Plots that generate runtime errors will no longer popup the alert window, blocking the model from running.</li>
+    <li>In NetTango Web, code input widgets in the NetLogo model will now properly fill their widget space.</li>
+  </ul>
+
+  <h2 id="v2.11.3">May 8th 2024 - v2.11.3</h2>
+
+  <p>This release includes a few small improvements and bugfixes.</p>
+
+  <ul>
+    <li>NetLogo Web won't crash if an unexpected JavaScript message is passed to its model window.  This could be a problem when using certain web browser extensions.</li>
+    <li>A meaningful error message will be displayed if a NetLogo Web model page is loaded without JavaScript enabled or if an error occurs in initializing the NetLogo Web code.  Previously the "model loading" spinner could display indefinitely.</li>
+    <li>An error will no longer occur when a model generates lots of drawing events during a tick.  Additionally, the speed of processing drawing events is slightly improved.</li>
+  </ul>
+
+  <h2 id="v2.11.2">March 21st 2024 - v2.11.2</h2>
+
+  <p>This release includes a few small bugfixes.</p>
+
+  <ul>
+    <li>Runtime errors will properly link to the location in code where they occured.</li>
+    <li>Plot lines will display correctly when going "backwards".</li>
+    <li>Make sure action keys work when buttons have focus.</li>
+    <li>Make sure the procedures dropdown is always visible.</li>
+    <li>Properly raise an event when widgets are deleted.</li>
+    <li>Support a small performance optimization when using code like <code>any? turtles-on [...]</code>.</li>
+  </ul>
+
+  <h2 id="v2.11.1">January 31st 2024 - v2.11.1</h2>
+
+  <p>This release includes a few small bugfixes.</p>
+
+  <ul>
+    <li>Widget dragging and resizing again works as expected in Mozilla Firefox.</li>
+    <li>Link shapes arrows are always drawn on top of its lines and the right/left lines (if used) are not reversed for directed links.</li>
+    <li>Performance optimization for non-left-to-right plot pens will apply to just the affected pen and not all pens on a plot.  Previously this could cause strange pen draw ordering and display.</li>
+    <li>The world size can now be edited after a code recompile.</li>
+    <li>When adding new widgets via the context menu, they will appear in the expected location even if the window is scrolled.</li>
+  </ul>
+
+  <h2 id="v2.11.0">December 4th 2023 - v2.11.0</h2>
+
+  <p>This release adds compatibility with some <a href="https://ccl.northwestern.edu/netlogo/docs/versions.html#version-640-november-2023">NetLogo 6.4</a> features, including updates to the models library.</p>
+
+  <ul>
+    <li>Support multi-variable assignment with <code>let</code> and <code>set</code>.</li>
+    <li>Support <a href="https://ccl.northwestern.edu/netlogo/docs/dictionary.html#who-are-not">the new <code>who-are-not</code> reporter</a> for agentset disjunction.</li>
+    <li>Plot error messages will correctly include the plot's name.</li>
+    <li>The CSV extension will correctly parse strings that start with numbers as text.</li>
+    <li>When a model has errors in the NetLogo code, those errors will be displayed first before displaying errors from the plot widgets that may be caused by the code errors.</li>
+    <li>New FAQ entries have been added about <a href="docs/faq#mouse">best practices for using mouse prims</a> and <a href="docs/faq#repeat-go">looping constructs in NetLogo Web</a>.</li>
+  </ul>
+
+  <h2 id="v2.10.8">October 17th 2023 - v2.10.8</h2>
+
+  <p>This release includes a few small improvements and fixes.</p>
+
+  <ul>
+    <li>You can now export HTML versions of a model from already-exported HTML files.</li>
+    <li>Unbreeded agents will now render after breeded agents, matching desktop NetLogo's behavior.</li>
+    <li>Any linked models you have edited that are in your browser local storage will be displayed in a list on the settings page so you can jump right back in.</li>
+    <li>Monitors and plots now correctly use auxiliary random number generators, so they don't affect the main behavior of a model.</li>
+    <li>Command and reporter strings used for <code>run</code> and <code>runresult</code> are cached separately, to avoid some odd errors.</li>
+    <li>The performance of link neighbor checks is slightly improved.</li>
+    <li>Table extension: Using a non-array table key that doesn't exist will throw a more meaningful error message.</li>
+  </ul>
+
   <h2 id="v2.10.7">May 11th 2023 - v2.10.7</h2>
 
   <p>This small release includes a fix to get NetTango Web working correctly again.</p>

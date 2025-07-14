@@ -9,6 +9,40 @@ import { setImageSmoothing, clearCtx, extractWorldShape } from "./draw-utils.js"
 
 AgentModel = tortoise_require('agentmodel')
 
+# (Array[(Object[Any], String)], Any) => Unit
+entwine = (objKeyPairs, value) ->
+
+  backingValue = value
+
+  for [obj, key, tag] in objKeyPairs
+    Object.defineProperty(obj, key, {
+      configurable: true
+      get: -> backingValue
+      set: (newValue) -> backingValue = newValue
+    })
+
+  return
+
+# (Widgets.View, ViewController.View) => Unit
+entwineDimensions = (viewWidget, modelView) ->
+
+  translations = {
+    maxPxcor:           "maxpxcor"
+  , maxPycor:           "maxpycor"
+  , minPxcor:           "minpxcor"
+  , minPycor:           "minpycor"
+  , patchSize:          "patchsize"
+  , wrappingAllowedInX: "wrappingallowedinx"
+  , wrappingAllowedInY: "wrappingallowediny"
+  }
+
+  for wName, mName of translations
+    entwine([[viewWidget.dimensions, wName], [modelView, mName]], viewWidget.dimensions[wName])
+
+  return
+
+# type Dims = { width: Number, height: Number }
+
 # TODO type signature
 initLayers = (layerDeps) ->
   # Tis important that we don't access the properties of `layerDeps` except within the client code using `layerDeps`,
@@ -23,8 +57,7 @@ initLayers = (layerDeps) ->
   { turtles, patches, drawing, world, spotlight, highlight, all }
 
 class ViewController
-  # (Unit) -> Unit
-  constructor: ->
+  constructor: (viewWidget) ->
     # Define `@_layerDeps` first because the `@resetModel()` call below needs this variable to be valid.
     @_layerDeps = {
       model: {
@@ -34,13 +67,18 @@ class ViewController
       highlight: {
         highlightedAgents: []
       },
+      halo: {
+        color: undefined # String
+        turtleID: undefined # Number
+      },
+      targetDims: undefined # Dims
       quality: { quality: Math.max(window.devicePixelRatio ? 2, 2) },
       font: {
         fontFamily: '"Lucida Grande", sans-serif',
-        fontSize: 50 # some random number; can be set by the client
+        fontSize: viewWidget.fontSize
       }
     }
-    @resetModel() # defines `@_model`
+    @resetModel(viewWidget) # defines `@_model`
     @_layers = initLayers(@_layerDeps)
 
     repaint = => @repaint()
@@ -61,6 +99,12 @@ class ViewController
     # having been fired yet. If `currentlyInteracting` is true, `view` must not also be undefined.
     @_latestMouseInfo = { currentlyInteracting: false, view: undefined, clientX: 0, clientY: 0, xPcor: 0, yPcor: 0 }
 
+    @repaint()
+    return
+
+  # (Number, String) => Unit
+  haloTurtle: (turtleID, color) ->
+    @_layerDeps.halo = { @_layerDeps.halo..., color, turtleID }
     @repaint()
     return
 
@@ -91,7 +135,7 @@ class ViewController
       if index is 0 then @_latestMouseInfo.currentlyInteracting = false
 
   # (Unit) -> Unit
-  resetModel: ->
+  resetModel: (viewWidget) ->
     @_model = new AgentModel()
     @_model.world.turtleshapelist = defaultShapes
     @_layerDeps.model = {
@@ -99,6 +143,11 @@ class ViewController
       model: @_model,
       worldShape: extractWorldShape(@_model.world)
     }
+    entwineDimensions(viewWidget, @_model.world)
+    # This was removed in the inspection branch but reintroduced due to merge
+    # conflicts when merging the main branch, so I'm leaving this here just as
+    # an artifact of that
+    # entwine([[viewWidget, "fontSize"], [@view, "fontSize"]], viewWidget.fontSize)
     return
 
   # (Unit) -> AgentModel
@@ -111,6 +160,12 @@ class ViewController
   repaint: ->
     for view in @_views when view?
       view.repaint()
+    return
+
+  # (Dims) => Unit
+  setTargetDims: (dims) ->
+    @_layerDeps.targetDims = dims
+    @repaint()
     return
 
   # (Update|Array[Update]) => Unit

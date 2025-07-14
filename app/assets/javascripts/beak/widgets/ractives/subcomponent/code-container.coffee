@@ -6,6 +6,7 @@ codeContainerMapping = {
   'one_line_reporter': { parseMode: 'Reporter', oneLine: true },
   'multi_line_reporter': { parseMode: 'Reporter', oneLine: false },
   'embedded': { parseMode: 'Embedded', oneLine: false },
+  'embedded_one_line': { parseMode: 'Embedded', oneLine: true },
   'generative': { parseMode: 'Generative', oneLine: false }
 }
 # type CodeContainerType = keyof typeof codeContainerMapping

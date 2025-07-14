@@ -1,20 +1,20 @@
-import RactiveLabel from "./ractives/label.js"
-import RactiveInput from "./ractives/input.js"
-import RactiveButton from "./ractives/button.js"
-import RactiveView from "./ractives/view.js"
-import RactiveSlider from "./ractives/slider.js"
-import RactiveChooser from "./ractives/chooser.js"
-import RactiveMonitor from "./ractives/monitor.js"
+import { RactiveLabel, RactiveHNWLabel } from "./ractives/label.js"
+import { RactiveInput, RactiveHNWInput } from "./ractives/input.js"
+import { RactiveButton, RactiveHNWButton } from "./ractives/button.js"
+import { RactiveView, RactiveHNWView } from "./ractives/view.js"
+import { RactiveSlider, RactiveHNWSlider } from "./ractives/slider.js"
+import { RactiveChooser, RactiveHNWChooser } from "./ractives/chooser.js"
+import { RactiveMonitor, RactiveHNWMonitor } from "./ractives/monitor.js"
 import RactiveCodePane from "./ractives/code-pane.js"
-import RactiveSwitch from "./ractives/switch.js"
+import { RactiveSwitch, RactiveHNWSwitch } from "./ractives/switch.js"
 import RactiveHelpDialog from "./ractives/help-dialog.js"
 import RactiveConsoleWidget from "./ractives/console.js"
 import RactiveInspectionPane from "./ractives/inspection-pane.js"
-import RactiveOutputArea from "./ractives/output.js"
+import { RactiveOutputArea, RactiveHNWOutputArea } from "./ractives/output.js"
 import RactiveInfoTabWidget from "./ractives/info.js"
 import RactiveModelTitle from "./ractives/title.js"
 import RactiveStatusPopup from "./ractives/status-popup.js"
-import RactivePlot from "./ractives/plot.js"
+import { RactivePlot, RactiveHNWPlot } from "./ractives/plot.js"
 import RactiveResizer from "./ractives/resizer.js"
 import RactiveAsyncUserDialog from "./ractives/async-user-dialog.js"
 import RactiveContextMenu from "./ractives/context-menu.js"
@@ -29,41 +29,47 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
   model = {
     checkIsReporter
-    initialCode:          code
-    consoleOutput:        ''
-    exportForm:           false
-    hasFocus:             false
-    workInProgressState
-    height:               0
-    info
-    isEditing:            false
-    isHelpVisible:        false
-    isOverlayUp:          false
-    isReadOnly
-    isResizerVisible:     true
-    isStale:              false
-    isVertical:           true
-    showInspectionPane:   false
-    lastCompiledCode:     code
-    lastCompileFailed:    false
-    lastDragX:            undefined
-    lastDragY:            undefined
-    modelTitle:           source.getModelTitle()
-    outputWidgetOutput:   ''
-    primaryView:          undefined
-    someDialogIsOpen:     false
-    someEditFormIsOpen:   false
-    source
-    viewQuality:          undefined
-    speed:                0.0
-    ticks:                "" # Remember, ticks initialize to nothing, not 0
-    ticksStarted:         false
-    widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
-    widgetVarNames:       undefined # Array[String]
-    viewController:       viewController # ViewController
-    width:                0
-    parentEditor:         null
-    receiveParentEditor:  (editor) ->
+  , initialCode:          code
+  , consoleOutput:        ''
+  , exportForm:           false
+  , hasFocus:             false
+  , workInProgressState
+  , height:               0
+  , hnwClients:           {}
+  , hnwRoles:             {}
+  , info
+  , isEditing:            false
+  , isHelpVisible:        false
+  , isHNW:                false
+  , isHNWHost:            false
+  , isHNWTicking:         false
+  , isOverlayUp:          false
+  , isReadOnly
+  , isResizerVisible:     true
+  , isStale:              false
+  , isVertical:           true
+  , showInspectionPane:   false
+  , lastCompiledCode:     code
+  , lastCompileFailed:    false
+  , lastDragX:            undefined
+  , lastDragY:            undefined
+  , metadata:             { globalVars: [], myVars: [], procedures: [] }
+  , modelTitle:           source.getModelTitle()
+  , outputWidgetOutput:   ''
+  , primaryView:          undefined
+  , someDialogIsOpen:     false
+  , someEditFormIsOpen:   false
+  , source
+  , viewQuality:          undefined
+  , speed:                0.0
+  , ticks:                "" # Remember, ticks initialize to nothing, not 0
+  , ticksStarted:         false
+  , widgetObj:            widgets.reduce(((acc, widget, index) -> acc[index] = widget; acc), {})
+  , widgetVarNames:       undefined # Array[String]
+  , viewController:       viewController # ViewController
+  , width:                0
+  , parentEditor:         null
+  , receiveParentEditor:  (editor) ->
       # `this` is intended to bind to the skeleton Ractive, not the Ractive
       # that happens to run this function. I'm not sure why this works since
       # we never bind this function but it does.
@@ -127,11 +133,26 @@ generateRactiveSkeleton = (container, widgets, code, info,
     , plotWidget:    RactivePlot
     , viewWidget:    RactiveView
 
+    , hnwLabelWidget:   RactiveHNWLabel
+    , hnwSwitchWidget:  RactiveHNWSwitch
+    , hnwButtonWidget:  RactiveHNWButton
+    , hnwSliderWidget:  RactiveHNWSlider
+    , hnwChooserWidget: RactiveHNWChooser
+    , hnwMonitorWidget: RactiveHNWMonitor
+    , hnwInputWidget:   RactiveHNWInput
+    , hnwOutputWidget:  RactiveHNWOutputArea
+    , hnwPlotWidget:    RactiveHNWPlot
+    , hnwViewWidget:    RactiveHNWView
+
     , spacer:        RactiveEditFormSpacer
 
     },
 
     computed: {
+
+      isHNWJoiner: ->
+        @get('isHNW') is true and @get('isHNWHost') is false
+
       stateName: ->
         if @get('isEditing')
           if @get('someEditFormIsOpen')
@@ -163,7 +184,7 @@ generateRactiveSkeleton = (container, widgets, code, info,
 
     getContextMenuOptions: (clientX, clientY) ->
       if @get('isEditing')
-        widgetCreationOptions
+        widgetCreationOptions(this)
       else
         []
 
@@ -224,6 +245,11 @@ generateRactiveSkeleton = (container, widgets, code, info,
     }
 
     data: -> model
+
+    oncomplete: ->
+      @fire('track-focus', document.activeElement)
+      return
+
   })
 
 # coffeelint: disable=max_line_length
@@ -292,7 +318,6 @@ template =
           <spacer width="5px" />
           <span class="netlogo-toggle-text">Commands and Code: {{#isVertical}}Bottom{{else}}Right Side{{/}}</span>
         </div>
-
       </div>
 
       <asyncDialog wareaHeight="{{height}}" wareaWidth="{{width}}"></asyncDialog>
@@ -313,16 +338,26 @@ template =
            on-click="@this.fire('deselect-widgets', @event)" on-dragover="mosaic-killer-killer">
         <resizer isEnabled="{{isEditing}}" isVisible="{{isResizerVisible}}" />
         {{#widgetObj:key}}
-          {{# type === 'view'     }} <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} ticks="{{ticks}}" viewController="{{viewController}}" setInspect="{{@this.setInspect.bind(@this)}}" /> {{/}}
-          {{# type === 'textBox'  }} <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
-          {{# type === 'switch'   }} <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} /> {{/}}
-          {{# type === 'button'   }} <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}} errorClass="{{>errorClass}}" ticksStarted="{{ticksStarted}}"/> {{/}}
-          {{# type === 'slider'   }} <sliderWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}} errorClass="{{>errorClass}}" /> {{/}}
-          {{# type === 'chooser'  }} <chooserWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}}/> {{/}}
-          {{# type === 'monitor'  }} <monitorWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}} errorClass="{{>errorClass}}" /> {{/}}
-          {{# type === 'inputBox' }} <inputWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}}/> {{/}}
-          {{# type === 'plot'     }} <plotWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} parentEditor={{parentEditor}}/> {{/}}
-          {{# type === 'output'   }} <outputWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} text="{{outputWidgetOutput}}" /> {{/}}
+          {{# type ===    'textBox'  }}    <labelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" /> {{/}}
+          {{# type === 'hnwTextBox'  }} <hnwLabelWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" /> {{/}}
+          {{# type ===    'view'     }}    <viewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" viewController="{{viewController}}" setInspect="{{@this.setInspect.bind(@this)}}"ticks="{{ticks}}" /> {{/}}
+          {{# type === 'hnwView'     }} <hnwViewWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" viewController="{{viewController}}" setInspect="{{@this.setInspect.bind(@this)}}"ticks="{{ticks}}" /> {{/}}
+          {{# type ===    'switch'   }}    <switchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type === 'hnwSwitch'   }} <hnwSwitchWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type ===    'button'   }}    <buttonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} ticksStarted="{{ticksStarted}}" procedures="{{metadata.procedures}}" errorClass="{{>errorClass}}" /> {{/}}
+          {{# type === 'hnwButton'   }} <hnwButtonWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} ticksStarted="{{ticksStarted}}" procedures="{{metadata.procedures}}" /> {{/}}
+          {{# type ===    'slider'   }}    <sliderWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" errorClass="{{>errorClass}}" /> {{/}}
+          {{# type === 'hnwSlider'   }} <hnwSliderWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type ===    'chooser'  }}    <chooserWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type === 'hnwChooser'  }} <hnwChooserWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type ===    'monitor'  }}    <monitorWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} metadata="{{metadata}}" errorClass="{{>errorClass}}" /> {{/}}
+          {{# type === 'hnwMonitor'  }} <hnwMonitorWidget id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} metadata="{{metadata}}" /> {{/}}
+          {{# type ===    'inputBox' }}    <inputWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type === 'hnwInputBox' }} <hnwInputWidget   id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} breedVars="{{metadata.myVars}}" /> {{/}}
+          {{# type ===    'plot'     }}    <plotWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} /> {{/}}
+          {{# type === 'hnwPlot'     }} <hnwPlotWidget    id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" parentEditor={{parentEditor}} procedures="{{metadata.procedures}}" /> {{/}}
+          {{# type ===    'output'   }}    <outputWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" text="{{outputWidgetOutput}}" /> {{/}}
+          {{# type === 'hnwOutput'   }} <hnwOutputWidget  id="{{>widgetID}}" isEditing="{{isEditing}}" left="{{left}}" right="{{right}}" top="{{top}}" bottom="{{bottom}}" widget={{this}} isHNW="{{isHNW}}" text="{{outputWidgetOutput}}" /> {{/}}
         {{/}}
       </div>
 
@@ -393,9 +428,10 @@ partials = {
 }
 # coffeelint: enable=max_line_length
 
-genWidgetCreator = (name, widgetType, isEnabled = true, enabler = (-> false)) ->
+genWidgetCreator = (ractive, name, widgetType, isEnabled = true, enabler = (-> false)) ->
+  type = if ractive.get('isHNW') then "hnw" + widgetType.charAt(0).toUpperCase() + widgetType.slice(1) else widgetType
   { text: "Create #{name}", enabler, isEnabled
-  , action: (context, mouseX, mouseY) -> context.fire('create-widget', widgetType, mouseX, mouseY)
+  , action: (context, mouseX, mouseY) -> context.fire('create-widget', type, mouseX, mouseY)
   }
 
 alreadyHasA = (componentName) -> (ractive) ->
@@ -404,17 +440,17 @@ alreadyHasA = (componentName) -> (ractive) ->
   else
     not ractive.findComponent(componentName)?
 
-widgetCreationOptions = [
-  ["Button",  "button"],
-  ["Chooser", "chooser"],
-  ["Input",   "inputBox"],
-  ["Note",    "textBox"],
-  ["Monitor", "monitor"],
-  ["Output",  "output", false, alreadyHasA('outputWidget')],
-  ["Plot",    "plot"],
-  ["Slider",  "slider"],
-  ["Switch",  "switch"],
-].map((args) -> genWidgetCreator(args...))
+widgetCreationOptions = (ractive) ->
+  [ ["Button",  "button"]
+  , ["Chooser", "chooser"]
+  , ["Input",   "inputBox"]
+  , ["Label",   "textBox"]
+  , ["Monitor", "monitor"]
+  , ["Output",  "output", false, alreadyHasA('outputWidget')]
+  , ["Plot",    "plot"]
+  , ["Slider",  "slider"]
+  , ["Switch",  "switch"]
+  ].map((args) -> genWidgetCreator(ractive, args...))
 
 # `widgetObj` is just the type of the skeleton's 'widgetObj' data.
 convertWidgetsToVarNames = (widgetObj) ->

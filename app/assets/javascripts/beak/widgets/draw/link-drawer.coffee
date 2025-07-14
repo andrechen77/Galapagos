@@ -31,8 +31,9 @@ calculateComps = (x1, y1, x2, y2, size) ->
 
 calculateSublineOffset = (onePixel, centerOffset, thickness, xcomp, ycomp) ->
   thicknessFactor = thickness / onePixel
-  xOff = centerOffset * thicknessFactor * xcomp
-  yOff = centerOffset * thicknessFactor * ycomp
+  # The `-1` factor is to match NetLogo desktop behavior
+  xOff = -1 * centerOffset * thicknessFactor * xcomp
+  yOff = -1 * centerOffset * thicknessFactor * ycomp
   [xOff, yOff]
 
 getOffsetSubline = (x1, y1, x2, y2, xOff, yOff) ->
@@ -135,12 +136,13 @@ drawLinkLine = (
   shape = shapelist[shapeName]
   { curviness, lines } = shape
 
-  lines.forEach(
-    (line) =>
+  # Draw the middle line last so the arrow shape will always be on top
+  [0, 2, 1].forEach(
+    (i) =>
 
-      { 'x-offset': centerOffset, 'dash-pattern': dashPattern, 'is-visible': visible } = line
+      { 'x-offset': centerOffset, 'dash-pattern': dashPattern, 'is-visible': visible } = lines[i]
 
-      isMiddleLine = line is lines[1]
+      isMiddleLine = i is 1
 
       if visible or isMiddleLine
 
