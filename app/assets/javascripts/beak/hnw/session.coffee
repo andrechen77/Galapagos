@@ -187,7 +187,7 @@ class HNWSession
     widgetController = @_getWC()
 
     { drawingEvents, links, observer, patches, turtles, world: w } =
-      widgetController.viewController.model
+      widgetController.viewController.getModel()
 
     trueObserver = Object.assign({}, observer)
 

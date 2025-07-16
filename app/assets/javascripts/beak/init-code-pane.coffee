@@ -19,7 +19,7 @@ onCodePaneMessage = (e) ->
 
     when "hnw-model-code", "hnw-recompile-success"
       code = e.data.code
-      ractive.findComponent("codePane").setCode(code)
+      ractive.findComponent("codePane").set("code", code)
       ractive.set("code", code)
       ractive.set("lastCompiledCode", code)
       ractive.set("lastCompileFailed", false)

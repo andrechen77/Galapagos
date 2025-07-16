@@ -48,7 +48,9 @@ initializeUI = (containerArg, widgets, code, info,
   reportError = (time, source, exception, ...args) ->
     controller.reportError(time, source, exception, ...args)
 
-  window.EditorDictionary.Initialize({}) # required for codemirror-netlogo's dictionary tooltips
+  # only initialize if we use codemirror-netlogo
+  if window.EditorDictionary?
+    window.EditorDictionary.Initialize({}) # required for codemirror-netlogo's dictionary tooltips
   viewWidget =
     widgets.find(({ type }) -> type is 'view' or type is 'hnwView') ? defaultView
   viewController = new ViewController(viewWidget)

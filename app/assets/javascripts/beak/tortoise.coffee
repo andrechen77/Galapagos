@@ -278,7 +278,7 @@ workspace.i18nBundle = { supports: function() { return true; }, 'switch': functi
     , isReporter : (-> throw new Error("isReporter:  This compiler is a stub."))
     }
 
-  session = newSession( container, compiler, [], listeners, model, false, "en_us"
+  session = newSession( container, compiler, [], listeners, model, model, false, "en_us"
                       , null, new NewSource(""), false)
   callback(session)
 

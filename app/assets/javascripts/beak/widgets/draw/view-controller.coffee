@@ -169,18 +169,18 @@ class ViewController
     return
 
   # (Update|Array[Update]) => Unit
-  _applyUpdateToModel: (modelUpdate) ->
+  applyUpdate: (modelUpdate) ->
     updates = if Array.isArray(modelUpdate) then modelUpdate else [modelUpdate]
     @_model.update(u) for u in updates
-    return
-
-  # (Update|Array[Update]) => Unit
-  update: (modelUpdate) ->
-    @_applyUpdateToModel(modelUpdate)
     @_layerDeps.model = {
       @_layerDeps.model...,
       worldShape: extractWorldShape(@_model.world)
     }
+    return
+
+  # (Update|Array[Update]) => Unit
+  update: (modelUpdate) ->
+    @applyUpdate(modelUpdate)
     @repaint()
     @_model.drawingEvents = []
     return
@@ -242,6 +242,8 @@ class ViewController
       new View(container, layer, mouseHandlers, windowRectGen, unregisterThisView)
     )
 
+  getMainView: -> @_views[0]
+
   # Using the passed in `createView` function, creates and registers a new View to this
   # ViewController, then returns that view. The `createView` function should handle everything
   # involved with creating the view, except for the View's unregister function, which it takes as
@@ -293,6 +295,8 @@ class View
     @_initMouseTracking()
     @_initTouchTracking()
     return
+
+  getVisibleCanvas: -> @_visibleCanvas
 
   # (Unit) -> DOMRect
   getBoundingClientRect: -> @_visibleCanvas.getBoundingClientRect()
